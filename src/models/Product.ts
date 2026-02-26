@@ -4,10 +4,14 @@ import { PRODUCT_CATEGORIES } from "@/lib/types";
 const productSchema = new mongoose.Schema(
   {
     sku: { type: String, required: true, unique: true, trim: true },
+    productCode: String,
     barcode: String,
     styleNumber: String,
     name: { type: String, required: true },
     description: String,
+    longDescription: String,
+    materials: String,
+    careGuide: String,
     category: { type: String, required: true, enum: PRODUCT_CATEGORIES },
     stockCategory: {
       type: String,
@@ -15,10 +19,13 @@ const productSchema = new mongoose.Schema(
       enum: ["previous", "current", "forward"],
     },
     colour: { type: String, required: true },
+    colours: [String],
+    sizes: [String],
     attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
     images: { type: [String], default: [] },
     packSize: { type: Number, required: true, min: 1 },
     pricePerItem: Number,
+    compareAtPrice: Number,
     createdAt: Date,
     updatedAt: Date,
   },

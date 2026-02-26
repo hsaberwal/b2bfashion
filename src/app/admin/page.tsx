@@ -65,8 +65,11 @@ export default function AdminPage() {
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">
           Upload products via API or seed sample data below.
         </p>
-        <Link href="/" className="text-sm text-gray-500 hover:underline mb-6 inline-block">
+        <Link href="/" className="text-sm text-gray-500 hover:underline mb-2 inline-block">
           ← Back to home
+        </Link>
+        <Link href="/admin/products" className="text-sm text-blue-600 hover:underline mb-6 inline-block ml-4">
+          Manage products →
         </Link>
 
         <section className="border border-gray-200 rounded-lg p-6 bg-white dark:bg-gray-900 dark:border-gray-800 mb-6">

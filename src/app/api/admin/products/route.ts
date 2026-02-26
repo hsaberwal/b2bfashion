@@ -5,19 +5,51 @@ import { requireAdmin } from "@/lib/requireAdmin";
 import { PRODUCT_CATEGORIES } from "@/lib/types";
 import { z } from "zod";
 
+function mapProduct(p: Record<string, unknown>) {
+  return {
+    id: String(p._id),
+    sku: p.sku,
+    productCode: p.productCode,
+    barcode: p.barcode,
+    styleNumber: p.styleNumber,
+    name: p.name,
+    description: p.description,
+    longDescription: p.longDescription,
+    materials: p.materials,
+    careGuide: p.careGuide,
+    category: p.category,
+    stockCategory: p.stockCategory,
+    colour: p.colour,
+    colours: p.colours,
+    sizes: p.sizes,
+    attributes: p.attributes,
+    images: p.images,
+    packSize: p.packSize,
+    pricePerItem: p.pricePerItem,
+    compareAtPrice: p.compareAtPrice,
+  };
+}
+
 const createProductSchema = z.object({
   sku: z.string().min(1).trim(),
+  productCode: z.string().optional(),
   barcode: z.string().optional(),
   styleNumber: z.string().optional(),
   name: z.string().min(1),
   description: z.string().optional(),
+  longDescription: z.string().optional(),
+  materials: z.string().optional(),
+  careGuide: z.string().optional(),
   category: z.enum([...PRODUCT_CATEGORIES] as [string, ...string[]]),
   stockCategory: z.enum(["previous", "current", "forward"]),
   colour: z.string().min(1),
+  colours: z.array(z.string()).optional(),
+  sizes: z.array(z.string()).optional(),
   attributes: z.record(z.string()).optional(),
   images: z.array(z.string().url()).optional(),
   packSize: z.number().int().min(1),
   pricePerItem: z.number().optional(),
+  compareAtPrice: z.number().optional(),
 });
 
 export async function GET() {
@@ -26,21 +58,7 @@ export async function GET() {
     await connectDB();
     const products = await Product.find({}).sort({ sku: 1 }).lean();
     return NextResponse.json({
-      products: products.map((p) => ({
-        id: String(p._id),
-        sku: p.sku,
-        barcode: p.barcode,
-        styleNumber: p.styleNumber,
-        name: p.name,
-        description: p.description,
-        category: p.category,
-        stockCategory: p.stockCategory,
-        colour: p.colour,
-        attributes: p.attributes,
-        images: p.images,
-        packSize: p.packSize,
-        pricePerItem: p.pricePerItem,
-      })),
+      products: products.map((p) => mapProduct(p)),
     });
   } catch (e) {
     const err = e as Error & { status?: number };
@@ -67,7 +85,11 @@ export async function POST(request: NextRequest) {
     if (existing) {
       return NextResponse.json({ error: "Product with this SKU already exists" }, { status: 409 });
     }
-    const product = await Product.create(parsed.data);
+    const product = await Product.create({
+      ...parsed.data,
+      colours: parsed.data.colours?.length ? parsed.data.colours : undefined,
+      sizes: parsed.data.sizes?.length ? parsed.data.sizes : undefined,
+    });
     return NextResponse.json({
       id: product._id.toString(),
       sku: product.sku,

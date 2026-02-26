@@ -61,6 +61,10 @@ git push origin main
 | `NEXTAUTH_URL` | `https://b2bfashion-production.up.railway.app` | Your app’s Railway URL (no trailing slash). |
 | `FORWARD_STOCK_PASSWORD` | A strong password you choose | Used to view “Forward / upcoming stock” on the site. |
 | `JWT_SECRET` | Long random string | e.g. run `openssl rand -base64 32` and paste the output. |
+| `IMAGE_SERVICE_URL` | (Optional) Railway Image Service public URL | e.g. `https://image-service-production.up.railway.app`. See **Step 9**. |
+| `IMAGE_SERVICE_SECRET_KEY` | (Optional) Same as Image Service `SECRET_KEY` | For admin uploads to Image Service. |
+| `IMAGE_SERVICE_SIGNATURE_SECRET_KEY` | (Optional) Same as Image Service `SIGNATURE_SECRET_KEY` | For local URL signing. |
+| `UPLOAD_VOLUME_PATH` | (Optional) Mount path of a Railway Volume | e.g. `/data`. Fallback if Image Service not set. |
 
 You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONGO_PUBLIC_URL` (e.g. from Railway’s MongoDB plugin).
 
@@ -68,9 +72,10 @@ You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONG
 
 ## 5. Deploy
 
-1. With the app service selected, Railway usually **auto-deploys** when you connected the repo. If not, use **Deploy** or **Redeploy** from the service.
-2. Wait for the build to finish (e.g. “Build successful”, then “Deploy successful” or “Active”).
+1. With the app service selected, Railway usually **auto-deploys** when you push to GitHub. If not, use **Deploy** or **Redeploy** from the service.
+2. **Wait for the build to finish** (e.g. “Build successful”, then “Deploy successful” or “Active”). New routes (e.g. `/claim-admin`) only appear after a deploy that includes the latest code.
 3. If the build fails, check the **Build logs** for errors (e.g. missing env var, Node version).
+4. **Getting 404 on a new page?** Make sure the latest commit is deployed: Railway → app service → **Deployments** → check the commit hash (e.g. `53d3531` or later for claim-admin). If the live deploy is older, click **Redeploy** or **Deploy** to build from the latest push.
 
 ---
 
@@ -112,6 +117,43 @@ You need an admin user to seed sample products and add products. Easiest way on 
 
 ---
 
+## 9. Product image uploads (Railway Image Service – recommended)
+
+To let admins **upload product photos** with on-the-fly resize and WebP/AVIF, use the **Railway Image Service** template (one place to pay, no Cloudinary).
+
+The template uses its own variable names. You configure the **Image Service** (the template) and then tell the **app** how to reach it.
+
+1. **Deploy the Image Service** in the same Railway project:
+   - Go to [Railway Image Service template](https://railway.com/deploy/MF8Rcp) and click **Deploy Now**, or in your project click **+ New** → **Deploy from template** and search for “Image Service”.
+   - After deploy, open the **Image Service** service (the one you just deployed) → **Variables**. You’ll see things like `HOST`, `RAILWAY_RUN_UID`, `SECRET_KEY`, `SIGNATURE_SECRET_KEY`. Set these two (the template may leave them empty):
+     - **`SECRET_KEY`** – set to a secret string, e.g. run `openssl rand -base64 24` and paste the output. This is the API key for uploads.
+     - **`SIGNATURE_SECRET_KEY`** – set to another secret string, e.g. run `openssl rand -base64 24` again. Optional but recommended (enables local URL signing).
+   - In the **Image Service** → **Settings** → **Networking**, click **Generate domain** so the service gets a public URL (e.g. `https://image-service-production.up.railway.app`). Copy that URL.
+2. **Connect the app to the Image Service** – open your **app** service (the b2bfashion app, not the Image Service) → **Variables**, and add:
+   - **`IMAGE_SERVICE_URL`** = the Image Service public URL you copied (no trailing slash), e.g. `https://image-service-production.up.railway.app`.
+   - **`IMAGE_SERVICE_SECRET_KEY`** = the **exact same value** you set as **`SECRET_KEY`** on the Image Service.
+   - **`IMAGE_SERVICE_SIGNATURE_SECRET_KEY`** = the **exact same value** you set as **`SIGNATURE_SECRET_KEY`** on the Image Service (optional; if set, signed URLs are generated without an extra network call).
+3. **Redeploy** the app so it picks up the new variables.
+
+**Summary**
+
+| Where | Variable | Value |
+|-------|----------|--------|
+| **Image Service** (template) | `SECRET_KEY` | Your secret (e.g. `openssl rand -base64 24`) |
+| **Image Service** (template) | `SIGNATURE_SECRET_KEY` | Your secret (e.g. `openssl rand -base64 24`) |
+| **App** (b2bfashion) | `IMAGE_SERVICE_URL` | Image Service public URL (from Settings → Generate domain) |
+| **App** (b2bfashion) | `IMAGE_SERVICE_SECRET_KEY` | Same as Image Service `SECRET_KEY` |
+| **App** (b2bfashion) | `IMAGE_SERVICE_SIGNATURE_SECRET_KEY` | Same as Image Service `SIGNATURE_SECRET_KEY` |
+
+After this, the “Upload file” button in **Admin → Products → Add/Edit product** will upload to the Image Service. Product and list pages will receive signed, resized image URLs automatically.
+
+**Fallbacks (no Image Service):**  
+- **Railway Volume:** Add a Volume, set its mount path to `/data`, and set **`UPLOAD_VOLUME_PATH`** = `/data` on the app. Images are stored on the volume and served at `/api/uploads/<filename>`.  
+- **Cloudinary:** Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` on the app.  
+- **Manual:** Admins can always add image URLs via “Add URL”.
+
+---
+
 ## Quick checklist
 
 - [ ] Repo pushed to GitHub  
@@ -123,6 +165,7 @@ You need an admin user to seed sample products and add products. Easiest way on 
 - [ ] Build and deploy successful  
 - [ ] App loads and login/register work  
 - [ ] `CLAIM_ADMIN_SECRET` set, then used at /claim-admin to become admin (optional)  
+- [ ] (Optional) Railway Image Service deployed; `IMAGE_SERVICE_URL` and `IMAGE_SERVICE_SECRET_KEY` set (or Volume + `UPLOAD_VOLUME_PATH`)  
 
 ---
 
@@ -161,6 +204,15 @@ The **app** is trying to connect to MongoDB on **localhost**. On Railway, the ap
 4. **Redeploy** the app service after changing variables.
 
 Then open [https://b2bfashion-production.up.railway.app/api/health](https://b2bfashion-production.up.railway.app/api/health) — you should see `{"ok":true,"database":"connected"}`.
+
+### 404 on /claim-admin (or other new pages)
+
+The live app is running an **older deployment** that doesn’t include that route. Fix:
+
+1. In Railway → open your **app** service (not MongoDB).
+2. Go to **Deployments** and check the **commit** of the latest deployment (e.g. `53d3531`).
+3. If it’s older than your latest push, click **Redeploy** (or **Deploy** → deploy from `main`) so Railway builds and runs the latest code from GitHub.
+4. Wait for the new deployment to finish (“Deploy successful” / “Active”), then try the URL again.
 
 ### Mongoose "Duplicate schema index" warnings
 
