@@ -64,6 +64,7 @@ git push origin main
 | `IMAGE_SERVICE_SECRET_KEY` | (Optional) Same as Image Service `SECRET_KEY` | For admin uploads to Image Service. |
 | `IMAGE_SERVICE_SIGNATURE_SECRET_KEY` | (Optional) Same as Image Service `SIGNATURE_SECRET_KEY` | For local URL signing. |
 | `UPLOAD_VOLUME_PATH` | (Optional) Mount path of a Railway Volume | e.g. `/data`. Fallback if Image Service not set. |
+| `FASHN_API_KEY` | (Optional) FASHN AI API key | For “Generate model photos” on product edit. Get from [app.fashn.ai/api](https://app.fashn.ai/api). |
 
 You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONGO_PUBLIC_URL` (e.g. from Railway’s MongoDB plugin).
 
