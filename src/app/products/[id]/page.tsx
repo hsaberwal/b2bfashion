@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
 type Product = {
   id: string;
@@ -123,7 +124,7 @@ export default function ProductDetailPage() {
                     i === imageIndex ? "border-gray-900 dark:border-white" : "border-gray-200 dark:border-gray-700"
                   }`}
                 >
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img src={imageDisplayUrl(url)} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

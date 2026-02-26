@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
 type Product = {
   id: string;
@@ -95,7 +96,7 @@ export default function AdminProductsPage() {
                   <tr key={p.id} className="border-t border-gray-200 dark:border-gray-800">
                     <td className="p-3">
                       {p.images?.[0] ? (
-                        <img src={p.images[0]} alt="" className="w-12 h-12 object-cover rounded" />
+                        <img src={imageDisplayUrl(p.images[0], { forAdmin: true })} alt="" className="w-12 h-12 object-cover rounded" />
                       ) : (
                         <span className="text-gray-400 text-xs">No image</span>
                       )}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
 type Product = {
   id: string;
@@ -198,7 +199,7 @@ export default function ProductsPage() {
                   <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                     {p.images?.[0] ? (
                       <img
-                        src={p.images[0]}
+                        src={imageDisplayUrl(p.images[0])}
                         alt={p.name}
                         className="w-full h-full object-cover"
                       />
