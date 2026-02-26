@@ -117,7 +117,7 @@ export function ProductForm({ initial, onSubmit, submitLabel }: Props) {
         pricePerItem: form.pricePerItem ? parseFloat(form.pricePerItem) : undefined,
         compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : undefined,
         colours: form.colours.length ? form.colours : undefined,
-        sizes: form.sizes.length ? form.sizes : undefined,
+        sizes: form.sizes.filter(Boolean).length ? form.sizes.filter(Boolean) : undefined,
       };
       await onSubmit(payload);
     } catch (err) {
@@ -254,8 +254,8 @@ export function ProductForm({ initial, onSubmit, submitLabel }: Props) {
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sizes (one per line or comma)</label>
         <textarea
           value={Array.isArray(form.sizes) ? form.sizes.join("\n") : ""}
-          onChange={(e) => update("sizes", e.target.value.split(/[\n,]/).map((s) => s.trim()).filter(Boolean))}
-          rows={4}
+          onChange={(e) => update("sizes", e.target.value.split(/[\n,]/).map((s) => s.trim()))}
+          rows={6}
           placeholder="UK: 10 - EU: 36 - US: XS&#10;UK: 12 - EU: 38 - US: S"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         />

@@ -2,6 +2,14 @@ import { ImageServiceClient } from "railway-image-service/server";
 
 const BLOB_KEY_PREFIX = "products/";
 
+/** Ensure Image Service URL has a protocol so Node URL() accepts it. */
+function normalizeImageServiceUrl(url: string): string {
+  const u = url.trim();
+  if (!u) return u;
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  return `https://${u}`;
+}
+
 /** True if the app is configured to use Railway Image Service. */
 export function isImageServiceConfigured(): boolean {
   return !!(process.env.IMAGE_SERVICE_URL && process.env.IMAGE_SERVICE_SECRET_KEY);
@@ -9,10 +17,11 @@ export function isImageServiceConfigured(): boolean {
 
 /** Lazy client; only created when Image Service is configured. */
 export function getClient(): ImageServiceClient | null {
-  const url = process.env.IMAGE_SERVICE_URL;
+  const rawUrl = process.env.IMAGE_SERVICE_URL;
   const secretKey = process.env.IMAGE_SERVICE_SECRET_KEY;
   const signatureSecretKey = process.env.IMAGE_SERVICE_SIGNATURE_SECRET_KEY;
-  if (!url || !secretKey) return null;
+  if (!rawUrl || !secretKey) return null;
+  const url = normalizeImageServiceUrl(rawUrl);
   return new ImageServiceClient({
     url,
     secretKey,
