@@ -1,7 +1,7 @@
 /** Stock category: when the product is available */
 export type StockCategory = "previous" | "current" | "forward";
 
-/** Product category — aligned with Just Elegance (justelegance.com) */
+/** Product category — aligned with Claudia */
 export const PRODUCT_CATEGORIES = [
   "Tops",
   "Blouses",

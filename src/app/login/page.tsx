@@ -82,7 +82,7 @@ export default function LoginPage() {
           Log in
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
-          Just Elegance B2B — use password or email OTP
+          Claudia B2B — use password or email OTP
         </p>
         <Link href="/" className="text-sm text-gray-500 hover:underline mb-4 inline-block">
           ← Back to home

@@ -60,7 +60,7 @@ export default function AdminPage() {
     <main className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Just Elegance B2B — Admin
+          Claudia B2B — Admin
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">
           Upload products via API or seed sample data below.
@@ -104,7 +104,7 @@ export default function AdminPage() {
             POST <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">/api/admin/products</code> with a JSON body (you must be logged in as admin). Required fields: sku, name, category, stockCategory, colour, packSize. Optional: barcode, styleNumber, description, images (array of URLs), pricePerItem.
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            To use images from your existing site (e.g. Just Elegance), use the image URLs in the <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">images</code> array when creating a product.
+            To use images from your existing site, use the image URLs in the <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">images</code> array when creating a product.
           </p>
         </section>
       </div>

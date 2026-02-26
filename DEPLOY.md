@@ -94,7 +94,7 @@ You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONG
 
 1. Open the app in the browser: [https://b2bfashion-production.up.railway.app](https://b2bfashion-production.up.railway.app).
 2. **Check database connection:** open [https://b2bfashion-production.up.railway.app/api/health](https://b2bfashion-production.up.railway.app/api/health). You should see `{"ok":true,"database":"connected"}`. If you see `"database":"disconnected"` and an error, the app does not have a valid `MONGO_URL` / `MONGO_PUBLIC_URL` / `MONGODB_URI` or cannot reach MongoDB — fix the variable or MongoDB service link and redeploy.
-3. You should see the Just Elegance B2B home page.
+3. You should see the Claudia B2B home page.
 4. Try **Register** → **Login** → **Products** → add to order → **Cart** → sign order.
 
 ---

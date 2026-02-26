@@ -85,7 +85,7 @@ export default function ProductsPage() {
             Products
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Just Elegance B2B — bulk ordering only (pack sizes apply)
+            Claudia B2B — bulk ordering only (pack sizes apply)
           </p>
         </div>
         <nav className="flex gap-2">

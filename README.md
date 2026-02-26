@@ -1,6 +1,6 @@
-# Just Elegance B2B — Sales Platform
+# Claudia B2B — Sales Platform
 
-B2B wholesale platform for **Just Elegance** ([justelegance.com](https://www.justelegance.com/)) — ladies fashion wear. Built with **Next.js**, **Node.js** (API routes), and **MongoDB**. Deploy on **Railway**.
+B2B wholesale platform for **Claudia** — ladies fashion wear. Built with **Next.js**, **Node.js** (API routes), and **MongoDB**. Deploy on **Railway**.
 
 ## Features
 
@@ -124,11 +124,11 @@ After that, when that user logs in they will see an **Admin** link (e.g. on the 
 
 - **Seed sample products** — On the Admin page, click “Seed sample products” to add placeholder products (with placeholder images) so you can see the product list and filters. Safe to run more than once.
 - **Add products via API** — `POST /api/admin/products` with a JSON body (must be logged in as admin). Fields: `sku`, `name`, `category`, `stockCategory`, `colour`, `packSize`; optional: `barcode`, `styleNumber`, `description`, `images` (array of image URLs), `pricePerItem`.
-- **Use images from your existing site** — When creating a product via the API, set `images` to an array of image URLs (e.g. from [Just Elegance](https://www.justelegance.com/) or your own CDN). Ensure you have the right to use those URLs in this app.
+- **Use images from your existing site** — When creating a product via the API, set `images` to an array of image URLs (e.g. from your own site or CDN). Ensure you have the right to use those URLs in this app.
 
 ### Replacing seed images with your own
 
-The seed uses placeholder image URLs. To use real product images (e.g. from Just Elegance):
+The seed uses placeholder image URLs. To use real product images:
 
 1. Create products via `POST /api/admin/products` with `images` set to your image URLs, or  
 2. In MongoDB, update existing products’ `images` array with the correct URLs.

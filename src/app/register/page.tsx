@@ -72,7 +72,7 @@ export default function RegisterPage() {
           Register
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
-          Just Elegance B2B — pricing is granted after approval
+          Claudia B2B — pricing is granted after approval
         </p>
         <Link href="/" className="text-sm text-gray-500 hover:underline mb-4 inline-block">
           ← Back to home

@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Product } from "@/models/Product";
 import { requireAdmin } from "@/lib/requireAdmin";
 
-// Placeholder images (replace with your own URLs from justelegance.com or uploads)
+// Placeholder images (replace with your own URLs or uploads)
 const SAMPLE_IMAGES = [
   "https://picsum.photos/400/500?random=1",
   "https://picsum.photos/400/500?random=2",
