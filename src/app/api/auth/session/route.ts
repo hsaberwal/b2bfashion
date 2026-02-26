@@ -16,7 +16,7 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
     const user = await User.findById(session.userId).select(
-      "email name companyName role pricingApproved"
+      "email name companyName role pricingApproved canViewForwardStock"
     );
     if (!user) {
       return NextResponse.json({ user: null });
@@ -29,6 +29,7 @@ export async function GET() {
         companyName: user.companyName,
         role: user.role ?? "customer",
         pricingApproved: user.pricingApproved,
+        canViewForwardStock: user.canViewForwardStock ?? user.role === "admin",
       },
     });
   } catch (e) {

@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         companyName: user.companyName,
+        role: user.role ?? "customer",
         pricingApproved: user.pricingApproved,
+        canViewForwardStock: user.canViewForwardStock ?? user.role === "admin",
       },
     });
   } catch (e) {

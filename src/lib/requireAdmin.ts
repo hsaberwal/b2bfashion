@@ -10,6 +10,7 @@ export type SessionUser = {
   companyName?: string;
   role: "customer" | "admin";
   pricingApproved: boolean;
+  canViewForwardStock: boolean;
 };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
@@ -18,7 +19,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   await connectDB();
   const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
   if (!session) return null;
-  const user = await User.findById(session.userId).select("email name companyName role pricingApproved");
+  const user = await User.findById(session.userId).select("email name companyName role pricingApproved canViewForwardStock");
   if (!user) return null;
   return {
     id: user._id.toString(),
@@ -27,6 +28,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     companyName: user.companyName,
     role: (user.role as "customer" | "admin") ?? "customer",
     pricingApproved: user.pricingApproved ?? false,
+    canViewForwardStock: user.canViewForwardStock ?? user.role === "admin",
   };
 }
 

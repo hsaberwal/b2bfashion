@@ -4,7 +4,7 @@ B2B wholesale platform for **Just Elegance** ([justelegance.com](https://www.jus
 
 ## Features
 
-- **Stock sections**: Previous year stock, Current stock, Forward/upcoming stock (password protected)
+- **Stock sections**: Previous year stock, Current stock, Forward/upcoming stock (per-user permission)
 - **Product listing**: SKU, barcode, style number, categories (Tops, Blouses, T-shirts, Knitwear, Trousers, Dresses, Skirts, Jackets, Sale, etc.), colour and attribute filters, 4+ images per product
 - **Pricing**: Visible only after account approval
 - **Auth**: Email/password login, email OTP verification, password reset
@@ -45,7 +45,6 @@ cp .env.example .env
 Edit `.env`:
 
 - **MONGODB_URI** — e.g. `mongodb://localhost:27017/b2bfashion` (local). On Railway, the app also accepts **MONGO_URL** or **MONGO_PUBLIC_URL** from the MongoDB plugin.
-- **FORWARD_STOCK_PASSWORD** — Password required to view Forward/upcoming stock
 - **JWT_SECRET** — Random string for session signing (e.g. `openssl rand -base64 32`)
 - **NEXTAUTH_URL** — `http://localhost:3000` for local
 
@@ -71,8 +70,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - Register at `/register`
 - Log in at `/login` (password or OTP; in dev, OTP is logged in the terminal)
-- Browse products at `/products`. Use the Forward stock password in the sidebar to view upcoming stock
-- Pricing stays hidden until `pricingApproved` is set on your user in the database (e.g. via MongoDB Compass or a future admin API)
+- Browse products at `/products`. Forward/upcoming stock is visible only if an admin grants you “View forward stock” in **Admin → Manage users**.
+- Pricing is visible only after an admin enables “Allow pricing” for your user in **Admin → Manage users**.
 - Add products to an order (quantity must be a multiple of pack size), then go to Cart and sign the order
 
 ## Deploy to Railway
@@ -82,7 +81,6 @@ Open [http://localhost:3000](http://localhost:3000).
 3. In the app service, set:
    - **MONGO_URL** or **MONGO_PUBLIC_URL** — from the MongoDB service (or use **MONGODB_URI** with the connection string)
    - **NEXTAUTH_URL** — `https://your-app.up.railway.app`
-   - **FORWARD_STOCK_PASSWORD** — your chosen password for forward stock
    - **JWT_SECRET** — a long random string
 4. Deploy. Railway will run `npm run build` and `npm run start`.
 
@@ -96,16 +94,14 @@ Open [http://localhost:3000](http://localhost:3000).
 - `public/icon.svg` — App icon (PWA)
 - `.env.example` — Example env vars for local and Railway
 
-## Granting pricing access
+## Granting pricing and forward stock access
 
-Users have a `pricingApproved` flag. Until you build an admin UI, set it manually in MongoDB, e.g.:
+Admins can manage user permissions at **Admin → Manage users**:
 
-```javascript
-db.users.updateOne(
-  { email: "customer@example.com" },
-  { $set: { pricingApproved: true } }
-)
-```
+- **Allow pricing** — toggles whether the user sees prices on products and in the cart.
+- **View forward stock** — toggles whether the user can see the “Forward / upcoming stock” section (admins always see it).
+
+You can also set `pricingApproved` and `canViewForwardStock` manually in MongoDB if needed.
 
 ## Admins and uploading products
 

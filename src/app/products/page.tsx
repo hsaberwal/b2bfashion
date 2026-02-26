@@ -42,8 +42,7 @@ export default function ProductsPage() {
   const [stockFilter, setStockFilter] = useState<string>("current");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [colourFilter, setColourFilter] = useState<string>("");
-  const [forwardPassword, setForwardPassword] = useState("");
-  const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string } | null>(null);
+  const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string; canViewForwardStock?: boolean } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -52,12 +51,17 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => {
+    if (user && !user.canViewForwardStock && stockFilter === "forward") {
+      setStockFilter("current");
+    }
+  }, [user, stockFilter]);
+
+  useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (stockFilter) params.set("stockCategory", stockFilter);
     if (categoryFilter) params.set("category", categoryFilter);
     if (colourFilter) params.set("colour", colourFilter);
-    if (stockFilter === "forward" && forwardPassword) params.set("forwardPassword", forwardPassword);
     fetch(`/api/products?${params}`)
       .then((r) => {
         if (r.status === 403) return r.json().then((d) => Promise.reject(new Error(d.error)));
@@ -69,7 +73,7 @@ export default function ProductsPage() {
         setProducts([]);
       })
       .finally(() => setLoading(false));
-  }, [stockFilter, categoryFilter, colourFilter, forwardPassword]);
+  }, [stockFilter, categoryFilter, colourFilter]);
 
   const colours = Array.from(new Set(products.map((p) => p.colour))).sort();
 
@@ -135,23 +139,11 @@ export default function ProductsPage() {
             >
               <option value="current">Current stock</option>
               <option value="previous">Previous year stock</option>
-              <option value="forward">Forward / upcoming stock</option>
+              {user?.canViewForwardStock && (
+                <option value="forward">Forward / upcoming stock</option>
+              )}
             </select>
           </div>
-          {stockFilter === "forward" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Section password
-              </label>
-              <input
-                type="password"
-                value={forwardPassword}
-                onChange={(e) => setForwardPassword(e.target.value)}
-                placeholder="Enter password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-              />
-            </div>
-          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Category
@@ -194,7 +186,7 @@ export default function ProductsPage() {
             <p className="text-gray-500">Loading products…</p>
           ) : products.length === 0 ? (
             <p className="text-gray-500">
-              No products in this section. Try another filter or enter the forward stock password if viewing upcoming stock.
+              No products in this section. Try another filter.
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

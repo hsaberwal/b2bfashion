@@ -59,7 +59,6 @@ git push origin main
 |----------|--------|--------|
 | `MONGO_URL` or `MONGO_PUBLIC_URL` | From your MongoDB service | Reference the MongoDB service variable, or paste the connection string. The app uses either one. |
 | `NEXTAUTH_URL` | `https://b2bfashion-production.up.railway.app` | Your app’s Railway URL (no trailing slash). |
-| `FORWARD_STOCK_PASSWORD` | A strong password you choose | Used to view “Forward / upcoming stock” on the site. |
 | `JWT_SECRET` | Long random string | e.g. run `openssl rand -base64 32` and paste the output. |
 | `IMAGE_SERVICE_URL` | (Optional) Railway Image Service public URL | e.g. `https://image-service-production.up.railway.app`. See **Step 9**. |
 | `IMAGE_SERVICE_SECRET_KEY` | (Optional) Same as Image Service `SECRET_KEY` | For admin uploads to Image Service. |
@@ -161,7 +160,7 @@ After this, the “Upload file” button in **Admin → Products → Add/Edit pr
 - [ ] MongoDB added (Railway plugin or Atlas)  
 - [ ] `MONGO_URL` or `MONGO_PUBLIC_URL` (or `MONGODB_URI`) set on the **app** service  
 - [ ] `NEXTAUTH_URL` set to the app’s Railway URL (after first deploy)  
-- [ ] `FORWARD_STOCK_PASSWORD` and `JWT_SECRET` set  
+- [ ] `JWT_SECRET` set  
 - [ ] Build and deploy successful  
 - [ ] App loads and login/register work  
 - [ ] `CLAIM_ADMIN_SECRET` set, then used at /claim-admin to become admin (optional)  
@@ -179,7 +178,6 @@ railway login
 railway link   # select your project + app service
 railway variables set MONGO_URL="mongodb+srv://..."   # or reference from MongoDB service
 railway variables set NEXTAUTH_URL="https://b2bfashion-production.up.railway.app"
-railway variables set FORWARD_STOCK_PASSWORD="your-password"
 railway variables set JWT_SECRET="$(openssl rand -base64 32)"
 railway up     # build and deploy
 ```

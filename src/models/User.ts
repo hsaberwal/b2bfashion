@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     companyName: String,
     role: { type: String, enum: ["customer", "admin"], default: "customer" },
     pricingApproved: { type: Boolean, default: false },
+    canViewForwardStock: { type: Boolean, default: false },
     otpCode: String,
     otpExpires: Date,
     resetToken: String,

@@ -71,6 +71,9 @@ export default function AdminPage() {
         <Link href="/admin/products" className="text-sm text-blue-600 hover:underline mb-6 inline-block ml-4">
           Manage products →
         </Link>
+        <Link href="/admin/users" className="text-sm text-blue-600 hover:underline mb-6 inline-block ml-4">
+          Manage users →
+        </Link>
 
         <section className="border border-gray-200 rounded-lg p-6 bg-white dark:bg-gray-900 dark:border-gray-800 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">

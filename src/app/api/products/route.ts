@@ -14,35 +14,33 @@ export async function GET(request: NextRequest) {
     const stockCategory = searchParams.get("stockCategory") as StockCategory | null;
     const category = searchParams.get("category");
     const colour = searchParams.get("colour");
-    const forwardPassword = searchParams.get("forwardPassword");
 
     await connectDB();
 
+    let pricingApproved = false;
+    let canViewForward = false;
+    const token = await getSessionToken();
+    if (token) {
+      const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
+      if (session) {
+        const user = await User.findById(session.userId).select("pricingApproved role canViewForwardStock");
+        pricingApproved = user?.pricingApproved ?? false;
+        canViewForward = user?.role === "admin" || user?.canViewForwardStock === true;
+      }
+    }
+
     const filter: Record<string, unknown> = {};
     if (stockCategory) {
-      if (stockCategory === "forward") {
-        const correct = process.env.FORWARD_STOCK_PASSWORD;
-        if (!correct || forwardPassword !== correct) {
-          return NextResponse.json(
-            { error: "Forward stock is password protected. Provide forwardPassword." },
-            { status: 403 }
-          );
-        }
+      if (stockCategory === "forward" && !canViewForward) {
+        return NextResponse.json(
+          { error: "You do not have permission to view forward stock." },
+          { status: 403 }
+        );
       }
       filter.stockCategory = stockCategory;
     }
     if (category) filter.category = category;
     if (colour) filter.colour = colour;
-
-    let pricingApproved = false;
-    const token = await getSessionToken();
-    if (token) {
-      const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
-      if (session) {
-        const user = await User.findById(session.userId).select("pricingApproved");
-        pricingApproved = user?.pricingApproved ?? false;
-      }
-    }
 
     const products = await Product.find(filter)
       .sort({ sku: 1 })
