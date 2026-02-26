@@ -4,8 +4,6 @@ import { Product } from "@/models/Product";
 import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
-import { resolveImageUrls } from "@/lib/imageService";
-
 export type StockCategory = "previous" | "current" | "forward";
 
 export async function GET(request: NextRequest) {
@@ -45,27 +43,24 @@ export async function GET(request: NextRequest) {
     const products = await Product.find(filter)
       .sort({ sku: 1 })
       .lean();
-    const list = await Promise.all(
-      products.map(async (p) => {
-        const images = (p.images ?? []) as string[];
-        const imagesResolved = await resolveImageUrls(images, 400);
-        return {
-          id: String(p._id),
-          sku: p.sku,
-          barcode: p.barcode,
-          styleNumber: p.styleNumber,
-          name: p.name,
-          description: p.description,
-          category: p.category,
-          stockCategory: p.stockCategory,
-          colour: p.colour,
-          attributes: p.attributes,
-          images: imagesResolved,
-          packSize: p.packSize,
-          pricePerItem: pricingApproved ? p.pricePerItem : undefined,
-        };
-      })
-    );
+    const list = products.map((p) => {
+      const images = (p.images ?? []) as string[];
+      return {
+        id: String(p._id),
+        sku: p.sku,
+        barcode: p.barcode,
+        styleNumber: p.styleNumber,
+        name: p.name,
+        description: p.description,
+        category: p.category,
+        stockCategory: p.stockCategory,
+        colour: p.colour,
+        attributes: p.attributes,
+        images,
+        packSize: p.packSize,
+        pricePerItem: pricingApproved ? p.pricePerItem : undefined,
+      };
+    });
     return NextResponse.json({ products: list });
   } catch (e) {
     console.error(e);

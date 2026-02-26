@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Product } from "@/models/Product";
 import mongoose from "mongoose";
-import { resolveImageUrls } from "@/lib/imageService";
 
 export async function GET(
   _request: NextRequest,
@@ -19,8 +18,8 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
     const product = raw as Record<string, unknown>;
+    // Return raw images (blob keys or URLs); client uses /api/images/signed for blob keys so URLs stay valid
     const images = (product.images ?? []) as string[];
-    const imagesResolved = await resolveImageUrls(images, 1200);
     return NextResponse.json({
       id: String(product._id),
       sku: product.sku,
@@ -38,7 +37,7 @@ export async function GET(
       colours: product.colours,
       sizes: product.sizes,
       attributes: product.attributes,
-      images: imagesResolved,
+      images,
       packSize: product.packSize,
       pricePerItem: product.pricePerItem,
       compareAtPrice: product.compareAtPrice,
