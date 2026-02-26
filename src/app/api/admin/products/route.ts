@@ -46,7 +46,7 @@ const createProductSchema = z.object({
   colours: z.array(z.string()).optional(),
   sizes: z.array(z.string()).optional(),
   attributes: z.record(z.string()).optional(),
-  images: z.array(z.string().url()).optional(),
+  images: z.array(z.string().min(1)).optional(),
   packSize: z.number().int().min(1),
   pricePerItem: z.number().optional(),
   compareAtPrice: z.number().optional(),

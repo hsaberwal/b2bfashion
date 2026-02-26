@@ -22,9 +22,9 @@ export default function NewProductPage() {
       colours: data.colours?.length ? data.colours : undefined,
       sizes: data.sizes?.length ? data.sizes : undefined,
       images: data.images?.length ? data.images : undefined,
-      packSize: data.packSize,
-      pricePerItem: data.pricePerItem,
-      compareAtPrice: data.compareAtPrice,
+      packSize: typeof data.packSize === "number" ? data.packSize : Number(data.packSize) || 1,
+      pricePerItem: data.pricePerItem != null && data.pricePerItem !== "" ? Number(data.pricePerItem) : undefined,
+      compareAtPrice: data.compareAtPrice != null && data.compareAtPrice !== "" ? Number(data.compareAtPrice) : undefined,
     };
     const res = await fetch("/api/admin/products", {
       method: "POST",
@@ -32,7 +32,12 @@ export default function NewProductPage() {
       body: JSON.stringify(payload),
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error ?? "Failed to create product");
+    if (!res.ok) {
+      const msg = result.details
+        ? `${result.error}: ${JSON.stringify(result.details)}`
+        : (result.error ?? "Failed to create product");
+      throw new Error(msg);
+    }
     router.push("/admin/products");
   }
 

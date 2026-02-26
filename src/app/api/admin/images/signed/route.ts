@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     if (!client) {
       return NextResponse.json({ error: "Image service not configured" }, { status: 503 });
     }
-    const path = `serve/600x/blob/${key.trim()}`;
+    // Use raw blob path so thumbnails work even if serve/ resizing isn't configured
+    const path = `blob/${key.trim()}`;
     const signedUrl = await client.sign(path);
     return NextResponse.redirect(signedUrl);
   } catch (e) {
