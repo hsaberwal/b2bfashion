@@ -103,7 +103,7 @@ export default function ProductDetailPage() {
           <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-4">
             {images[imageIndex] ? (
               <img
-                src={images[imageIndex]}
+                src={imageDisplayUrl(images[imageIndex])}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
