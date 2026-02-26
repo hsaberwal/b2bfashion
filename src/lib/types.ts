@@ -1,16 +1,19 @@
 /** Stock category: when the product is available */
 export type StockCategory = "previous" | "current" | "forward";
 
-/** Product category (e.g. Tops, Trousers) */
+/** Product category — aligned with Just Elegance (justelegance.com) */
 export const PRODUCT_CATEGORIES = [
   "Tops",
+  "Blouses",
   "T-shirts",
-  "Trousers",
+  "Knitwear",
   "Cardigans",
   "Jumpers",
+  "Trousers",
   "Dresses",
   "Skirts",
   "Jackets",
+  "Sale",
   "Other",
 ] as const;
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];

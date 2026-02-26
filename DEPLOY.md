@@ -49,19 +49,20 @@ git push origin main
 
 1. In the Railway project, open the **app service** (the one from “Deploy from GitHub repo”), not the MongoDB service.
 2. Go to the **Variables** tab.
-3. Add (or paste from **Raw Editor**):
+3. **Connect MongoDB to the app** so the app gets the MongoDB variables:
+   - In the app service, click **Variables** → **Add variable** or **Reference**.
+   - Add a **reference** to the MongoDB service’s variables (e.g. “Add variable reference” and select the MongoDB service, then choose `MONGO_URL` or `MONGO_PUBLIC_URL`).  
+   **Or** copy the MongoDB connection string from the MongoDB service (`MONGO_URL` or `MONGO_PUBLIC_URL`) and add it to the app as **`MONGO_URL`** (the app reads this automatically).
+4. Add these variables on the **app** service:
 
 | Variable | Value | Notes |
 |----------|--------|--------|
-| `MONGODB_URI` | Your MongoDB connection string | From step 3 (Railway MongoDB or Atlas). |
-| `NEXTAUTH_URL` | `https://<your-app>.up.railway.app` | Replace with your app’s real Railway URL (see step 6). You can set this after first deploy. |
+| `MONGO_URL` or `MONGO_PUBLIC_URL` | From your MongoDB service | Reference the MongoDB service variable, or paste the connection string. The app uses either one. |
+| `NEXTAUTH_URL` | `https://<your-app>.up.railway.app` | Your app’s Railway URL (see step 6). Set after first deploy. |
 | `FORWARD_STOCK_PASSWORD` | A strong password you choose | Used to view “Forward / upcoming stock” on the site. |
 | `JWT_SECRET` | Long random string | e.g. run `openssl rand -base64 32` and paste the output. |
 
-If Railway’s MongoDB plugin exposes the URI as something like `MONGO_URL`, either:
-
-- Add a variable **`MONGODB_URI`** and set its value to that connection string, or  
-- In the app’s Variables, add **`MONGODB_URI`** and set it to the value of `MONGO_URL` (or reference it if Railway supports referencing another service’s variable).
+You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONGO_PUBLIC_URL` (e.g. from Railway’s MongoDB plugin).
 
 ---
 
@@ -97,7 +98,7 @@ If Railway’s MongoDB plugin exposes the URI as something like `MONGO_URL`, eit
 - [ ] Repo pushed to GitHub  
 - [ ] Railway project created from that repo  
 - [ ] MongoDB added (Railway plugin or Atlas)  
-- [ ] `MONGODB_URI` set on the **app** service  
+- [ ] `MONGO_URL` or `MONGO_PUBLIC_URL` (or `MONGODB_URI`) set on the **app** service  
 - [ ] `NEXTAUTH_URL` set to the app’s Railway URL (after first deploy)  
 - [ ] `FORWARD_STOCK_PASSWORD` and `JWT_SECRET` set  
 - [ ] Build and deploy successful  
@@ -113,7 +114,7 @@ You can also deploy and set variables from the terminal:
 # Install: npm i -g @railway/cli
 railway login
 railway link   # select your project + app service
-railway variables set MONGODB_URI="mongodb+srv://..."
+railway variables set MONGO_URL="mongodb+srv://..."   # or reference from MongoDB service
 railway variables set NEXTAUTH_URL="https://your-app.up.railway.app"
 railway variables set FORWARD_STOCK_PASSWORD="your-password"
 railway variables set JWT_SECRET="$(openssl rand -base64 32)"

@@ -23,13 +23,16 @@ const STOCK_LABELS: Record<string, string> = {
 
 const PRODUCT_CATEGORIES = [
   "Tops",
+  "Blouses",
   "T-shirts",
-  "Trousers",
+  "Knitwear",
   "Cardigans",
   "Jumpers",
+  "Trousers",
   "Dresses",
   "Skirts",
   "Jackets",
+  "Sale",
   "Other",
 ];
 
@@ -78,7 +81,7 @@ export default function ProductsPage() {
             Products
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
-            B2B ladies fashion — bulk ordering only (pack sizes apply)
+            Just Elegance B2B — bulk ordering only (pack sizes apply)
           </p>
         </div>
         <nav className="flex gap-2">

@@ -5,10 +5,10 @@ export default function HomePage() {
     <main className="min-h-screen p-8">
       <header className="max-w-4xl mx-auto mb-12">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          B2B Ladies Fashion
+          Just Elegance B2B
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Wholesale platform for ladies fashion wear. Log in to browse stock and place orders.
+          Wholesale platform for Just Elegance — ladies fashion wear. Log in to browse stock and place orders.
         </p>
       </header>
       <nav className="max-w-4xl mx-auto flex gap-4">

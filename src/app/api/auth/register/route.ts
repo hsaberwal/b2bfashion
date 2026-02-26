@@ -43,7 +43,19 @@ export async function POST(request: NextRequest) {
       pricingApproved: user.pricingApproved,
     });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Registration failed" }, { status: 500 });
+    const message = e instanceof Error ? e.message : "Registration failed";
+    console.error("Registration error:", e);
+    const isDev = process.env.NODE_ENV === "development";
+    const isDbError =
+      message.includes("MONGODB") ||
+      message.includes("MONGO") ||
+      message.includes("connect") ||
+      message.includes("ECONNREFUSED");
+    const userMessage = isDev
+      ? message
+      : isDbError
+        ? "Registration failed. Database is not available — check that MongoDB is running and MONGODB_URI (or MONGO_URL) is set."
+        : "Registration failed. Please try again.";
+    return NextResponse.json({ error: userMessage }, { status: 500 });
   }
 }

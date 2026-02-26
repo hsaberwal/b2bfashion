@@ -3,14 +3,14 @@ import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 
 export const metadata: Metadata = {
-  title: "B2B Ladies Fashion | Wholesale",
-  description: "B2B sales platform for ladies fashion wear",
+  title: "Just Elegance B2B | Wholesale",
+  description: "B2B wholesale platform for Just Elegance — ladies fashion wear",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "B2B Fashion",
+    title: "Just Elegance B2B",
   },
 };
 

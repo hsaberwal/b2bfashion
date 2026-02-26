@@ -1,11 +1,11 @@
-# B2B Ladies Fashion — Sales Platform
+# Just Elegance B2B — Sales Platform
 
-B2B wholesale platform for ladies fashion wear. Built with **Next.js**, **Node.js** (API routes), and **MongoDB**. Deploy on **Railway**.
+B2B wholesale platform for **Just Elegance** ([justelegance.com](https://www.justelegance.com/)) — ladies fashion wear. Built with **Next.js**, **Node.js** (API routes), and **MongoDB**. Deploy on **Railway**.
 
 ## Features
 
 - **Stock sections**: Previous year stock, Current stock, Forward/upcoming stock (password protected)
-- **Product listing**: SKU, barcode, style number, categories (Tops, T-shirts, Trousers, Cardigans, Jumpers, etc.), colour and attribute filters, 4+ images per product
+- **Product listing**: SKU, barcode, style number, categories (Tops, Blouses, T-shirts, Knitwear, Trousers, Dresses, Skirts, Jackets, Sale, etc.), colour and attribute filters, 4+ images per product
 - **Pricing**: Visible only after account approval
 - **Auth**: Email/password login, email OTP verification, password reset
 - **Orders**: Bulk ordering only (pack sizes; pricing per single item). Digital signature for order acceptance
@@ -44,7 +44,7 @@ cp .env.example .env
 
 Edit `.env`:
 
-- **MONGODB_URI** — e.g. `mongodb://localhost:27017/b2bfashion` (local MongoDB) or a cloud URI (Atlas, etc.)
+- **MONGODB_URI** — e.g. `mongodb://localhost:27017/b2bfashion` (local). On Railway, the app also accepts **MONGO_URL** or **MONGO_PUBLIC_URL** from the MongoDB plugin.
 - **FORWARD_STOCK_PASSWORD** — Password required to view Forward/upcoming stock
 - **JWT_SECRET** — Random string for session signing (e.g. `openssl rand -base64 32`)
 - **NEXTAUTH_URL** — `http://localhost:3000` for local
@@ -78,9 +78,9 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Deploy to Railway
 
 1. Push this repo to GitHub and connect the repo in [Railway](https://railway.app).
-2. Create a **MongoDB** service (Railway add-on or external Atlas) and set **MONGODB_URI** in the app’s variables.
+2. Create a **MongoDB** service (Railway add-on or external Atlas) and give the app access to **MONGO_URL** or **MONGO_PUBLIC_URL** (reference the MongoDB service variables, or copy the connection string).
 3. In the app service, set:
-   - **MONGODB_URI** — from the MongoDB service or Atlas
+   - **MONGO_URL** or **MONGO_PUBLIC_URL** — from the MongoDB service (or use **MONGODB_URI** with the connection string)
    - **NEXTAUTH_URL** — `https://your-app.up.railway.app`
    - **FORWARD_STOCK_PASSWORD** — your chosen password for forward stock
    - **JWT_SECRET** — a long random string

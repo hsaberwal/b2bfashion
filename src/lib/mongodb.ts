@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
 
 function getMongoUri(): string {
-  const uri = process.env.MONGODB_URI;
+  // Railway MongoDB plugin uses MONGO_URL / MONGO_PUBLIC_URL; local/dev uses MONGODB_URI
+  const uri =
+    process.env.MONGO_URL ??
+    process.env.MONGO_PUBLIC_URL ??
+    process.env.MONGODB_URI;
   if (!uri) {
     throw new Error(
-      "Please set MONGODB_URI in .env (e.g. mongodb://localhost:27017/b2bfashion)"
+      "Please set MONGO_URL, MONGO_PUBLIC_URL, or MONGODB_URI (e.g. mongodb://localhost:27017/b2bfashion)"
     );
   }
   return uri;
