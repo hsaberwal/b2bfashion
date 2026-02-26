@@ -9,7 +9,6 @@ const sessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-sessionSchema.index({ token: 1 });
 sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export const Session =

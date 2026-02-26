@@ -58,7 +58,7 @@ git push origin main
 | Variable | Value | Notes |
 |----------|--------|--------|
 | `MONGO_URL` or `MONGO_PUBLIC_URL` | From your MongoDB service | Reference the MongoDB service variable, or paste the connection string. The app uses either one. |
-| `NEXTAUTH_URL` | `https://<your-app>.up.railway.app` | Your app’s Railway URL (see step 6). Set after first deploy. |
+| `NEXTAUTH_URL` | `https://b2bfashion-production.up.railway.app` | Your app’s Railway URL (no trailing slash). |
 | `FORWARD_STOCK_PASSWORD` | A strong password you choose | Used to view “Forward / upcoming stock” on the site. |
 | `JWT_SECRET` | Long random string | e.g. run `openssl rand -base64 32` and paste the output. |
 
@@ -78,19 +78,37 @@ You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONG
 
 1. Open the app service → **Settings** or **Deployments**.
 2. Under **Networking** or **Public networking**, click **Generate domain** (or use the default one).
-3. Copy the URL (e.g. `https://b2bfashion-production-xxxx.up.railway.app`).
+3. Copy the URL (e.g. `https://b2bfashion-production.up.railway.app`).
 4. In **Variables**, set:
-   - **`NEXTAUTH_URL`** = that URL (e.g. `https://b2bfashion-production-xxxx.up.railway.app`).
+   - **`NEXTAUTH_URL`** = `https://b2bfashion-production.up.railway.app` (no trailing slash).
 5. Trigger a **redeploy** so the app restarts with the new variable (e.g. **Redeploy** from the latest deployment).
 
 ---
 
 ## 7. Verify
 
-1. Open **NEXTAUTH_URL** in the browser (e.g. `https://your-app.up.railway.app`).
-2. **Check database connection:** open `https://your-app.up.railway.app/api/health`. You should see `{"ok":true,"database":"connected"}`. If you see `"database":"disconnected"` and an error, the app does not have a valid `MONGO_URL` / `MONGO_PUBLIC_URL` / `MONGODB_URI` or cannot reach MongoDB — fix the variable or MongoDB service link and redeploy.
+1. Open the app in the browser: [https://b2bfashion-production.up.railway.app](https://b2bfashion-production.up.railway.app).
+2. **Check database connection:** open [https://b2bfashion-production.up.railway.app/api/health](https://b2bfashion-production.up.railway.app/api/health). You should see `{"ok":true,"database":"connected"}`. If you see `"database":"disconnected"` and an error, the app does not have a valid `MONGO_URL` / `MONGO_PUBLIC_URL` / `MONGODB_URI` or cannot reach MongoDB — fix the variable or MongoDB service link and redeploy.
 3. You should see the Just Elegance B2B home page.
 4. Try **Register** → **Login** → **Products** → add to order → **Cart** → sign order.
+
+---
+
+## 8. Make yourself an admin (so you can upload/seed products)
+
+You need an admin user to seed sample products and add products. Easiest way on Railway:
+
+1. In the **app** service → **Variables**, add:
+   - **`CLAIM_ADMIN_SECRET`** = any secret string you choose (e.g. run `openssl rand -base64 24` and paste it).
+2. **Redeploy** the app so the variable is picked up.
+3. **Log in** to the app (register first if you haven’t).
+4. Open **https://b2bfashion-production.up.railway.app/claim-admin**.
+5. Enter the same secret you set as `CLAIM_ADMIN_SECRET` and click **Claim admin**.
+6. You’re now an admin. You can go to **Admin** and run **Seed sample products**, or add products via the API.
+7. (Optional) Remove **`CLAIM_ADMIN_SECRET`** from Variables and redeploy so the claim page can’t be used again.
+
+**Alternative (using MongoDB directly):** If you prefer to set admin in the database, use MongoDB Compass or `mongosh` with your Railway MongoDB **MONGO_PUBLIC_URL** connection string, connect to the database, and run:  
+`db.users.updateOne({ email: "your@email.com" }, { $set: { role: "admin" } })`.
 
 ---
 
@@ -104,6 +122,7 @@ You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONG
 - [ ] `FORWARD_STOCK_PASSWORD` and `JWT_SECRET` set  
 - [ ] Build and deploy successful  
 - [ ] App loads and login/register work  
+- [ ] `CLAIM_ADMIN_SECRET` set, then used at /claim-admin to become admin (optional)  
 
 ---
 
@@ -116,10 +135,37 @@ You can also deploy and set variables from the terminal:
 railway login
 railway link   # select your project + app service
 railway variables set MONGO_URL="mongodb+srv://..."   # or reference from MongoDB service
-railway variables set NEXTAUTH_URL="https://your-app.up.railway.app"
+railway variables set NEXTAUTH_URL="https://b2bfashion-production.up.railway.app"
 railway variables set FORWARD_STOCK_PASSWORD="your-password"
 railway variables set JWT_SECRET="$(openssl rand -base64 32)"
 railway up     # build and deploy
 ```
 
 Use the same variable names and values as in the table above.
+
+---
+
+## Troubleshooting
+
+### "connect ECONNREFUSED 127.0.0.1:27017" or "connect ECONNREFUSED ::1:27017"
+
+The **app** is trying to connect to MongoDB on **localhost**. On Railway, the app and MongoDB run in **different containers**, so localhost on the app is not the database.
+
+**Fix:**
+
+1. Open your **app** service (not the MongoDB service) → **Variables**.
+2. Ensure the app has **`MONGO_URL`** or **`MONGO_PUBLIC_URL`** set to the **MongoDB service connection string**:
+   - **Option A:** In the app service, use **Variable reference** → select your **MongoDB** service → choose **`MONGO_URL`** or **`MONGO_PUBLIC_URL`**. That injects the real MongoDB URL (e.g. `mongodb://user:pass@mongodb.railway.internal:27017` or a public URL).
+   - **Option B:** Open the **MongoDB** service → **Variables** or **Connect** → copy the value of **`MONGO_URL`** or **`MONGO_PUBLIC_URL`** (it should look like `mongodb://...` with a hostname, **not** `localhost`). Paste it into the **app** service as a new variable **`MONGO_URL`**.
+3. If you had **`MONGODB_URI`** set to `mongodb://localhost:27017/...` (e.g. from local dev), **remove it** from the app service on Railway or overwrite it with the real MongoDB URL. The app uses `MONGO_URL` / `MONGO_PUBLIC_URL` first; if only `MONGODB_URI` is set to localhost, that causes this error.
+4. **Redeploy** the app service after changing variables.
+
+Then open [https://b2bfashion-production.up.railway.app/api/health](https://b2bfashion-production.up.railway.app/api/health) — you should see `{"ok":true,"database":"connected"}`.
+
+### Mongoose "Duplicate schema index" warnings
+
+These are harmless. The codebase has been updated to remove the duplicate index definitions so these warnings no longer appear after the next deploy.
+
+### MongoDB logs: "vm.max_map_count", "swappiness", "XFS recommended"
+
+These are **informational** suggestions from the MongoDB container. MongoDB is still running and accepting connections. You can ignore them unless you need to tune performance.

@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     name: String,
     companyName: String,
+    role: { type: String, enum: ["customer", "admin"], default: "customer" },
     pricingApproved: { type: Boolean, default: false },
     otpCode: String,
     otpExpires: Date,
@@ -14,7 +15,5 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-userSchema.index({ email: 1 });
 
 export const User = mongoose.models.User ?? mongoose.model("User", userSchema);

@@ -107,6 +107,36 @@ db.users.updateOne(
 )
 ```
 
+## Admins and uploading products
+
+**Who can upload products?** Only users with **role: "admin"**.
+
+### Making a user an admin
+
+Set the user’s `role` in MongoDB (e.g. MongoDB Compass, Atlas UI, or `mongosh`):
+
+```javascript
+db.users.updateOne(
+  { email: "admin@yourcompany.com" },
+  { $set: { role: "admin" } }
+)
+```
+
+After that, when that user logs in they will see an **Admin** link (e.g. on the Products page) and can open **/admin**.
+
+### What admins can do
+
+- **Seed sample products** — On the Admin page, click “Seed sample products” to add placeholder products (with placeholder images) so you can see the product list and filters. Safe to run more than once.
+- **Add products via API** — `POST /api/admin/products` with a JSON body (must be logged in as admin). Fields: `sku`, `name`, `category`, `stockCategory`, `colour`, `packSize`; optional: `barcode`, `styleNumber`, `description`, `images` (array of image URLs), `pricePerItem`.
+- **Use images from your existing site** — When creating a product via the API, set `images` to an array of image URLs (e.g. from [Just Elegance](https://www.justelegance.com/) or your own CDN). Ensure you have the right to use those URLs in this app.
+
+### Replacing seed images with your own
+
+The seed uses placeholder image URLs. To use real product images (e.g. from Just Elegance):
+
+1. Create products via `POST /api/admin/products` with `images` set to your image URLs, or  
+2. In MongoDB, update existing products’ `images` array with the correct URLs.
+
 ## Tech stack
 
 - **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS

@@ -43,7 +43,7 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [colourFilter, setColourFilter] = useState<string>("");
   const [forwardPassword, setForwardPassword] = useState("");
-  const [user, setUser] = useState<{ pricingApproved?: boolean } | null>(null);
+  const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -87,6 +87,14 @@ export default function ProductsPage() {
         <nav className="flex gap-2">
           {user ? (
             <>
+              {user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="px-4 py-2 border border-amber-500 text-amber-700 dark:border-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/cart"
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
