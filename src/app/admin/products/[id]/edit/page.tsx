@@ -182,7 +182,7 @@ export default function EditProductPage() {
                   <img
                     src={imageDisplaySrc(images[generateImageIndex])}
                     alt="Garment"
-                    className="mt-2 w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700"
+                    className="mt-2 w-24 h-24 object-contain rounded border border-gray-200 dark:border-gray-700"
                   />
                 )}
               </div>

@@ -154,7 +154,7 @@ export default function ProductDetailPage() {
                 <img
                   src={imageDisplayUrl(images[imageIndex])}
                   alt={product.name}
-                  className="w-full h-full object-cover pointer-events-none select-none"
+                  className="w-full h-full object-contain pointer-events-none select-none"
                   draggable={false}
                 />
                 {zoomLens && (

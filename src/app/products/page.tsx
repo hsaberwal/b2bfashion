@@ -202,7 +202,7 @@ export default function ProductsPage() {
                       <img
                         src={imageDisplayUrl(p.images[0])}
                         alt={p.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <span className="text-je-muted text-sm">No image</span>

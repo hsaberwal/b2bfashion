@@ -275,7 +275,7 @@ export function ProductForm({ initial, onSubmit, submitLabel }: Props) {
         <div className="flex flex-wrap gap-2">
           {form.images.map((url, i) => (
             <div key={i} className="relative group">
-              <img src={imageDisplaySrc(url)} alt="" className="w-20 h-20 object-cover rounded border border-gray-200 dark:border-gray-700" />
+              <img src={imageDisplaySrc(url)} alt="" className="w-20 h-20 object-contain rounded border border-gray-200 dark:border-gray-700" />
               <button type="button" onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100">×</button>
             </div>
           ))}
