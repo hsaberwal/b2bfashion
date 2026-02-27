@@ -69,8 +69,8 @@ export default function ProductDetailPage() {
   }, [id]);
 
   async function addToCart() {
-    const hasSizes = product.sizes && product.sizes.length > 0;
     if (!product || quantity < product.packSize || quantity % product.packSize !== 0) return;
+    const hasSizes = product.sizes && product.sizes.length > 0;
     if (hasSizes && !selectedSize) {
       alert("Please select a size.");
       return;
