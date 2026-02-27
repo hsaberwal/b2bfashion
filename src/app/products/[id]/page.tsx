@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
+
+const ZOOM = 2.2;
+const LENS_SIZE = 180;
 
 type Product = {
   id: string;
@@ -36,6 +39,15 @@ export default function ProductDetailPage() {
   const [adding, setAdding] = useState(false);
   const [user, setUser] = useState<{ pricingApproved?: boolean } | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
+  const [zoomLens, setZoomLens] = useState<{
+    x: number;
+    y: number;
+    percentX: number;
+    percentY: number;
+    rectW: number;
+    rectH: number;
+  } | null>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -51,6 +63,7 @@ export default function ProductDetailPage() {
         if (d.error) setProduct(null);
         else setProduct(d);
         if (d.packSize) setQuantity(d.packSize);
+        if (d.sizes?.length) setSelectedSize(d.sizes[0] ?? "");
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -82,6 +95,28 @@ export default function ProductDetailPage() {
     }
   }
 
+  const handleImageMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const el = imageContainerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const percentX = Math.max(0, Math.min(1, x / rect.width));
+      const percentY = Math.max(0, Math.min(1, y / rect.height));
+      setZoomLens({
+        x: e.clientX,
+        y: e.clientY,
+        percentX,
+        percentY,
+        rectW: rect.width,
+        rectH: rect.height,
+      });
+    },
+    []
+  );
+  const handleImageMouseLeave = useCallback(() => setZoomLens(null), []);
+
   if (loading || !product) {
     return (
       <main className="min-h-screen p-4 md:p-8">
@@ -108,19 +143,54 @@ export default function ProductDetailPage() {
       </Link>
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-4">
+          <div
+            ref={imageContainerRef}
+            className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-4 cursor-zoom-in"
+            onMouseMove={images[imageIndex] ? handleImageMouseMove : undefined}
+            onMouseLeave={images[imageIndex] ? handleImageMouseLeave : undefined}
+          >
             {images[imageIndex] ? (
-              <img
-                src={imageDisplayUrl(images[imageIndex])}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
+              <>
+                <img
+                  src={imageDisplayUrl(images[imageIndex])}
+                  alt={product.name}
+                  className="w-full h-full object-cover pointer-events-none select-none"
+                  draggable={false}
+                />
+                {zoomLens && (
+                  <div
+                    className="pointer-events-none fixed border-2 border-white/90 rounded-full shadow-xl bg-gray-100/80 dark:bg-gray-800/80 z-20 hidden sm:block overflow-hidden"
+                    style={{
+                      width: LENS_SIZE,
+                      height: LENS_SIZE,
+                      left: zoomLens.x - LENS_SIZE / 2,
+                      top: zoomLens.y - LENS_SIZE / 2,
+                    }}
+                  >
+                    <img
+                      src={imageDisplayUrl(images[imageIndex])}
+                      alt=""
+                      className="absolute w-full h-full object-cover"
+                      style={{
+                        width: zoomLens.rectW * ZOOM,
+                        height: zoomLens.rectH * ZOOM,
+                        left: -zoomLens.percentX * zoomLens.rectW * ZOOM + LENS_SIZE / 2,
+                        top: -zoomLens.percentY * zoomLens.rectH * ZOOM + LENS_SIZE / 2,
+                      }}
+                      draggable={false}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
                 No image
               </div>
             )}
           </div>
+          {images[imageIndex] && (
+            <p className="text-xs text-gray-500 mt-1 hidden sm:block">Hover over image to zoom</p>
+          )}
           {images.length > 1 && (
             <div className="flex gap-2 flex-wrap">
               {images.map((url, i) => (
