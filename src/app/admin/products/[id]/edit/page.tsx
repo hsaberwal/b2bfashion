@@ -160,9 +160,16 @@ export default function EditProductPage() {
         {/* Generate model photos (FASHN) */}
         <section className="mb-8 p-4 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Generate model photos</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Use FASHN AI to turn a product image into photos of a model wearing it. The API accepts <strong>one image per run</strong>. For front, back, and sides: upload all garment photos to the product, then run “Generate” once per image (choose “Image 1”, “Image 2”, etc.) — each run adds new model photos to the product. Use the prompt for background and styling (e.g. matching shoes, accessories). Requires FASHN_API_KEY.
-          </p>
+          <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 space-y-2">
+            <p className="font-medium text-gray-700 dark:text-gray-300">How to use the AI</p>
+            <ul className="list-decimal list-inside space-y-1 ml-1">
+              <li>Add all garment photos to this product first (front, back, sides, details) using the Images section below.</li>
+              <li>FASHN accepts <strong>one image per run</strong>. Choose which photo to send using the &quot;Garment image&quot; dropdown (Image 1, Image 2, …).</li>
+              <li>Optionally describe background and styling in the prompt (e.g. studio background, matching shoes, minimal accessories).</li>
+              <li>Click &quot;Generate model photos&quot;. When it finishes, new model photos are added to the product.</li>
+              <li>To get model shots from other angles: select a different image in the dropdown and run Generate again. Each run adds more photos.</li>
+            </ul>
+          </div>
           {!hasImages ? (
             <p className="text-sm text-amber-600 dark:text-amber-400">Add at least one product image below first.</p>
           ) : (
