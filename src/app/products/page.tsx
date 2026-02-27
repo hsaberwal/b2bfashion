@@ -192,9 +192,10 @@ export default function ProductsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {products.map((p) => (
-                <div
+                <Link
                   key={p.id}
-                  className="border border-je-border overflow-hidden bg-je-white hover:border-je-charcoal transition-colors"
+                  href={`/products/${p.id}`}
+                  className="block border border-je-border overflow-hidden bg-je-white hover:border-je-charcoal transition-colors cursor-pointer"
                 >
                   <div className="aspect-square bg-je-offwhite flex items-center justify-center">
                     {p.images?.[0] ? (
@@ -223,14 +224,11 @@ export default function ProductsPage() {
                         £{p.pricePerItem.toFixed(2)} per item
                       </p>
                     )}
-                    <Link
-                      href={`/products/${p.id}`}
-                      className="mt-3 inline-block text-sm text-je-black font-medium underline hover:no-underline"
-                    >
+                    <span className="mt-3 inline-block text-sm text-je-black font-medium underline">
                       View & add to order
-                    </Link>
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
