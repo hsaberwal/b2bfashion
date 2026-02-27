@@ -193,7 +193,7 @@ export default function ProductDetailPage() {
                     i === imageIndex ? "border-je-black ring-1 ring-je-black" : "border-je-border hover:border-je-charcoal"
                   }`}
                 >
-                  <img src={imageDisplayUrl(url)} alt="" className="w-full h-full object-cover" />
+                  <img src={imageDisplayUrl(url)} alt="" className="w-full h-full object-contain" />
                 </button>
               ))}
             </div>
