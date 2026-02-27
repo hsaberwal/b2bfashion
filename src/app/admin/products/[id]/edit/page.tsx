@@ -161,7 +161,7 @@ export default function EditProductPage() {
         <section className="mb-8 p-4 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Generate model photos</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Use FASHN AI to turn a product image into photos of a model wearing it. Describe background and styling (e.g. matching shoes, accessories). Requires FASHN_API_KEY.
+            Use FASHN AI to turn a product image into photos of a model wearing it. The API accepts <strong>one image per run</strong>. For front, back, and sides: upload all garment photos to the product, then run “Generate” once per image (choose “Image 1”, “Image 2”, etc.) — each run adds new model photos to the product. Use the prompt for background and styling (e.g. matching shoes, accessories). Requires FASHN_API_KEY.
           </p>
           {!hasImages ? (
             <p className="text-sm text-amber-600 dark:text-amber-400">Add at least one product image below first.</p>
