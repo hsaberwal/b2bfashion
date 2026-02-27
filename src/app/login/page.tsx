@@ -76,22 +76,22 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md border border-gray-200 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-900 dark:border-gray-800">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-je-cream">
+      <div className="w-full max-w-md border border-je-border p-6 bg-je-white">
+        <h1 className="text-2xl font-bold text-je-black mb-2">
           Log in
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+        <p className="text-je-muted text-sm mb-6">
           Claudia B2B — use password or email OTP
         </p>
-        <Link href="/" className="text-sm text-gray-500 hover:underline mb-4 inline-block">
+        <Link href="/" className="text-sm text-je-muted hover:underline mb-4 inline-block">
           ← Back to home
         </Link>
 
         {!otpMode ? (
           <form onSubmit={handlePasswordLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-je-black mb-1">
                 Email
               </label>
               <input
@@ -99,11 +99,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-je-black mb-1">
                 Password
               </label>
               <input
@@ -111,21 +111,21 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
               />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="w-full py-2 bg-je-black text-je-white hover:bg-je-charcoal disabled:opacity-50"
             >
               {loading ? "Logging in…" : "Log in with password"}
             </button>
             <button
               type="button"
               onClick={() => setOtpMode(true)}
-              className="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+              className="w-full py-2 border border-je-border hover:bg-je-offwhite"
             >
               Use email OTP instead
             </button>
@@ -136,7 +136,7 @@ export default function LoginPage() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-je-black mb-1">
                 Email
               </label>
               <input
@@ -145,12 +145,12 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={otpSent}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70"
+                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black disabled:opacity-70"
               />
             </div>
             {otpSent && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-je-black mb-1">
                   OTP code (check your email / console in dev)
                 </label>
                 <input
@@ -159,7 +159,7 @@ export default function LoginPage() {
                   onChange={(e) => setOtpCode(e.target.value)}
                   placeholder="000000"
                   maxLength={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
                 />
               </div>
             )}
@@ -167,7 +167,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="w-full py-2 bg-je-black text-je-white hover:bg-je-charcoal disabled:opacity-50"
             >
               {loading
                 ? "Sending…"
@@ -183,19 +183,19 @@ export default function LoginPage() {
                 setOtpCode("");
                 setError("");
               }}
-              className="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+              className="w-full py-2 border border-je-border hover:bg-je-offwhite"
             >
               Use password instead
             </button>
           </form>
         )}
 
-        <p className="mt-6 text-sm text-gray-500">
+        <p className="mt-6 text-sm text-je-muted">
           <Link href="/forgot-password" className="hover:underline">
             Forgot password?
           </Link>
         </p>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-je-muted">
           No account?{" "}
           <Link href="/register" className="hover:underline">
             Register

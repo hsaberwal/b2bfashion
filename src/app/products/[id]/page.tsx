@@ -119,11 +119,11 @@ export default function ProductDetailPage() {
 
   if (loading || !product) {
     return (
-      <main className="min-h-screen p-4 md:p-8">
-        <Link href="/products" className="text-sm text-gray-500 hover:underline mb-4 inline-block">
+      <main className="min-h-screen p-4 md:p-8 bg-je-cream">
+        <Link href="/products" className="text-sm text-je-muted hover:text-je-black mb-4 inline-block">
           ← Back to products
         </Link>
-        <p className="text-gray-500">{loading ? "Loading…" : "Product not found."}</p>
+        <p className="text-je-muted">{loading ? "Loading…" : "Product not found."}</p>
       </main>
     );
   }
@@ -137,15 +137,15 @@ export default function ProductDetailPage() {
   const displayColours = product.colours?.length ? product.colours : [product.colour];
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <Link href="/products" className="text-sm text-gray-500 hover:underline mb-4 inline-block">
+    <main className="min-h-screen p-4 md:p-8 bg-je-cream">
+      <Link href="/products" className="text-sm text-je-muted hover:text-je-black mb-4 inline-block transition-colors">
         ← Back to products
       </Link>
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
         <div>
           <div
             ref={imageContainerRef}
-            className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-4 cursor-zoom-in"
+            className="relative aspect-square bg-je-offwhite border border-je-border overflow-hidden mb-4 cursor-zoom-in"
             onMouseMove={images[imageIndex] ? handleImageMouseMove : undefined}
             onMouseLeave={images[imageIndex] ? handleImageMouseLeave : undefined}
           >
@@ -159,7 +159,7 @@ export default function ProductDetailPage() {
                 />
                 {zoomLens && (
                   <div
-                    className="pointer-events-none fixed border-2 border-white/90 rounded-full shadow-xl bg-gray-100/80 dark:bg-gray-800/80 z-20 hidden sm:block overflow-hidden"
+                    className="pointer-events-none fixed border-2 border-je-white rounded-full shadow-xl bg-je-offwhite/95 z-20 hidden sm:block overflow-hidden"
                     style={{
                       width: LENS_SIZE,
                       height: LENS_SIZE,
@@ -189,7 +189,7 @@ export default function ProductDetailPage() {
             )}
           </div>
           {images[imageIndex] && (
-            <p className="text-xs text-gray-500 mt-1 hidden sm:block">Hover over image to zoom</p>
+            <p className="text-xs text-je-muted mt-1 hidden sm:block">Hover over image to zoom</p>
           )}
           {images.length > 1 && (
             <div className="flex gap-2 flex-wrap">
@@ -198,8 +198,8 @@ export default function ProductDetailPage() {
                   key={i}
                   type="button"
                   onClick={() => setImageIndex(i)}
-                  className={`w-16 h-16 rounded border-2 overflow-hidden shrink-0 ${
-                    i === imageIndex ? "border-gray-900 dark:border-white" : "border-gray-200 dark:border-gray-700"
+                  className={`w-16 h-16 border overflow-hidden shrink-0 transition-colors ${
+                    i === imageIndex ? "border-je-black ring-1 ring-je-black" : "border-je-border hover:border-je-charcoal"
                   }`}
                 >
                   <img src={imageDisplayUrl(url)} alt="" className="w-full h-full object-cover" />
@@ -208,26 +208,26 @@ export default function ProductDetailPage() {
             </div>
           )}
         </div>
-        <div>
+        <div className="bg-je-white border border-je-border p-6 md:p-8">
           {product.productCode && (
-            <p className="font-mono text-sm text-gray-500">Product code: {product.productCode}</p>
+            <p className="text-sm text-je-muted">Product code: {product.productCode}</p>
           )}
-          <p className="font-mono text-sm text-gray-500">{product.sku}</p>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+          <p className="text-sm text-je-muted font-medium mt-1">SKU {product.sku}</p>
+          <h1 className="text-2xl font-bold text-je-black mt-2 tracking-tight">
             {product.name}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-je-muted mt-2">
             {product.category} · {displayColours.join(", ")}
           </p>
 
-          <div className="mt-4 flex flex-wrap items-baseline gap-3">
+          <div className="mt-5 flex flex-wrap items-baseline gap-3">
             {user?.pricingApproved && product.pricePerItem != null && (
               <>
                 {product.compareAtPrice != null && product.compareAtPrice > product.pricePerItem && (
-                  <span className="text-gray-500 line-through">£{product.compareAtPrice.toFixed(2)}</span>
+                  <span className="text-je-muted line-through text-lg">£{product.compareAtPrice.toFixed(2)}</span>
                 )}
-                <span className="font-medium text-gray-900 dark:text-white screenshot-protected relative">
-                  £{product.pricePerItem.toFixed(2)} per item
+                <span className="text-lg font-semibold text-je-black screenshot-protected relative">
+                  £{product.pricePerItem.toFixed(2)} <span className="text-sm font-normal text-je-muted">per item</span>
                 </span>
               </>
             )}
@@ -255,18 +255,18 @@ export default function ProductDetailPage() {
           )}
 
           {hasSizes && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Size *</p>
+            <div className="mt-5">
+              <p className="text-sm font-medium text-je-black mb-2">Size *</p>
               <div className="flex flex-wrap gap-2">
                 {product.sizes!.map((s) => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setSelectedSize(s)}
-                    className={`px-4 py-2 rounded-lg border text-sm font-medium ${
+                    className={`px-4 py-2 border text-sm font-medium transition-colors ${
                       selectedSize === s
-                        ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900"
-                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        ? "border-je-black bg-je-black text-je-white"
+                        : "border-je-border bg-je-white text-je-charcoal hover:border-je-charcoal"
                     }`}
                   >
                     {s}
@@ -276,34 +276,34 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          <p className="mt-4 text-sm text-gray-500">
+          <p className="mt-4 text-sm text-je-muted">
             Pack size: {product.packSize} (bulk ordering only — quantity must be a multiple of {product.packSize})
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Quantity (multiples of {step}):</span>
+              <span className="text-sm font-medium text-je-black">Quantity (multiples of {step}):</span>
               <input
                 type="number"
                 min={minQty}
                 step={step}
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value) || minQty)}
-                className="w-24 px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                className="w-24 px-3 py-2 border border-je-border bg-je-white text-je-black"
               />
             </label>
             <button
               onClick={addToCart}
               disabled={!validQty || !validSize || adding}
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="px-6 py-2.5 bg-je-black text-je-white font-medium hover:bg-je-charcoal disabled:opacity-50 transition-colors"
             >
               {adding ? "Adding…" : "Add to order"}
             </button>
           </div>
           {hasSizes && !selectedSize && (
-            <p className="mt-2 text-sm text-amber-600">Please select a size.</p>
+            <p className="mt-2 text-sm text-je-sale">Please select a size.</p>
           )}
           {!validQty && quantity > 0 && (
-            <p className="mt-2 text-sm text-amber-600">
+            <p className="mt-2 text-sm text-je-sale">
               Quantity must be a multiple of {product.packSize}.
             </p>
           )}

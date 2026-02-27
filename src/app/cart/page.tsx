@@ -82,9 +82,9 @@ export default function CartPage() {
 
   if (!user) {
     return (
-      <main className="min-h-screen p-4 md:p-8">
-        <p className="text-gray-500">Please log in to view your cart.</p>
-        <Link href="/login" className="mt-4 inline-block text-blue-600 hover:underline">
+      <main className="min-h-screen p-4 md:p-8 bg-je-cream">
+        <p className="text-je-muted">Please log in to view your cart.</p>
+        <Link href="/login" className="mt-4 inline-block text-je-black font-medium underline hover:no-underline">
           Log in
         </Link>
       </main>
@@ -92,34 +92,34 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <header className="max-w-4xl mx-auto flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+    <main className="min-h-screen p-4 md:p-8 bg-je-cream">
+      <header className="max-w-4xl mx-auto flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-je-black tracking-tight">
           Cart & orders
         </h1>
         <Link
           href="/products"
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+          className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
         >
           Continue shopping
         </Link>
       </header>
       <div className="max-w-4xl mx-auto">
         {loading ? (
-          <p className="text-gray-500">Loading…</p>
+          <p className="text-je-muted">Loading…</p>
         ) : (
           <>
             {/* Single cart */}
             <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+              <h2 className="text-lg font-semibold text-je-black mb-3">
                 Your cart
               </h2>
               {!cart || cart.items.length === 0 ? (
-                <p className="text-gray-500">
-                  Your cart is empty. <Link href="/products" className="text-blue-600 hover:underline">Browse products</Link> and add to cart (bulk only).
+                <p className="text-je-muted">
+                  Your cart is empty. <Link href="/products" className="text-je-black font-medium underline hover:no-underline">Browse products</Link> and add to cart (bulk only).
                 </p>
               ) : (
-                <div className="border border-gray-200 rounded-lg p-4 bg-white dark:bg-gray-900 dark:border-gray-800">
+                <div className="border border-je-border p-5 bg-je-white">
                   <ul className="space-y-3">
                     {cart.items.map((item) => (
                       <li
@@ -164,7 +164,7 @@ export default function CartPage() {
                                 );
                               }}
                               onBlur={() => updateQuantity(cart.id, cart.items)}
-                              className="w-20 px-2 py-1 border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+                              className="w-20 px-2 py-1 border border-je-border bg-je-white text-je-black text-sm"
                             />
                           </label>
                           <button
@@ -181,7 +181,7 @@ export default function CartPage() {
                   </ul>
                   <Link
                     href={`/cart/${cart.id}/sign`}
-                    className="mt-4 inline-block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+                    className="mt-4 inline-block px-5 py-2.5 bg-je-black text-je-white font-medium hover:bg-je-charcoal transition-colors"
                   >
                     Sign order to accept →
                   </Link>
@@ -192,28 +192,28 @@ export default function CartPage() {
             {/* Past orders */}
             {pastOrders.length > 0 && (
               <section>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <h2 className="text-lg font-semibold text-je-black mb-3">
                   Past orders
                 </h2>
                 <div className="space-y-4">
                   {pastOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="border border-gray-200 rounded-lg p-4 bg-white dark:bg-gray-900 dark:border-gray-800"
+                      className="border border-je-border p-4 bg-je-white"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <span className="font-mono text-sm text-gray-500">
+                        <span className="text-sm text-je-muted">
                           Order {order.id.slice(-8)}
                         </span>
                         <span
                           className={`text-sm font-medium ${
-                            order.status === "signed" ? "text-green-600" : "text-gray-500"
+                            order.status === "signed" ? "text-green-700" : "text-je-muted"
                           }`}
                         >
                           {order.status}
                         </span>
                       </div>
-                      <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                      <ul className="space-y-1 text-sm text-je-charcoal">
                         {order.items.map((item) => (
                           <li key={`${item.productId}:${item.size ?? ""}`}>
                             {item.sku}
@@ -227,7 +227,7 @@ export default function CartPage() {
                         ))}
                       </ul>
                       {order.signedAt && (
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="mt-2 text-xs text-je-muted">
                           Signed at {new Date(order.signedAt).toLocaleString()}
                         </p>
                       )}
