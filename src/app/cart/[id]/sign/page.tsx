@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type Order = {
   id: string;
-  items: { productId: string; sku: string; quantity: number; pricePerItem?: number }[];
+  items: { productId: string; sku: string; quantity: number; pricePerItem?: number; size?: string }[];
   status: string;
 };
 
@@ -146,7 +146,8 @@ export default function SignOrderPage() {
           <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
             {order.items.map((item, i) => (
               <li key={i}>
-                {item.sku} × {item.quantity}
+                {item.sku}
+                {item.size != null && item.size !== "" ? ` · ${item.size}` : ""} × {item.quantity}
               </li>
             ))}
           </ul>

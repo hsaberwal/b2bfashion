@@ -13,13 +13,14 @@ const createOrderSchema = z.object({
     z.object({
       productId: z.string(),
       quantity: z.number().int().min(1),
+      size: z.string().optional(),
     })
   ),
 });
 
 function mapOrder(o: {
   _id: unknown;
-  items: { productId: unknown; sku: string; quantity: number; pricePerItem?: number; packSize?: number }[];
+  items: { productId: unknown; sku: string; quantity: number; pricePerItem?: number; packSize?: number; size?: string }[];
   status: string;
   signedAt?: Date;
   createdAt: Date;
@@ -32,6 +33,7 @@ function mapOrder(o: {
       quantity: i.quantity,
       pricePerItem: i.pricePerItem,
       packSize: i.packSize,
+      size: i.size,
     })),
     status: o.status,
     signedAt: o.signedAt,
@@ -88,12 +90,21 @@ export async function POST(request: NextRequest) {
     }
     const { items } = parsed.data;
 
-    // Resolve products and build new lines (validate pack size)
-    const newLines: { productId: string; sku: string; quantity: number; pricePerItem?: number; packSize: number }[] = [];
+    // Resolve products and build new lines (validate pack size and size when product has sizes)
+    const newLines: { productId: string; sku: string; quantity: number; pricePerItem?: number; packSize: number; size?: string }[] = [];
     for (const item of items) {
       const product = await Product.findById(item.productId);
       if (!product) {
         return NextResponse.json({ error: `Product not found: ${item.productId}` }, { status: 400 });
+      }
+      const productSizes = (product.sizes ?? []).filter(Boolean);
+      if (productSizes.length > 0) {
+        if (!item.size || typeof item.size !== "string" || !productSizes.includes(item.size.trim())) {
+          return NextResponse.json(
+            { error: `Please select a valid size for ${product.sku}. Available: ${productSizes.join(", ")}` },
+            { status: 400 }
+          );
+        }
       }
       if (item.quantity % product.packSize !== 0) {
         return NextResponse.json(
@@ -107,6 +118,7 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         pricePerItem: user.pricingApproved ? product.pricePerItem : undefined,
         packSize: product.packSize,
+        size: productSizes.length > 0 ? item.size!.trim() : undefined,
       });
     }
 
@@ -124,32 +136,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Merge: add new lines into existing items (same productId => add quantity)
-    const existing = order.items as { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize?: number }[];
-    const byProduct = new Map<string, { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize: number }>();
+    // Merge: add new lines into existing items (same productId + same size => add quantity)
+    const existing = order.items as { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize?: number; size?: string }[];
+    const mergeKey = (id: string, size?: string) => `${id}:${size ?? ""}`;
+    const byKey = new Map<string, { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize: number; size?: string }>();
     for (const line of existing) {
       const id = line.productId.toString();
       const packSize = line.packSize ?? (await Product.findById(line.productId))?.packSize ?? 1;
-      byProduct.set(id, { ...line, productId: line.productId, quantity: line.quantity, packSize });
+      const key = mergeKey(id, line.size);
+      byKey.set(key, { ...line, productId: line.productId, quantity: line.quantity, packSize, size: line.size });
     }
     for (const line of newLines) {
-      const id = line.productId;
-      const current = byProduct.get(id);
+      const key = mergeKey(line.productId, line.size);
+      const current = byKey.get(key);
       if (current) {
         current.quantity += line.quantity;
       } else {
-        byProduct.set(id, {
-          productId: new mongoose.Types.ObjectId(id),
+        byKey.set(key, {
+          productId: new mongoose.Types.ObjectId(line.productId),
           sku: line.sku,
           quantity: line.quantity,
           pricePerItem: line.pricePerItem,
           packSize: line.packSize,
+          size: line.size,
         });
       }
     }
 
     // Re-validate pack size for merged quantities
-    const merged = Array.from(byProduct.values());
+    const merged = Array.from(byKey.values());
     for (const line of merged) {
       const product = await Product.findById(line.productId);
       if (!product) continue;

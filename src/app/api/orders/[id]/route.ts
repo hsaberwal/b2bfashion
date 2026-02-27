@@ -13,6 +13,7 @@ const updateItemsSchema = z.object({
     z.object({
       productId: z.string(),
       quantity: z.number().int().min(0),
+      size: z.string().optional(),
     })
   ),
 });
@@ -56,13 +57,14 @@ export async function PATCH(
     }
 
     const input = parsed.data.items.filter((i) => i.quantity > 0);
-    const serializeItems = (items: { productId: unknown; sku: string; quantity: number; pricePerItem?: number; packSize?: number }[]) =>
+    const serializeItems = (items: { productId: unknown; sku: string; quantity: number; pricePerItem?: number; packSize?: number; size?: string }[]) =>
       items.map((i) => ({
         productId: String(i.productId),
         sku: i.sku,
         quantity: i.quantity,
         pricePerItem: i.pricePerItem,
         packSize: i.packSize,
+        size: i.size,
       }));
 
     if (input.length === 0) {
@@ -76,11 +78,20 @@ export async function PATCH(
       });
     }
 
-    const orderItems: { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize: number }[] = [];
+    const orderItems: { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize: number; size?: string }[] = [];
     for (const item of input) {
       const product = await Product.findById(item.productId);
       if (!product) {
         return NextResponse.json({ error: `Product not found: ${item.productId}` }, { status: 400 });
+      }
+      const productSizes = (product.sizes ?? []).filter(Boolean);
+      if (productSizes.length > 0) {
+        if (!item.size || typeof item.size !== "string" || !productSizes.includes(item.size.trim())) {
+          return NextResponse.json(
+            { error: `Invalid or missing size for ${product.sku}. Available: ${productSizes.join(", ")}` },
+            { status: 400 }
+          );
+        }
       }
       if (item.quantity % product.packSize !== 0) {
         return NextResponse.json(
@@ -94,6 +105,7 @@ export async function PATCH(
         quantity: item.quantity,
         pricePerItem: user.pricingApproved ? product.pricePerItem : undefined,
         packSize: product.packSize,
+        size: productSizes.length > 0 ? item.size!.trim() : undefined,
       });
     }
 
@@ -108,6 +120,7 @@ export async function PATCH(
         quantity: i.quantity,
         pricePerItem: i.pricePerItem,
         packSize: i.packSize,
+        size: i.size,
       })),
       status: order.status,
       createdAt: order.createdAt,

@@ -6,6 +6,7 @@ const orderItemSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   pricePerItem: Number,
   packSize: { type: Number, min: 1 },
+  size: { type: String, default: undefined },
 });
 
 const orderSchema = new mongoose.Schema(

@@ -31,6 +31,7 @@ export default function ProductDetailPage() {
   const id = params.id as string;
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [user, setUser] = useState<{ pricingApproved?: boolean } | null>(null);
@@ -55,14 +56,19 @@ export default function ProductDetailPage() {
   }, [id]);
 
   async function addToCart() {
+    const hasSizes = product.sizes && product.sizes.length > 0;
     if (!product || quantity < product.packSize || quantity % product.packSize !== 0) return;
+    if (hasSizes && !selectedSize) {
+      alert("Please select a size.");
+      return;
+    }
     setAdding(true);
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: [{ productId: product.id, quantity }],
+          items: [{ productId: product.id, quantity, ...(hasSizes ? { size: selectedSize } : {}) }],
         }),
       });
       const data = await res.json();
@@ -90,6 +96,8 @@ export default function ProductDetailPage() {
   const minQty = product.packSize;
   const step = product.packSize;
   const validQty = quantity >= minQty && quantity % step === 0;
+  const hasSizes = product.sizes && product.sizes.length > 0;
+  const validSize = !hasSizes || selectedSize.length > 0;
   const images = product.images?.length ? product.images : [];
   const displayColours = product.colours?.length ? product.colours : [product.colour];
 
@@ -176,14 +184,25 @@ export default function ProductDetailPage() {
             </>
           )}
 
-          {product.sizes && product.sizes.length > 0 && (
+          {hasSizes && (
             <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sizes</p>
-              <ul className="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
-                {product.sizes.map((s, i) => (
-                  <li key={i}>{s}</li>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Size *</p>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes!.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSelectedSize(s)}
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium ${
+                      selectedSize === s
+                        ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900"
+                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {s}
+                  </button>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
 
@@ -204,12 +223,15 @@ export default function ProductDetailPage() {
             </label>
             <button
               onClick={addToCart}
-              disabled={!validQty || adding}
+              disabled={!validQty || !validSize || adding}
               className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
             >
               {adding ? "Adding…" : "Add to order"}
             </button>
           </div>
+          {hasSizes && !selectedSize && (
+            <p className="mt-2 text-sm text-amber-600">Please select a size.</p>
+          )}
           {!validQty && quantity > 0 && (
             <p className="mt-2 text-sm text-amber-600">
               Quantity must be a multiple of {product.packSize}.

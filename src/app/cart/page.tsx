@@ -9,6 +9,7 @@ type OrderItem = {
   quantity: number;
   pricePerItem?: number;
   packSize?: number;
+  size?: string;
 };
 
 type Order = {
@@ -52,7 +53,7 @@ export default function CartPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, ...(i.size != null ? { size: i.size } : {}) })),
         }),
       });
       if (!res.ok) {
@@ -68,8 +69,8 @@ export default function CartPage() {
     }
   }
 
-  function removeLine(orderId: string, currentItems: OrderItem[], productId: string) {
-    const next = currentItems.filter((i) => i.productId !== productId);
+  function removeLine(orderId: string, currentItems: OrderItem[], productId: string, size?: string) {
+    const next = currentItems.filter((i) => i.productId !== productId || (i.size ?? "") !== (size ?? ""));
     if (next.length === 0) {
       updateQuantity(orderId, []).then(() => setCart(null));
       return;
@@ -122,12 +123,15 @@ export default function CartPage() {
                   <ul className="space-y-3">
                     {cart.items.map((item) => (
                       <li
-                        key={item.productId}
+                        key={`${item.productId}:${item.size ?? ""}`}
                         className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0"
                       >
                         <div className="flex-1 min-w-0">
                           <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
                             {item.sku}
+                            {item.size != null && item.size !== "" && (
+                              <span className="ml-2 text-gray-500 font-normal">· {item.size}</span>
+                            )}
                           </span>
                           {user.pricingApproved && item.pricePerItem != null && (
                             <span className="screenshot-protected ml-2 text-sm text-gray-600 dark:text-gray-400">
@@ -153,7 +157,7 @@ export default function CartPage() {
                                     ? {
                                         ...c,
                                         items: c.items.map((x) =>
-                                          x.productId === item.productId ? { ...x, quantity: q } : x
+                                          x.productId === item.productId && (x.size ?? "") === (item.size ?? "") ? { ...x, quantity: q } : x
                                         ),
                                       }
                                     : null
@@ -165,7 +169,7 @@ export default function CartPage() {
                           </label>
                           <button
                             type="button"
-                            onClick={() => removeLine(cart.id, cart.items, item.productId)}
+                            onClick={() => removeLine(cart.id, cart.items, item.productId, item.size)}
                             disabled={updating}
                             className="text-sm text-red-600 hover:underline disabled:opacity-50"
                           >
@@ -211,8 +215,9 @@ export default function CartPage() {
                       </div>
                       <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
                         {order.items.map((item) => (
-                          <li key={item.productId}>
-                            {item.sku} × {item.quantity}
+                          <li key={`${item.productId}:${item.size ?? ""}`}>
+                            {item.sku}
+                            {item.size != null && item.size !== "" ? ` · ${item.size}` : ""} × {item.quantity}
                             {user.pricingApproved && item.pricePerItem != null && (
                               <span className="screenshot-protected ml-2">
                                 £{(item.pricePerItem * item.quantity).toFixed(2)}
