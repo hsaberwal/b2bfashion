@@ -4,6 +4,16 @@ Follow these steps to deploy the app to [Railway](https://railway.app).
 
 ---
 
+## What this app includes
+
+- **Claudia B2B** – wholesale product list, product detail, cart, and order signing (single cart per user).
+- **Admin** – products (CRUD), users, image upload (Railway Image Service, Volume, or Cloudinary), optional **seed** and **Generate model photos** (FASHN AI when `FASHN_API_KEY` is set).
+- **Product images** – uploads stored as blob keys; admin and public pages show images via signed URLs / proxy (`/api/images/signed` for public, `/api/admin/images/signed` for admin). No need to expose Image Service directly to the browser.
+- **Product detail** – size selection when product has sizes, hover-to-zoom on main image, Just Elegance–style theme (cream/white/black). Clicking a product card (image or text) opens the product page.
+- **Orders** – items can include a selected size; cart and sign flow show size when present.
+
+---
+
 ## 1. Push your code to GitHub
 
 If you haven’t already:
@@ -60,7 +70,7 @@ git push origin main
 | `MONGO_URL` or `MONGO_PUBLIC_URL` | From your MongoDB service | Reference the MongoDB service variable, or paste the connection string. The app uses either one. |
 | `NEXTAUTH_URL` | `https://b2bfashion-production.up.railway.app` | Your app’s Railway URL (no trailing slash). |
 | `JWT_SECRET` | Long random string | e.g. run `openssl rand -base64 32` and paste the output. |
-| `IMAGE_SERVICE_URL` | (Optional) Railway Image Service public URL | e.g. `https://image-service-production.up.railway.app`. See **Step 9**. |
+| `IMAGE_SERVICE_URL` | (Optional) Railway Image Service public URL | e.g. `https://image-service-production.up.railway.app` (or without `https://` – app will add it). See **Step 9**. |
 | `IMAGE_SERVICE_SECRET_KEY` | (Optional) Same as Image Service `SECRET_KEY` | For admin uploads to Image Service. |
 | `IMAGE_SERVICE_SIGNATURE_SECRET_KEY` | (Optional) Same as Image Service `SIGNATURE_SECRET_KEY` | For local URL signing. |
 | `UPLOAD_VOLUME_PATH` | (Optional) Mount path of a Railway Volume | e.g. `/data`. Fallback if Image Service not set. |
@@ -145,7 +155,7 @@ The template uses its own variable names. You configure the **Image Service** (t
 | **App** (b2bfashion) | `IMAGE_SERVICE_SECRET_KEY` | Same as Image Service `SECRET_KEY` |
 | **App** (b2bfashion) | `IMAGE_SERVICE_SIGNATURE_SECRET_KEY` | Same as Image Service `SIGNATURE_SECRET_KEY` |
 
-After this, the “Upload file” button in **Admin → Products → Add/Edit product** will upload to the Image Service. Product and list pages will receive signed, resized image URLs automatically.
+After this, the “Upload file” button in **Admin → Products → Add/Edit product** will upload to the Image Service. Product images are stored as blob keys; the app serves them on product list and detail pages via `/api/images/signed` (public) and in admin via `/api/admin/images/signed`, so the Image Service URL does not need to be public to the browser.
 
 **Fallbacks (no Image Service):**  
 - **Railway Volume:** Add a Volume, set its mount path to `/data`, and set **`UPLOAD_VOLUME_PATH`** = `/data` on the app. Images are stored on the volume and served at `/api/uploads/<filename>`.  
@@ -166,6 +176,7 @@ After this, the “Upload file” button in **Admin → Products → Add/Edit pr
 - [ ] App loads and login/register work  
 - [ ] `CLAIM_ADMIN_SECRET` set, then used at /claim-admin to become admin (optional)  
 - [ ] (Optional) Railway Image Service deployed; `IMAGE_SERVICE_URL` and `IMAGE_SERVICE_SECRET_KEY` set (or Volume + `UPLOAD_VOLUME_PATH`)  
+- [ ] (Optional) `FASHN_API_KEY` set for "Generate model photos" on product edit  
 
 ---
 
