@@ -159,27 +159,18 @@ export default function ProductDetailPage() {
                 />
                 {zoomLens && (
                   <div
-                    className="pointer-events-none fixed border-2 border-je-white rounded-full shadow-xl bg-je-offwhite/95 z-20 hidden sm:block overflow-hidden"
+                    className="pointer-events-none fixed rounded-full shadow-xl z-20 hidden sm:block border-2 border-je-border overflow-hidden"
                     style={{
                       width: LENS_SIZE,
                       height: LENS_SIZE,
                       left: zoomLens.x - LENS_SIZE / 2,
                       top: zoomLens.y - LENS_SIZE / 2,
+                      backgroundImage: `url(${imageDisplayUrl(images[imageIndex])})`,
+                      backgroundSize: `${zoomLens.rectW * ZOOM}px ${zoomLens.rectH * ZOOM}px`,
+                      backgroundPosition: `${-zoomLens.percentX * zoomLens.rectW * ZOOM + LENS_SIZE / 2}px ${-zoomLens.percentY * zoomLens.rectH * ZOOM + LENS_SIZE / 2}px`,
+                      backgroundRepeat: "no-repeat",
                     }}
-                  >
-                    <img
-                      src={imageDisplayUrl(images[imageIndex])}
-                      alt=""
-                      className="absolute w-full h-full object-cover"
-                      style={{
-                        width: zoomLens.rectW * ZOOM,
-                        height: zoomLens.rectH * ZOOM,
-                        left: -zoomLens.percentX * zoomLens.rectW * ZOOM + LENS_SIZE / 2,
-                        top: -zoomLens.percentY * zoomLens.rectH * ZOOM + LENS_SIZE / 2,
-                      }}
-                      draggable={false}
-                    />
-                  </div>
+                  />
                 )}
               </>
             ) : (
