@@ -52,7 +52,7 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => {
-    if (user && !user.canViewForwardStock && stockFilter === "forward") {
+    if (user && user.role !== "admin" && !user.canViewForwardStock && stockFilter === "forward") {
       setStockFilter("current");
     }
   }, [user, stockFilter]);
@@ -140,7 +140,7 @@ export default function ProductsPage() {
             >
               <option value="current">Current stock</option>
               <option value="previous">Previous year stock</option>
-              {user?.canViewForwardStock && (
+              {(user?.role === "admin" || user?.canViewForwardStock) && (
                 <option value="forward">Forward / upcoming stock</option>
               )}
             </select>

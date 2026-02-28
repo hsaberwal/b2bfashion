@@ -29,7 +29,7 @@ export async function GET() {
         companyName: user.companyName,
         role: user.role ?? "customer",
         pricingApproved: user.pricingApproved,
-        canViewForwardStock: user.canViewForwardStock ?? user.role === "admin",
+        canViewForwardStock: user.role === "admin" ? true : (user.canViewForwardStock ?? false),
       },
     });
   } catch (e) {

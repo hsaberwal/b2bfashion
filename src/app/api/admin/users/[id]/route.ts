@@ -8,6 +8,7 @@ import { z } from "zod";
 const updateSchema = z.object({
   pricingApproved: z.boolean().optional(),
   canViewForwardStock: z.boolean().optional(),
+  role: z.enum(["customer", "admin"]).optional(),
 });
 
 /** PATCH /api/admin/users/[id] — update user permissions (admin only). */
@@ -16,7 +17,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const sessionUser = await requireAdmin();
     const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
@@ -39,6 +40,15 @@ export async function PATCH(
     }
     if (parsed.data.canViewForwardStock !== undefined) {
       user.canViewForwardStock = parsed.data.canViewForwardStock;
+    }
+    if (parsed.data.role !== undefined) {
+      if (id === sessionUser.id) {
+        return NextResponse.json(
+          { error: "You cannot change your own role" },
+          { status: 400 }
+        );
+      }
+      user.role = parsed.data.role;
     }
     await user.save();
     return NextResponse.json({

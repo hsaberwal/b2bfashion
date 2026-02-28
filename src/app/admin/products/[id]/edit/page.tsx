@@ -195,13 +195,37 @@ export default function EditProductPage() {
               </div>
               <div className="mb-3">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prompt (background, shoes, accessories)</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Describe the scene and styling. Leave blank for the AI to choose.
+                </p>
                 <textarea
                   value={generatePrompt}
                   onChange={(e) => setGeneratePrompt(e.target.value)}
-                  placeholder="e.g. Studio background, model wearing matching shoes and minimal accessories. Or leave blank for AI to choose."
+                  placeholder="e.g. Display on a model in a chilly autumn scene, wearing boots."
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 mb-1">Example prompts — click to use:</p>
+                <ul className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Chilly autumn, white dress & boots", prompt: "Display on a model wearing a white dress with boots in a chilly autumn scene." },
+                    { label: "Studio, heels, minimal jewellery", prompt: "Studio background, model in neutral heels and minimal jewellery." },
+                    { label: "Outdoor casual, sneakers", prompt: "Casual outdoor setting, model in sneakers and simple accessories." },
+                    { label: "Elegant indoor, heels & gold", prompt: "Elegant indoor setting, model in heels and subtle gold accessories." },
+                    { label: "Minimal white backdrop", prompt: "Minimal white backdrop, clean look, no extra accessories." },
+                  ].map(({ label, prompt }) => (
+                    <li key={prompt}>
+                      <button
+                        type="button"
+                        onClick={() => setGeneratePrompt(prompt)}
+                        className="text-left px-2 py-1.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title={prompt}
+                      >
+                        {label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
               <div className="mb-4 flex items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
