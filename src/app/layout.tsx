@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
+import { ScreenshotProtection } from "@/components/ScreenshotProtection";
 
 export const metadata: Metadata = {
   title: "Claudia B2B | Wholesale",
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased min-h-screen bg-je-cream text-je-black">
+        <ScreenshotProtection />
         <PwaRegister />
         <div className="bg-je-black text-je-white text-center text-sm py-2 px-4">
           Wholesale — bulk ordering only (pack sizes apply)

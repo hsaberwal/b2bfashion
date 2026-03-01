@@ -16,20 +16,25 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
     const user = await User.findById(session.userId).select(
-      "email name companyName role pricingApproved canViewForwardStock"
+      "email name companyName deliveryAddress vatNumber role pricingApproved canViewForwardStock canViewCurrentStock canViewPreviousStock"
     );
     if (!user) {
       return NextResponse.json({ user: null });
     }
+    const isAdmin = user.role === "admin";
     return NextResponse.json({
       user: {
         id: user._id.toString(),
         email: user.email,
         name: user.name,
         companyName: user.companyName,
+        deliveryAddress: user.deliveryAddress,
+        vatNumber: user.vatNumber,
         role: user.role ?? "customer",
         pricingApproved: user.pricingApproved,
-        canViewForwardStock: user.role === "admin" ? true : (user.canViewForwardStock ?? false),
+        canViewForwardStock: isAdmin ? true : (user.canViewForwardStock ?? false),
+        canViewCurrentStock: isAdmin ? true : (user.canViewCurrentStock ?? true),
+        canViewPreviousStock: isAdmin ? true : (user.canViewPreviousStock ?? true),
       },
     });
   } catch (e) {

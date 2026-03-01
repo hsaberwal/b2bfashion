@@ -9,6 +9,7 @@ const bodySchema = z.object({
   password: z.string().min(8),
   name: z.string().optional(),
   companyName: z.string().optional(),
+  applicationMessage: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { email, password, name, companyName } = parsed.data;
+    const { email, password, name, companyName, applicationMessage } = parsed.data;
     await connectDB();
     const existing = await User.findOne({ email });
     if (existing) {
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
       passwordHash,
       name,
       companyName,
+      applicationMessage: applicationMessage || undefined,
       pricingApproved: false,
     });
     return NextResponse.json({
@@ -43,6 +45,8 @@ export async function POST(request: NextRequest) {
       role: user.role ?? "customer",
       pricingApproved: user.pricingApproved,
       canViewForwardStock: user.role === "admin" ? true : (user.canViewForwardStock ?? false),
+      canViewCurrentStock: user.role === "admin" ? true : (user.canViewCurrentStock ?? true),
+      canViewPreviousStock: user.role === "admin" ? true : (user.canViewPreviousStock ?? true),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Registration failed";

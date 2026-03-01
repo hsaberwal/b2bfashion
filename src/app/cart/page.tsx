@@ -97,12 +97,20 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold text-je-black tracking-tight">
           Cart & orders
         </h1>
-        <Link
-          href="/products"
-          className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
-        >
-          Continue shopping
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/account"
+            className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+          >
+            Your account
+          </Link>
+          <Link
+            href="/products"
+            className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+          >
+            Continue shopping
+          </Link>
+        </div>
       </header>
       <div className="max-w-4xl mx-auto">
         {loading ? (

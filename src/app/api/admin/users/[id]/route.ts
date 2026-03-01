@@ -8,6 +8,8 @@ import { z } from "zod";
 const updateSchema = z.object({
   pricingApproved: z.boolean().optional(),
   canViewForwardStock: z.boolean().optional(),
+  canViewCurrentStock: z.boolean().optional(),
+  canViewPreviousStock: z.boolean().optional(),
   role: z.enum(["customer", "admin"]).optional(),
 });
 
@@ -41,6 +43,12 @@ export async function PATCH(
     if (parsed.data.canViewForwardStock !== undefined) {
       user.canViewForwardStock = parsed.data.canViewForwardStock;
     }
+    if (parsed.data.canViewCurrentStock !== undefined) {
+      user.canViewCurrentStock = parsed.data.canViewCurrentStock;
+    }
+    if (parsed.data.canViewPreviousStock !== undefined) {
+      user.canViewPreviousStock = parsed.data.canViewPreviousStock;
+    }
     if (parsed.data.role !== undefined) {
       if (id === sessionUser.id) {
         return NextResponse.json(
@@ -59,6 +67,8 @@ export async function PATCH(
       role: user.role ?? "customer",
       pricingApproved: user.pricingApproved,
       canViewForwardStock: user.canViewForwardStock ?? user.role === "admin",
+      canViewCurrentStock: user.canViewCurrentStock ?? true,
+      canViewPreviousStock: user.canViewPreviousStock ?? true,
     });
   } catch (e) {
     const err = e as Error & { status?: number };

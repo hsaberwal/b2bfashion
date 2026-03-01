@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
         role: user.role ?? "customer",
         pricingApproved: user.pricingApproved,
         canViewForwardStock: user.role === "admin" ? true : (user.canViewForwardStock ?? false),
+        canViewCurrentStock: user.role === "admin" ? true : (user.canViewCurrentStock ?? true),
+        canViewPreviousStock: user.role === "admin" ? true : (user.canViewPreviousStock ?? true),
       },
     });
   } catch (e) {

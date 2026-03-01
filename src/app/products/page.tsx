@@ -43,7 +43,8 @@ export default function ProductsPage() {
   const [stockFilter, setStockFilter] = useState<string>("current");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [colourFilter, setColourFilter] = useState<string>("");
-  const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string; canViewForwardStock?: boolean } | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string; canViewForwardStock?: boolean; canViewCurrentStock?: boolean; canViewPreviousStock?: boolean } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -52,17 +53,28 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => {
-    if (user && user.role !== "admin" && !user.canViewForwardStock && stockFilter === "forward") {
-      setStockFilter("current");
+    if (!user) return;
+    if (user.role === "admin") return;
+    const canCurrent = user.canViewCurrentStock ?? true;
+    const canPrevious = user.canViewPreviousStock ?? true;
+    const canForward = user.canViewForwardStock ?? false;
+    if (stockFilter === "forward" && !canForward) {
+      setStockFilter(canCurrent ? "current" : canPrevious ? "previous" : "all");
+    } else if (stockFilter === "current" && !canCurrent) {
+      setStockFilter(canPrevious ? "previous" : canForward ? "forward" : "all");
+    } else if (stockFilter === "previous" && !canPrevious) {
+      setStockFilter(canCurrent ? "current" : canForward ? "forward" : "all");
     }
   }, [user, stockFilter]);
 
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (stockFilter) params.set("stockCategory", stockFilter);
+    if (stockFilter && stockFilter !== "all") params.set("stockCategory", stockFilter);
+    else if (stockFilter === "all") params.set("stockCategory", "all");
     if (categoryFilter) params.set("category", categoryFilter);
     if (colourFilter) params.set("colour", colourFilter);
+    if (searchQuery.trim()) params.set("search", searchQuery.trim());
     fetch(`/api/products?${params}`)
       .then((r) => {
         if (r.status === 403) return r.json().then((d) => Promise.reject(new Error(d.error)));
@@ -74,7 +86,7 @@ export default function ProductsPage() {
         setProducts([]);
       })
       .finally(() => setLoading(false));
-  }, [stockFilter, categoryFilter, colourFilter]);
+  }, [stockFilter, categoryFilter, colourFilter, searchQuery]);
 
   const colours = Array.from(new Set(products.map((p) => p.colour))).sort();
 
@@ -100,12 +112,18 @@ export default function ProductsPage() {
                   Admin
                 </Link>
               )}
+<Link
+                  href="/account"
+                  className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+                >
+                  Account
+                </Link>
               <Link
-                href="/cart"
-                className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
-              >
-                Cart / Orders
-              </Link>
+                  href="/cart"
+                  className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+                >
+                  Cart / Orders
+                </Link>
               <button
                 onClick={async () => {
                   await fetch("/api/auth/logout", { method: "POST" });
@@ -138,12 +156,32 @@ export default function ProductsPage() {
               onChange={(e) => setStockFilter(e.target.value)}
               className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
             >
-              <option value="current">Current stock</option>
-              <option value="previous">Previous year stock</option>
+              <option value="all">All stock</option>
+              {(user?.role === "admin" || user?.canViewCurrentStock) && (
+                <option value="current">Current stock</option>
+              )}
+              {(user?.role === "admin" || user?.canViewPreviousStock) && (
+                <option value="previous">Previous year stock</option>
+              )}
               {(user?.role === "admin" || user?.canViewForwardStock) && (
                 <option value="forward">Forward / upcoming stock</option>
               )}
             </select>
+            {(user?.role === "admin" || user?.canViewForwardStock) && (
+              <p className="text-xs text-je-muted mt-1">Forward stock is sign-in and permission protected.</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-je-black mb-1">
+              Search (SKU, name, style)
+            </label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="e.g. JE-SKIRT-001"
+              className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-je-black mb-1">

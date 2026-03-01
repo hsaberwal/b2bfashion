@@ -11,6 +11,9 @@ type UserRow = {
   role: string;
   pricingApproved: boolean;
   canViewForwardStock: boolean;
+  canViewCurrentStock: boolean;
+  canViewPreviousStock: boolean;
+  applicationMessage?: string;
   createdAt?: string;
 };
 
@@ -19,6 +22,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [bulkForwarding, setBulkForwarding] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -61,6 +65,65 @@ export default function AdminUsersPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ canViewForwardStock: Boolean(!u.canViewForwardStock) }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "Update failed");
+        return;
+      }
+      const updated = await res.json();
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ...updated } : x)));
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function enableForwardStockForAll() {
+    if (!confirm("Enable “view forward stock” for all customers? This will update every non-admin user.")) return;
+    setBulkForwarding(true);
+    try {
+      const res = await fetch("/api/admin/users/bulk-enable-forward", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error ?? "Failed");
+        return;
+      }
+      alert(`Done. Updated ${data.modifiedCount ?? 0} customer(s).`);
+      fetch("/api/admin/users")
+        .then((r) => r.json())
+        .then((d) => setUsers(d.users ?? []));
+    } finally {
+      setBulkForwarding(false);
+    }
+  }
+
+  async function toggleCurrentStock(u: UserRow) {
+    setUpdating(u.id);
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canViewCurrentStock: !u.canViewCurrentStock }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "Update failed");
+        return;
+      }
+      const updated = await res.json();
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ...updated } : x)));
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function togglePreviousStock(u: UserRow) {
+    setUpdating(u.id);
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canViewPreviousStock: !u.canViewPreviousStock }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -133,6 +196,17 @@ export default function AdminUsersPage() {
           ← Back to Admin
         </Link>
 
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={enableForwardStockForAll}
+            disabled={bulkForwarding}
+            className="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+          >
+            {bulkForwarding ? "Updating…" : "Enable forward stock for all customers"}
+          </button>
+        </div>
+
         <div className="border border-gray-200 rounded-lg overflow-hidden bg-white dark:bg-gray-900 dark:border-gray-800">
           <table className="w-full text-left">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
@@ -141,7 +215,10 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Name / Company</th>
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Role / Make admin</th>
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Allow pricing</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View forward stock</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View current</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View previous</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View forward</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Application</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -193,9 +270,43 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3">
                     {u.role === "admin" ? (
-                      <span className="text-sm text-gray-500 dark:text-gray-400" title="Admins always see forward stock">
-                        Yes (admin)
-                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Yes (admin)</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => toggleCurrentStock(u)}
+                        disabled={updating === u.id}
+                        className={`px-2 py-1 text-xs rounded ${
+                          u.canViewCurrentStock
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                        } disabled:opacity-50`}
+                      >
+                        {updating === u.id ? "…" : u.canViewCurrentStock ? "Yes" : "No"}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {u.role === "admin" ? (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Yes (admin)</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => togglePreviousStock(u)}
+                        disabled={updating === u.id}
+                        className={`px-2 py-1 text-xs rounded ${
+                          u.canViewPreviousStock
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                        } disabled:opacity-50`}
+                      >
+                        {updating === u.id ? "…" : u.canViewPreviousStock ? "Yes" : "No"}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {u.role === "admin" ? (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Yes (admin)</span>
                     ) : (
                       <button
                         type="button"
@@ -210,6 +321,9 @@ export default function AdminUsersPage() {
                         {updating === u.id ? "…" : u.canViewForwardStock ? "Yes" : "No"}
                       </button>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-[120px] truncate" title={u.applicationMessage ?? undefined}>
+                    {u.applicationMessage ? u.applicationMessage.slice(0, 40) + (u.applicationMessage.length > 40 ? "…" : "") : "—"}
                   </td>
                 </tr>
               ))}

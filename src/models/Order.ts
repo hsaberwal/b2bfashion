@@ -9,6 +9,19 @@ const orderItemSchema = new mongoose.Schema({
   size: { type: String, default: undefined },
 });
 
+const deliverySnapshotSchema = new mongoose.Schema(
+  {
+    addressLine1: String,
+    addressLine2: String,
+    city: String,
+    postcode: String,
+    country: String,
+    vatNumber: String,
+    companyName: String,
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -20,6 +33,10 @@ const orderSchema = new mongoose.Schema(
     },
     signatureDataUrl: String,
     signedAt: Date,
+    deliverySnapshot: deliverySnapshotSchema,
+    paymentOption: { type: String, enum: ["pay_now", "pay_later"], default: "pay_later" },
+    depositAmount: Number,
+    depositPaid: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
