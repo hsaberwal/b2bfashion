@@ -25,7 +25,6 @@ export default function SignOrderPage() {
   const router = useRouter();
   const orderId = params.id as string;
   const [order, setOrder] = useState<Order | null>(null);
-  const [user, setUser] = useState<{ deliveryAddress?: DeliverySnapshot; vatNumber?: string; companyName?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +60,6 @@ export default function SignOrderPage() {
       const o = (ordersRes.orders ?? []).find((x: Order) => x.id === orderId);
       setOrder(o ?? null);
       const u = sessionRes.user;
-      setUser(u ?? null);
       if (u?.deliveryAddress) {
         setDelivery((d) => ({
           addressLine1: u.deliveryAddress?.addressLine1 ?? d.addressLine1,

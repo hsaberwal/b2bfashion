@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { HOMEPAGE_IMAGE_URLS } from "@/data/homepageImages";
+import { HomepageGallery } from "@/components/HomepageGallery";
 
 export default function HomePage() {
   return (
@@ -11,34 +11,7 @@ export default function HomePage() {
           <h2 className="text-xl font-semibold text-je-black tracking-tight mb-6 text-center">
             What we do
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
-            {HOMEPAGE_IMAGE_URLS.map((src, i) => (
-              <div
-                key={i}
-                className="aspect-square relative rounded overflow-hidden bg-je-cream border border-je-border"
-              >
-                <Image
-                  src={src}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                  unoptimized={src.startsWith("http")}
-                  onError={(e) => {
-                    const el = e.currentTarget;
-                    el.style.display = "none";
-                    const parent = el.parentElement;
-                    if (parent) {
-                      const fallback = document.createElement("div");
-                      fallback.className = "absolute inset-0 flex items-center justify-center text-je-muted text-xs p-2";
-                      fallback.textContent = `Image ${i + 1}`;
-                      parent.appendChild(fallback);
-                    }
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          <HomepageGallery urls={HOMEPAGE_IMAGE_URLS} />
           <p className="text-je-muted text-sm text-center mt-4">
             Add your images to <code className="bg-je-cream px-1 rounded">public/images/home/</code> (1.jpg–12.jpg) or edit <code className="bg-je-cream px-1 rounded">src/data/homepageImages.ts</code>.
           </p>
