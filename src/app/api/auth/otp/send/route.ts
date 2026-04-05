@@ -2,15 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { z } from "zod";
+import { Resend } from "resend";
 
-// In production, use Resend/SendGrid etc. For local dev we just store OTP and log it.
-function sendOtpEmail(_email: string, code: string): Promise<void> {
+const resend = new Resend(process.env.EMAIL_API_KEY);
+
+async function sendOtpEmail(email: string, code: string): Promise<void> {
   if (process.env.NODE_ENV === "development") {
-    console.log("[OTP for", _email, "]:", code);
-    return Promise.resolve();
+    console.log("[OTP for", email, "]:", code);
+    return;
   }
-  // TODO: integrate EMAIL_API_KEY and send real email
-  return Promise.resolve();
+
+  const emailFrom = process.env.EMAIL_FROM;
+  if (!emailFrom) {
+    console.error("EMAIL_FROM not set");
+    return;
+  }
+
+  if (!process.env.EMAIL_API_KEY) {
+    console.error("EMAIL_API_KEY not set");
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: emailFrom,
+      to: email,
+      subject: "Your password reset code",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Password Reset</h2>
+          <p>Your one-time password is:</p>
+          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <code style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${code}</code>
+          </div>
+          <p>This code expires in 10 minutes.</p>
+          <p>If you didn't request a password reset, ignore this email.</p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Failed to send OTP email:", error);
+  }
 }
 
 const bodySchema = z.object({ email: z.string().email() });
