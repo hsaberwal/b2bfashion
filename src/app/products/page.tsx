@@ -95,7 +95,7 @@ export default function ProductsPage() {
       <header className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-je-black tracking-tight">
-            Products
+            Garments
           </h1>
           <p className="text-je-muted text-sm mt-0.5">
             Claudia B2B — bulk ordering only (pack sizes apply)

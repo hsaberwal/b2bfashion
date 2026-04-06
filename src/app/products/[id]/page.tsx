@@ -147,7 +147,7 @@ export default function ProductDetailPage() {
       <main className="min-h-screen bg-white">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <Link href="/products" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors">
-            &larr; Back to products
+            &larr; Back to garments
           </Link>
           <p className="text-je-muted mt-8">{loading ? "Loading..." : "Product not found."}</p>
         </div>
@@ -169,7 +169,7 @@ export default function ProductDetailPage() {
         {/* Breadcrumb */}
         <nav className="mb-6">
           <Link href="/products" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors">
-            &larr; Back to products
+            &larr; Back to garments
           </Link>
         </nav>
 

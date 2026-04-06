@@ -183,7 +183,7 @@ export default function CartPage() {
                       Your cart is empty.
                     </p>
                     <Link href="/products" className="btn-primary">
-                      Browse Products
+                      Browse Garments
                     </Link>
                   </div>
                 ) : (
@@ -268,7 +268,7 @@ export default function CartPage() {
                 </h2>
                 {!hasServerCart ? (
                   <p className="text-je-muted">
-                    Your cart is empty. <Link href="/products" className="text-je-black font-medium underline hover:no-underline">Browse products</Link>
+                    Your cart is empty. <Link href="/products" className="text-je-black font-medium underline hover:no-underline">Browse garments</Link>
                   </p>
                 ) : (
                   <div className="border border-je-border bg-je-offwhite">
