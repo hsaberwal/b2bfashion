@@ -97,6 +97,8 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
   const [generatePrompt, setGeneratePrompt] = useState("");
   const [generateNumImages, setGenerateNumImages] = useState(1);
   const [generateFromIndex, setGenerateFromIndex] = useState<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const update = useCallback(<K extends keyof ProductFormData>(key: K, value: ProductFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -112,6 +114,32 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
   const removeImage = (index: number) => {
     update("images", form.images.filter((_, i) => i !== index));
     if (generateFromIndex === index) setGenerateFromIndex(null);
+  };
+
+  /** Reorder images via drag-and-drop */
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+  const handleDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const reordered = [...form.images];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(index, 0, moved);
+    update("images", reordered);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -455,42 +483,96 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           </div>
         )}
 
-        {/* Image grid with per-image AI button */}
+        {/* Image grid with drag-to-reorder and per-image AI button */}
         {form.images.length > 0 ? (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
-            {form.images.map((url, i) => (
-              <div key={i} className="relative group">
-                <div className="aspect-[3/4] overflow-hidden rounded border border-gray-200 dark:border-gray-700 bg-gray-50">
-                  <img src={imageDisplaySrc(url)} alt="" className="w-full h-full object-cover" />
-                </div>
-                {/* Delete button */}
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                  title="Remove image"
+          <>
+            {form.images.length > 1 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Drag to reorder — first image is used as the main photo
+              </p>
+            )}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+              {form.images.map((url, i) => (
+                <div
+                  key={`${url}-${i}`}
+                  className={`relative group cursor-grab active:cursor-grabbing transition-all ${
+                    dragIndex === i ? "opacity-40 scale-95" : ""
+                  } ${dragOverIndex === i && dragIndex !== i ? "ring-2 ring-blue-400 ring-offset-1" : ""}`}
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                  onDrop={() => handleDrop(i)}
+                  onDragEnd={handleDragEnd}
                 >
-                  &times;
-                </button>
-                {/* AI generate button */}
-                {productId && (
+                  <div className="aspect-[3/4] overflow-hidden rounded border border-gray-200 dark:border-gray-700 bg-gray-50">
+                    <img src={imageDisplaySrc(url)} alt="" className="w-full h-full object-cover pointer-events-none" />
+                  </div>
+                  {/* Position badge */}
+                  <span className="absolute top-1 left-1 w-5 h-5 bg-black/60 text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
+                    {i + 1}
+                  </span>
+                  {/* Delete button */}
                   <button
                     type="button"
-                    onClick={() => setGenerateFromIndex(generateFromIndex === i ? null : i)}
-                    disabled={generatingAI}
-                    className={`absolute bottom-1 left-1 right-1 py-1 text-[10px] font-semibold uppercase tracking-wider rounded transition-all ${
-                      generateFromIndex === i
-                        ? "bg-blue-600 text-white opacity-100"
-                        : "bg-black/70 text-white opacity-0 group-hover:opacity-100"
-                    } disabled:opacity-30`}
-                    title="Generate AI model photo from this image"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    title="Remove image"
                   >
-                    AI Generate
+                    &times;
                   </button>
-                )}
-              </div>
-            ))}
-          </div>
+                  {/* Move buttons for mobile / touch */}
+                  {form.images.length > 1 && (
+                    <div className="absolute top-7 right-1 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {i > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reordered = [...form.images];
+                            [reordered[i - 1], reordered[i]] = [reordered[i], reordered[i - 1]];
+                            update("images", reordered);
+                          }}
+                          className="w-6 h-6 bg-black/60 text-white rounded text-xs flex items-center justify-center"
+                          title="Move left"
+                        >
+                          &larr;
+                        </button>
+                      )}
+                      {i < form.images.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reordered = [...form.images];
+                            [reordered[i], reordered[i + 1]] = [reordered[i + 1], reordered[i]];
+                            update("images", reordered);
+                          }}
+                          className="w-6 h-6 bg-black/60 text-white rounded text-xs flex items-center justify-center"
+                          title="Move right"
+                        >
+                          &rarr;
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {/* AI generate button */}
+                  {productId && (
+                    <button
+                      type="button"
+                      onClick={() => setGenerateFromIndex(generateFromIndex === i ? null : i)}
+                      disabled={generatingAI}
+                      className={`absolute bottom-1 left-1 right-1 py-1 text-[10px] font-semibold uppercase tracking-wider rounded transition-all ${
+                        generateFromIndex === i
+                          ? "bg-blue-600 text-white opacity-100"
+                          : "bg-black/70 text-white opacity-0 group-hover:opacity-100"
+                      } disabled:opacity-30`}
+                      title="Generate AI model photo from this image"
+                    >
+                      AI Generate
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="mb-3 p-6 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
