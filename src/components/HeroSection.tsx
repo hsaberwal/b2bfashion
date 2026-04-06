@@ -17,7 +17,7 @@ export function HeroSection({ fallbackImages }: { fallbackImages: string[] }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/products/featured")
+    fetch("/api/products/hero")
       .then((r) => r.json())
       .then((d) => setProducts(d.products ?? []))
       .catch(() => {})

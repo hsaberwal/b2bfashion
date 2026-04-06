@@ -22,6 +22,7 @@ export type ProductFormData = {
   sizes: string[];
   images: string[];
   featured: boolean;
+  showOnHero: boolean;
   latestLooks: boolean;
   packSize: number;
   pricePerItem: string;
@@ -43,6 +44,7 @@ const defaultForm: ProductFormData = {
   sizes: [],
   images: [],
   featured: false,
+  showOnHero: false,
   latestLooks: false,
   packSize: 6,
   pricePerItem: "",
@@ -55,6 +57,7 @@ export type ProductSubmitPayload = Omit<ProductFormData, "pricePerItem" | "compa
   colours?: string[];
   sizes?: string[];
   featured?: boolean;
+  showOnHero?: boolean;
   latestLooks?: boolean;
 };
 
@@ -680,37 +683,55 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
         </div>
       </div>
 
-      {/* Homepage visibility */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
-          <input
-            type="checkbox"
-            id="featured"
-            checked={form.featured}
-            onChange={(e) => update("featured", e.target.checked)}
-            className="w-5 h-5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
-          />
-          <label htmlFor="featured" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-            Feature on homepage
-            <span className="block text-xs text-gray-500 dark:text-gray-400 font-normal">
-              Hero banner &amp; featured styles grid
-            </span>
-          </label>
-        </div>
-        <div className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
-          <input
-            type="checkbox"
-            id="latestLooks"
-            checked={form.latestLooks}
-            onChange={(e) => update("latestLooks", e.target.checked)}
-            className="w-5 h-5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
-          />
-          <label htmlFor="latestLooks" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-            Our Latest Looks
-            <span className="block text-xs text-gray-500 dark:text-gray-400 font-normal">
-              Gallery section — rotates through product photos
-            </span>
-          </label>
+      {/* Homepage visibility — 3 sections */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Show on homepage</label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="flex items-start gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+            <input
+              type="checkbox"
+              id="showOnHero"
+              checked={form.showOnHero}
+              onChange={(e) => update("showOnHero", e.target.checked)}
+              className="w-5 h-5 mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <label htmlFor="showOnHero" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+              Front Page
+              <span className="block text-xs text-gray-500 dark:text-gray-400 font-normal">
+                Big hero banner &amp; two-column feature
+              </span>
+            </label>
+          </div>
+          <div className="flex items-start gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+            <input
+              type="checkbox"
+              id="featured"
+              checked={form.featured}
+              onChange={(e) => update("featured", e.target.checked)}
+              className="w-5 h-5 mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <label htmlFor="featured" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+              Featured Styles
+              <span className="block text-xs text-gray-500 dark:text-gray-400 font-normal">
+                Product grid section
+              </span>
+            </label>
+          </div>
+          <div className="flex items-start gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+            <input
+              type="checkbox"
+              id="latestLooks"
+              checked={form.latestLooks}
+              onChange={(e) => update("latestLooks", e.target.checked)}
+              className="w-5 h-5 mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <label htmlFor="latestLooks" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+              Our Latest Looks
+              <span className="block text-xs text-gray-500 dark:text-gray-400 font-normal">
+                Rotating image gallery
+              </span>
+            </label>
+          </div>
         </div>
       </div>
 
