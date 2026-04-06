@@ -17,6 +17,7 @@ const bodySchema = z.object({
   productId: z.string(),
   imageIndex: z.number().int().min(0).optional(),
   prompt: z.string().optional(),
+  view: z.enum(["front", "back"]).optional(),
   num_images: z.number().int().min(1).max(4).optional(),
 });
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { productId, imageIndex = 0, prompt, num_images = 1 } = parsed.data;
+    const { productId, imageIndex = 0, prompt, view = "front", num_images = 1 } = parsed.data;
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
@@ -64,7 +65,8 @@ export async function POST(request: NextRequest) {
     const productImageUrl = await getFetchableImageUrl(garmentImageValue);
 
     // Default demographic: ladies aged 35-55, diverse ethnicities
-    const defaultPrompt = "Woman aged 35-55, diverse ethnicity and race.";
+    const viewDesc = view === "back" ? "This is the back of the garment." : "This is the front of the garment.";
+    const defaultPrompt = `Woman aged 35-55, diverse ethnicity and race. ${viewDesc}`;
     const userPrompt = prompt?.trim();
     const fullPrompt = userPrompt
       ? `${defaultPrompt} ${userPrompt}`

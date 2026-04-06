@@ -97,6 +97,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
   const [generatePrompt, setGeneratePrompt] = useState("");
   const [generateNumImages, setGenerateNumImages] = useState(1);
   const [generateFromIndex, setGenerateFromIndex] = useState<number | null>(null);
+  const [generateView, setGenerateView] = useState<"front" | "back">("front");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -200,6 +201,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           productId,
           imageIndex,
           prompt: generatePrompt.trim() || undefined,
+          view: generateView,
           num_images: generateNumImages,
         }),
       });
@@ -602,6 +604,45 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
             </div>
 
             <div className="space-y-3">
+              {/* Front / Back selector */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  This photo shows the
+                </label>
+                <div className="flex gap-3">
+                  <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                    generateView === "front"
+                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
+                      : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="garmentView"
+                      value="front"
+                      checked={generateView === "front"}
+                      onChange={() => setGenerateView("front")}
+                      className="sr-only"
+                    />
+                    Front
+                  </label>
+                  <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                    generateView === "back"
+                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
+                      : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="garmentView"
+                      value="back"
+                      checked={generateView === "back"}
+                      onChange={() => setGenerateView("back")}
+                      className="sr-only"
+                    />
+                    Back
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Prompt (optional — describe background, styling)
