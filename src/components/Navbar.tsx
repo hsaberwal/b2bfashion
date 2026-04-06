@@ -72,6 +72,12 @@ export function Navbar() {
           >
             Garments
           </Link>
+          <Link
+            href="/about"
+            className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium"
+          >
+            About
+          </Link>
           {user?.role === "admin" && (
             <Link
               href="/admin/products"

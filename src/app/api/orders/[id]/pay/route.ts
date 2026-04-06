@@ -94,19 +94,28 @@ export async function POST(
 
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-    const redirectUrl = await createWorldpayOrder({
-      orderCode,
-      description: paymentOption === "pay_deposit"
-        ? `Claudia B2B — 10% Deposit (Order ${order._id.toString().slice(-8)})`
-        : `Claudia B2B — Full Payment (Order ${order._id.toString().slice(-8)})`,
-      amount: amountToCharge,
-      currencyCode: "GBP",
-      shopperEmail,
-      successUrl: `${baseUrl}/checkout/result?orderId=${id}&status=success`,
-      failureUrl: `${baseUrl}/checkout/result?orderId=${id}&status=failure`,
-      pendingUrl: `${baseUrl}/checkout/result?orderId=${id}&status=pending`,
-      cancelUrl: `${baseUrl}/checkout/result?orderId=${id}&status=cancelled`,
-    });
+    let redirectUrl: string;
+    try {
+      redirectUrl = await createWorldpayOrder({
+        orderCode,
+        description: paymentOption === "pay_deposit"
+          ? `Claudia B2B — 10% Deposit (Order ${order._id.toString().slice(-8)})`
+          : `Claudia B2B — Full Payment (Order ${order._id.toString().slice(-8)})`,
+        amount: amountToCharge,
+        currencyCode: "GBP",
+        shopperEmail,
+        successUrl: `${baseUrl}/checkout/result?orderId=${id}&status=success`,
+        failureUrl: `${baseUrl}/checkout/result?orderId=${id}&status=failure`,
+        pendingUrl: `${baseUrl}/checkout/result?orderId=${id}&status=pending`,
+        cancelUrl: `${baseUrl}/checkout/result?orderId=${id}&status=cancelled`,
+      });
+    } catch (wpErr) {
+      console.error("Worldpay error:", wpErr);
+      return NextResponse.json(
+        { error: "Online payment is currently unavailable. Please contact the office to place your order by phone." },
+        { status: 503 }
+      );
+    }
 
     // Save payment info to order
     order.paymentOption = paymentOption === "pay_deposit" ? "pay_deposit" : "pay_now";
@@ -134,7 +143,7 @@ export async function POST(
   } catch (e) {
     console.error("Payment initiation error:", e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Payment initiation failed" },
+      { error: "Payment could not be processed. Please contact the office." },
       { status: 500 }
     );
   }
