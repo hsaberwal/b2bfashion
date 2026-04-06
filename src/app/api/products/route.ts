@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
 
     const products = await Product.find(filter)
       .sort({ sku: 1 })
+      .limit(500)
       .lean();
     const list = products.map((p) => {
       const images = (p.images ?? []) as string[];

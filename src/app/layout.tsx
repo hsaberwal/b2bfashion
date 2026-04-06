@@ -6,6 +6,7 @@ import { ScreenshotProtection } from "@/components/ScreenshotProtection";
 import { Chatbot } from "@/components/Chatbot";
 import { Navbar } from "@/components/Navbar";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { CsrfProvider } from "@/components/CsrfProvider";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -53,6 +54,7 @@ export default function RootLayout({
       <body className="font-sans antialiased min-h-screen bg-white text-je-black">
         <ScreenshotProtection />
         <PwaRegister />
+        <CsrfProvider />
         <div className="bg-je-black text-white text-center text-[11px] tracking-[0.15em] uppercase py-2.5 px-4 font-medium">
           Wholesale &mdash; bulk ordering only (pack sizes apply)
         </div>

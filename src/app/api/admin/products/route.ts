@@ -56,7 +56,7 @@ export async function GET() {
   try {
     await requireAdmin();
     await connectDB();
-    const products = await Product.find({}).sort({ sku: 1 }).lean();
+    const products = await Product.find({}).sort({ sku: 1 }).limit(5000).lean();
     return NextResponse.json({
       products: products.map((p) => mapProduct(p)),
     });

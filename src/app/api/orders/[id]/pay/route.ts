@@ -49,6 +49,13 @@ export async function POST(
     if (order.status !== "signed") {
       return NextResponse.json({ error: "Order must be signed before payment" }, { status: 400 });
     }
+    // Prevent double payment initiation
+    if (order.paymentStatus === "pending") {
+      return NextResponse.json({ error: "Payment has already been initiated for this order. Please complete the existing payment or wait for it to expire." }, { status: 409 });
+    }
+    if (order.paymentStatus === "paid") {
+      return NextResponse.json({ error: "This order has already been paid." }, { status: 409 });
+    }
 
     // Calculate order total
     const orderTotal = (order.items ?? []).reduce(
