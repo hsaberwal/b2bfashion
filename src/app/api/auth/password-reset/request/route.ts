@@ -8,7 +8,9 @@ import { Resend } from "resend";
 // In production, send email with link containing token. For local dev we log the link.
 const RESET_EXPIRY_HOURS = 1;
 
-const resend = new Resend(process.env.EMAIL_API_KEY);
+function getResend() {
+  return new Resend(process.env.EMAIL_API_KEY);
+}
 
 async function sendResetEmail(email: string, resetLink: string): Promise<void> {
   if (process.env.NODE_ENV === "development") {
@@ -28,7 +30,7 @@ async function sendResetEmail(email: string, resetLink: string): Promise<void> {
   }
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: emailFrom,
       to: email,
       subject: "Reset your password",

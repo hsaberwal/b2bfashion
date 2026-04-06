@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -13,7 +13,7 @@ type PaymentResult = {
   depositPaid?: boolean;
 };
 
-export default function CheckoutResultPage() {
+function CheckoutResult() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
   const worldpayStatus = searchParams.get("status");
@@ -26,7 +26,6 @@ export default function CheckoutResultPage() {
       return;
     }
 
-    // Update payment status and fetch result
     const url = worldpayStatus
       ? `/api/orders/${orderId}/payment-status?worldpayStatus=${worldpayStatus}`
       : `/api/orders/${orderId}/payment-status`;
@@ -69,7 +68,6 @@ export default function CheckoutResultPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-white px-4">
       <div className="max-w-md w-full text-center">
-        {/* Success */}
         {(isSuccess || isInvoice) && (
           <>
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
@@ -87,15 +85,9 @@ export default function CheckoutResultPage() {
                   ? `Your 10% deposit of £${result.amountPaid?.toFixed(2)} has been paid.`
                   : `Payment of £${result.amountPaid?.toFixed(2)} received.`}
             </p>
-            {isInvoice && result.depositAmount != null && result.depositAmount > 0 && (
-              <p className="text-sm text-je-muted mb-6">
-                Outstanding balance: £{((result.amountPaid ?? 0) > 0 ? (result.depositAmount * 10 - (result.amountPaid ?? 0)) : result.depositAmount * 10).toFixed(2)}
-              </p>
-            )}
           </>
         )}
 
-        {/* Failed */}
         {isFailed && (
           <>
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
@@ -110,7 +102,6 @@ export default function CheckoutResultPage() {
           </>
         )}
 
-        {/* Pending */}
         {isPending && (
           <>
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-yellow-100 flex items-center justify-center">
@@ -132,5 +123,17 @@ export default function CheckoutResultPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function CheckoutResultPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-je-muted">Processing payment...</p>
+      </main>
+    }>
+      <CheckoutResult />
+    </Suspense>
   );
 }

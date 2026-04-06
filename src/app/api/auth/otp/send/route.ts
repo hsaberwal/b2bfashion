@@ -4,7 +4,9 @@ import { User } from "@/models/User";
 import { z } from "zod";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.EMAIL_API_KEY);
+function getResend() {
+  return new Resend(process.env.EMAIL_API_KEY);
+}
 
 async function sendOtpEmail(email: string, code: string): Promise<void> {
   if (process.env.NODE_ENV === "development") {
@@ -24,7 +26,7 @@ async function sendOtpEmail(email: string, code: string): Promise<void> {
   }
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: emailFrom,
       to: email,
       subject: "Your password reset code",
