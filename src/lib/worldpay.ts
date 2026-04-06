@@ -105,10 +105,14 @@ export async function createWorldpayOrder(params: WorldpayOrderParams): Promise<
   const responseXml = await res.text();
 
   // Extract redirect URL from the response
-  // The response contains: <reference id="...">https://payments.worldpay.com/...</reference>
   const refMatch = responseXml.match(/<reference[^>]*>(https?:\/\/[^<]+)<\/reference>/);
   if (refMatch) {
     let redirectUrl = refMatch[1];
+    // Validate the redirect URL belongs to Worldpay
+    const redirectHost = new URL(redirectUrl).hostname;
+    if (!redirectHost.endsWith(".worldpay.com") && !redirectHost.endsWith(".wp.com")) {
+      throw new Error("Worldpay returned an unexpected redirect domain");
+    }
     // Append success/failure/pending/cancel URLs
     redirectUrl += `&successURL=${encodeURIComponent(params.successUrl)}`;
     redirectUrl += `&failureURL=${encodeURIComponent(params.failureUrl)}`;

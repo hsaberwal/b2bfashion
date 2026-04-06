@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { nanoid } from "nanoid";
+import { isRateLimited, getClientIp } from "@/lib/rateLimit";
 import { z } from "zod";
 import { Resend } from "resend";
 
@@ -58,6 +59,10 @@ const bodySchema = z.object({ email: z.string().email() });
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    if (isRateLimited(`pw-reset:${ip}`, 5, 60 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many reset requests. Please try again in an hour." }, { status: 429 });
+    }
     const body = await request.json();
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {

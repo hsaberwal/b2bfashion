@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import { isRateLimited, getClientIp } from "@/lib/rateLimit";
 import { z } from "zod";
 import { Resend } from "resend";
 
@@ -53,6 +55,10 @@ const OTP_EXPIRY_MINUTES = 10;
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    if (isRateLimited(`otp-send:${ip}`, 5, 15 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many OTP requests. Please try again in 15 minutes." }, { status: 429 });
+    }
     const body = await request.json();
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "No account with this email" }, { status: 404 });
     }
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = String(randomInt(100000, 999999));
     const otpExpires = new Date();
     otpExpires.setMinutes(otpExpires.getMinutes() + OTP_EXPIRY_MINUTES);
     await User.updateOne(

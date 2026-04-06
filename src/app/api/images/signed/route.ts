@@ -12,6 +12,10 @@ export async function GET(request: NextRequest) {
     if (!key || !key.trim()) {
       return NextResponse.json({ error: "Missing key" }, { status: 400 });
     }
+    // Prevent path traversal
+    if (key.includes("..") || !/^[a-zA-Z0-9/_.\-]+$/.test(key)) {
+      return NextResponse.json({ error: "Invalid key" }, { status: 400 });
+    }
     const client = getClient();
     if (!client) {
       return NextResponse.json({ error: "Image service not configured" }, { status: 503 });

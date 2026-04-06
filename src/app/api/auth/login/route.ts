@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { Session } from "@/models/Session";
 import { verifyPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
+import { isRateLimited, getClientIp } from "@/lib/rateLimit";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -14,6 +15,10 @@ const SESSION_DAYS = 7;
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    if (isRateLimited(`login:${ip}`, 10, 15 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many login attempts. Please try again in 15 minutes." }, { status: 429 });
+    }
     const body = await request.json();
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Product } from "@/models/Product";
+import { Session } from "@/models/Session";
+import { User } from "@/models/User";
+import { getSessionToken } from "@/lib/auth";
 import mongoose from "mongoose";
 
 export async function GET(
@@ -18,8 +21,19 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
     const product = raw as Record<string, unknown>;
-    // Return raw images (blob keys or URLs); client uses /api/images/signed for blob keys so URLs stay valid
     const images = (product.images ?? []) as string[];
+
+    // Check if user has pricing approval
+    let pricingApproved = false;
+    const token = await getSessionToken();
+    if (token) {
+      const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
+      if (session) {
+        const user = await User.findById(session.userId).select("pricingApproved");
+        pricingApproved = user?.pricingApproved ?? false;
+      }
+    }
+
     return NextResponse.json({
       id: String(product._id),
       sku: product.sku,
@@ -39,8 +53,8 @@ export async function GET(
       attributes: product.attributes,
       images,
       packSize: product.packSize,
-      pricePerItem: product.pricePerItem,
-      compareAtPrice: product.compareAtPrice,
+      pricePerItem: pricingApproved ? product.pricePerItem : undefined,
+      compareAtPrice: pricingApproved ? product.compareAtPrice : undefined,
     });
   } catch (e) {
     console.error(e);

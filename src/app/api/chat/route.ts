@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { connectDB } from "@/lib/mongodb";
 import { Product } from "@/models/Product";
 import { PRODUCT_CATEGORIES } from "@/lib/types";
+import { isRateLimited, getClientIp } from "@/lib/rateLimit";
 
 function getClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -132,6 +133,18 @@ export async function POST(request: NextRequest) {
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return Response.json({ error: "Messages are required." }, { status: 400 });
+    }
+
+    // Rate limit: 20 messages per 5 minutes per IP
+    const ip = getClientIp(request);
+    if (isRateLimited(`chat:${ip}`, 20, 5 * 60 * 1000)) {
+      return Response.json({ error: "You're sending messages too quickly. Please wait a moment." }, { status: 429 });
+    }
+
+    // Validate message length
+    const lastMessage = messages[messages.length - 1];
+    if (typeof lastMessage?.content === "string" && lastMessage.content.length > 2000) {
+      return Response.json({ error: "Message is too long. Please keep it under 2000 characters." }, { status: 400 });
     }
 
     const productContext = await getProductContext();
