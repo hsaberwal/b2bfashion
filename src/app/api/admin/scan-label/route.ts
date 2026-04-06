@@ -44,17 +44,21 @@ export async function POST(request: NextRequest) {
 
     contentBlocks.push({
       type: "text",
-      text: `You are looking at ${files.length > 1 ? `${files.length} photos of clothing labels` : "a clothing label photo"}. These may include materials/composition labels, care instruction labels, size labels, or brand labels. Look at ALL the images together to extract the complete information.
+      text: `You are looking at ${files.length > 1 ? `${files.length} photos of clothing labels` : "a clothing label photo"}. These may include materials/composition labels, care instruction labels, size labels, price tags, or brand labels. Look at ALL the images together to extract the complete information.
 
 For care symbols (washing, ironing, bleaching, drying icons), translate them into readable English instructions.
 
 Return the extracted information as JSON only (no markdown, no explanation):
 
 {
+  "sku": "the SKU, stock code, or article number if visible on any label, otherwise empty string",
+  "productCode": "the product code, style number, or model number if visible (may be different from SKU), otherwise empty string",
+  "name": "the product name or description if visible on any label, otherwise empty string",
   "materials": "the full fabric composition, e.g. 95% Polyester, 5% Elastane. Combine info from multiple labels if needed.",
   "careGuide": "all care instructions as a readable sentence, e.g. Machine wash at 30°C, Do not bleach, Iron on low heat, Do not tumble dry. Translate any care symbols you see.",
   "sizes": ["array of ALL sizes if visible on any label, e.g. S, M, L, XL"],
-  "colour": "colour name if visible on any label, otherwise empty string"
+  "colour": "colour name if visible on any label, otherwise empty string",
+  "pricePerItem": "the price as a number (no currency symbol), e.g. 29.99. Use the original/retail price if multiple prices shown. Empty string if not visible."
 }
 
 If a field is not visible on any of the labels, use an empty string (or empty array for sizes).

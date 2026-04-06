@@ -237,10 +237,14 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
       }
       setForm((prev) => ({
         ...prev,
+        sku: data.sku || prev.sku,
+        productCode: data.productCode || prev.productCode,
+        name: data.name || prev.name,
         materials: data.materials || prev.materials,
         careGuide: data.careGuide || prev.careGuide,
         sizes: data.sizes?.length ? data.sizes : prev.sizes,
         colour: data.colour || prev.colour,
+        pricePerItem: data.pricePerItem || prev.pricePerItem,
       }));
       // Clear the queue after successful scan
       labelPreviews.forEach((url) => URL.revokeObjectURL(url));
