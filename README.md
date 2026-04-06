@@ -1,141 +1,228 @@
-# Claudia B2B — Sales Platform
+# Claudia B2B — Wholesale Fashion Platform
 
-B2B wholesale platform for **Claudia** — ladies fashion wear. Built with **Next.js**, **Node.js** (API routes), and **MongoDB**. Deploy on **Railway**.
+A modern, AI-powered B2B wholesale platform for **Claudia** ladies fashion. Built with Next.js 15, MongoDB, and deployed on Railway.
 
-## Features
+**Live:** [claudia-c.com](https://claudia-c.com)
 
-- **Stock sections**: Previous year stock, Current stock, Forward/upcoming stock (per-user permission)
-- **Product listing**: SKU, barcode, style number, categories (Tops, Blouses, T-shirts, Knitwear, Trousers, Dresses, Skirts, Jackets, Sale, etc.), colour and attribute filters, 4+ images per product
-- **Pricing**: Visible only after account approval
-- **Auth**: Email/password login, email OTP verification, password reset
-- **Orders**: Bulk ordering only (pack sizes; pricing per single item). Digital signature for order acceptance
-- **Screenshot protection**: Sensitive pricing areas use `user-select: none` (CSS)
-- **PWA**: Installable on phones, tablets, and laptops — add to home screen / install as app
+---
 
-## Progressive Web App (PWA)
+## Tech Stack
 
-The app is a PWA so users can install it on phones, tablets, and laptops:
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS |
+| **Backend** | Next.js API Routes (Node.js) |
+| **Database** | MongoDB with Mongoose ODM |
+| **Auth** | Custom session-based auth (bcrypt, crypto-secure tokens) |
+| **Payments** | Worldpay (FIS/Global Payments) — hosted payment page |
+| **AI** | Claude API (Anthropic) — chatbot, label scanning |
+| **Image AI** | FASHN API — AI model photo generation |
+| **Image Storage** | Railway Image Service (or Cloudinary fallback) |
+| **Hosting** | Railway with custom domain |
+| **PWA** | Installable on mobile with app icons and service worker |
 
-- **Install**: On supported browsers (Chrome, Edge, Safari), use “Add to Home Screen” or “Install app”.
-- **Manifest**: `public/manifest.webmanifest` — name, theme, start URL, display `standalone`.
-- **Service worker**: `public/sw.js` — enables install and caches static assets for faster loads.
-- **Icon**: `public/icon.svg` is used for the app icon. For best support on all devices (especially Android), add PNG icons:
-  - `public/icons/icon-192.png` (192×192)
-  - `public/icons/icon-512.png` (512×512)
-  Then add them to `public/manifest.webmanifest` in the `icons` array.
+## Key Features
 
-The app must be served over **HTTPS** for install to work (Railway provides this).
+See [FEATURES.md](FEATURES.md) for the full feature showcase with details on every capability.
 
-## Local development
+**Highlights:**
+- AI-powered chatbot that knows the entire catalogue
+- AI label scanner — photograph garment labels to auto-fill product data
+- AI model photo generation (FASHN) with demographic targeting
+- Guest cart — browse and add to cart without registering
+- 3 payment options: pay in full, 10% deposit, or invoice
+- Drag-to-reorder product images
+- 3 independent homepage sections (Front Page, Featured Styles, Our Latest Looks)
+- Comprehensive security hardening (CSP, HSTS, rate limiting, encryption)
 
-### 1. Install dependencies
+## Project Structure
 
-```bash
-npm install
+```
+src/
+  app/                    # Next.js App Router
+    api/                  # API Routes
+      admin/              # Admin-only endpoints
+        claim/            # One-time admin claim
+        generate-model-photos/  # FASHN AI integration
+        images/           # Signed image URLs (admin)
+        products/         # Product CRUD
+        scan-label/       # AI label scanning (Claude Vision)
+        upload/           # Image upload
+        users/            # User management
+      auth/               # Authentication
+        login/            # Email/password login
+        register/         # Account registration
+        session/          # Session + CSRF token
+        otp/              # OTP send/verify
+        password-reset/   # Password reset flow
+      chat/               # AI chatbot endpoint
+      orders/             # Order management + payment
+      products/           # Public product listing + detail
+        featured/         # Featured products API
+        hero/             # Hero section products API
+        latest-looks/     # Latest looks products API
+      images/             # Public signed image proxy
+    about/                # About Us page
+    account/              # User account management
+    admin/                # Admin dashboard + product management
+    apply/                # Wholesale application form
+    cart/                 # Cart + checkout
+    checkout/             # Payment result page
+    login/                # Login page
+    products/             # Product listing + detail pages
+    register/             # Registration page
+  components/             # React components
+    admin/                # Admin components (ProductForm)
+    Chatbot.tsx           # AI chatbot widget
+    FeaturedProducts.tsx  # Featured products grid
+    HeroSection.tsx       # Dynamic hero from DB
+    InstallPrompt.tsx     # PWA install banner (mobile only)
+    LatestLooks.tsx       # Rotating image gallery
+    Navbar.tsx            # Sticky nav with cart badge
+  lib/                    # Shared utilities
+    audit.ts              # Security audit logging
+    auth.ts               # Password hashing, sessions, cookies
+    csrf.ts               # CSRF protection (double-submit cookie)
+    encrypt.ts            # AES-256-GCM encryption for signatures
+    fashn.ts              # FASHN AI API client
+    guestCart.ts           # localStorage guest cart
+    imageDisplayUrl.ts    # Image URL resolver
+    imageService.ts       # Railway Image Service client
+    mongodb.ts            # MongoDB connection
+    rateLimit.ts          # In-memory rate limiter
+    requireAdmin.ts       # Admin authorization
+    types.ts              # Shared TypeScript types
+    worldpay.ts           # Worldpay XML API client
+  models/                 # Mongoose models
+    AuditLog.ts           # Security audit trail
+    Order.ts              # Orders with payment fields
+    Product.ts            # Products with featured/latestLooks flags
+    Session.ts            # Auth sessions
+    User.ts               # Users with permissions
+  data/
+    homepageImages.ts     # Static image references (legacy)
 ```
 
-### 2. Environment variables
+## Environment Variables
 
-Copy `.env.example` to `.env` and set:
+Copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env`:
+### Required
+| Variable | Description |
+|----------|-------------|
+| `MONGODB_URI` | MongoDB connection string (or `MONGO_URL` / `MONGO_PUBLIC_URL` on Railway) |
+| `JWT_SECRET` | Random string for session signing (`openssl rand -base64 32`) |
+| `NEXTAUTH_URL` | App URL (e.g. `https://claudia-c.com`) |
 
-- **MONGODB_URI** — e.g. `mongodb://localhost:27017/b2bfashion` (local). On Railway, the app also accepts **MONGO_URL** or **MONGO_PUBLIC_URL** from the MongoDB plugin.
-- **JWT_SECRET** — Random string for session signing (e.g. `openssl rand -base64 32`)
-- **NEXTAUTH_URL** — `http://localhost:3000` for local
+### Optional — Features
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_API_KEY` | Claude API key — enables chatbot + label scanning |
+| `FASHN_API_KEY` | FASHN API key — enables AI model photo generation |
+| `EMAIL_API_KEY` | Resend API key — enables OTP and password reset emails |
+| `EMAIL_FROM` | Sender email address |
+| `IMAGE_SERVICE_URL` | Railway Image Service URL |
+| `IMAGE_SERVICE_SECRET_KEY` | Image Service auth key |
+| `ENCRYPTION_KEY` | 64-char hex — encrypts signatures at rest (generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) |
 
-### 3. Run MongoDB locally (if not using Atlas)
+### Optional — Payments
+| Variable | Description |
+|----------|-------------|
+| `WORLDPAY_MERCHANT_CODE` | Worldpay merchant code |
+| `WORLDPAY_XML_PASSWORD` | Worldpay XML password |
+| `WORLDPAY_ENV` | `test` or `live` |
 
-With Docker:
+## Local Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Start MongoDB (Docker)
 docker run -d -p 27017:27017 --name mongo mongo:latest
-```
 
-Or install MongoDB locally and start the service.
+# Copy env and configure
+cp .env.example .env
 
-### 4. Start the app
-
-```bash
+# Start dev server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 5. Create a user and test
-
-- Register at `/register`
-- Log in at `/login` (password or OTP; in dev, OTP is logged in the terminal)
-- Browse products at `/products`. Forward/upcoming stock is visible only if an admin grants you “View forward stock” in **Admin → Manage users**.
-- Pricing is visible only after an admin enables “Allow pricing” for your user in **Admin → Manage users**.
-- Add products to an order (quantity must be a multiple of pack size), then go to Cart and sign the order
+### First-time setup
+1. Register at `/register`
+2. Set yourself as admin: either set `CLAIM_ADMIN_SECRET` env var and visit `/claim-admin`, or update MongoDB directly:
+   ```javascript
+   db.users.updateOne({ email: "you@email.com" }, { $set: { role: "admin" } })
+   ```
+3. Go to `/admin/products` to add garments
 
 ## Deploy to Railway
 
-1. Push this repo to GitHub and connect the repo in [Railway](https://railway.app).
-2. Create a **MongoDB** service (Railway add-on or external Atlas) and give the app access to **MONGO_URL** or **MONGO_PUBLIC_URL** (reference the MongoDB service variables, or copy the connection string).
-3. In the app service, set:
-   - **MONGO_URL** or **MONGO_PUBLIC_URL** — from the MongoDB service (or use **MONGODB_URI** with the connection string)
-   - **NEXTAUTH_URL** — `https://your-app.up.railway.app`
-   - **JWT_SECRET** — a long random string
-4. Deploy. Railway will run `npm run build` and `npm run start`.
+1. Push to GitHub, connect repo in [Railway](https://railway.app)
+2. Add MongoDB service (Railway plugin or Atlas)
+3. Set environment variables (see table above)
+4. Deploy — Railway runs `npm run build` && `npm run start`
 
-## Project structure
+## Security
 
-- `src/app/` — Next.js App Router pages and API routes
-- `src/lib/` — MongoDB connection, auth helpers, types
-- `src/models/` — Mongoose models (User, Session, Product, Order)
-- `public/manifest.webmanifest` — PWA manifest
-- `public/sw.js` — Service worker
-- `public/icon.svg` — App icon (PWA)
-- `.env.example` — Example env vars for local and Railway
+The application has been through two comprehensive security audits. See the codebase for implementations:
 
-## Granting pricing and forward stock access
+- **Authentication**: bcrypt password hashing, crypto-secure OTP, timing-safe comparisons
+- **Rate limiting**: All auth endpoints rate-limited (login, OTP, register, password reset)
+- **CSRF**: Double-submit cookie pattern with timing-safe validation
+- **Headers**: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
+- **Encryption**: AES-256-GCM for signature data at rest
+- **Input validation**: Zod schemas on all endpoints, field max lengths, password complexity
+- **Upload security**: Magic bytes verification (JPEG, PNG, WebP, GIF)
+- **Audit logging**: Security events logged to MongoDB (login, orders, payments, admin actions)
+- **Path traversal**: Image key validation prevents directory traversal
+- **Price protection**: Prices hidden until wholesale account approved
+- **No enumeration**: Auth endpoints return identical responses for existing/non-existing accounts
 
-Admins can manage user permissions at **Admin → Manage users**:
+## API Overview
 
-- **Allow pricing** — toggles whether the user sees prices on products and in the cart.
-- **View forward stock** — toggles whether the user can see the “Forward / upcoming stock” section (admins always see it).
+### Public
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/products` | List products (prices hidden for unapproved) |
+| GET | `/api/products/[id]` | Product detail |
+| GET | `/api/products/featured` | Featured products for homepage |
+| GET | `/api/products/hero` | Hero section products |
+| GET | `/api/products/latest-looks` | Latest looks products |
+| POST | `/api/chat` | AI chatbot |
+| GET | `/api/auth/session` | Current session + CSRF token |
+| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/register` | Register |
 
-You can also set `pricingApproved` and `canViewForwardStock` manually in MongoDB if needed.
+### Authenticated
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/orders` | List user's orders + cart |
+| POST | `/api/orders` | Add to cart |
+| PATCH | `/api/orders/[id]` | Update cart |
+| POST | `/api/orders/[id]/sign` | Sign order |
+| POST | `/api/orders/[id]/pay` | Initiate payment |
+| GET | `/api/orders/[id]/payment-status` | Check payment status |
 
-## Admins and uploading products
+### Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/admin/products` | Create product |
+| PATCH | `/api/admin/products/[id]` | Update product |
+| DELETE | `/api/admin/products/[id]` | Delete product |
+| POST | `/api/admin/upload` | Upload image |
+| POST | `/api/admin/generate-model-photos` | Generate AI model photos |
+| POST | `/api/admin/scan-label` | Scan garment label with AI |
 
-**Who can upload products?** Only users with **role: "admin"**.
+## Documentation
 
-### Making a user an admin
-
-Set the user’s `role` in MongoDB (e.g. MongoDB Compass, Atlas UI, or `mongosh`):
-
-```javascript
-db.users.updateOne(
-  { email: "admin@yourcompany.com" },
-  { $set: { role: "admin" } }
-)
-```
-
-After that, when that user logs in they will see an **Admin** link (e.g. on the Products page) and can open **/admin**.
-
-### What admins can do
-
-- **Seed sample products** — On the Admin page, click “Seed sample products” to add placeholder products (with placeholder images) so you can see the product list and filters. Safe to run more than once.
-- **Add products via API** — `POST /api/admin/products` with a JSON body (must be logged in as admin). Fields: `sku`, `name`, `category`, `stockCategory`, `colour`, `packSize`; optional: `barcode`, `styleNumber`, `description`, `images` (array of image URLs), `pricePerItem`.
-- **Use images from your existing site** — When creating a product via the API, set `images` to an array of image URLs (e.g. from your own site or CDN). Ensure you have the right to use those URLs in this app.
-
-### Replacing seed images with your own
-
-The seed uses placeholder image URLs. To use real product images:
-
-1. Create products via `POST /api/admin/products` with `images` set to your image URLs, or  
-2. In MongoDB, update existing products’ `images` array with the correct URLs.
-
-## Tech stack
-
-- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS
-- **Backend**: Next.js API routes (Node.js)
-- **Database**: MongoDB with Mongoose
-- **Hosting**: Railway (or any Node host)
+- [FEATURES.md](FEATURES.md) — Full feature showcase
+- [USER_GUIDE.md](USER_GUIDE.md) — User documentation
+- [SECURITY.md](SECURITY.md) — Security documentation (if present)
+- [.env.example](.env.example) — Environment variable reference
