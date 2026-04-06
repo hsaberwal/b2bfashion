@@ -8,18 +8,25 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-dm-serif)", "Georgia", "serif"],
+      },
       colors: {
-        /* Just Elegance–inspired palette: clean retail look */
         je: {
           white: "#ffffff",
-          cream: "#fafaf9",
-          offwhite: "#f5f5f4",
-          border: "#e8e6e4",
-          muted: "#6b6b6b",
+          cream: "#f7f6f3",
+          offwhite: "#f2f1ee",
+          border: "#e5e3df",
+          muted: "#767676",
           charcoal: "#2d2d2d",
           black: "#1a1a1a",
           sale: "#c41e3a",
         },
+      },
+      letterSpacing: {
+        widest: "0.15em",
+        wider: "0.08em",
       },
     },
   },

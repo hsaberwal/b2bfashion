@@ -2,11 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Elegant heading defaults */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 400;
+  }
 }
 
-/* Screenshot / privacy protection: prevent selection, copy and right-click save on sensitive areas */
+@layer components {
+  /* Bonobos / BR Factory style buttons */
+  .btn-primary {
+    @apply inline-block px-10 py-4 bg-je-black text-white text-[11px] font-semibold uppercase tracking-widest
+           hover:bg-je-charcoal transition-all duration-300 ease-in-out;
+  }
+
+  .btn-outline {
+    @apply inline-block px-10 py-4 border border-je-black text-je-black text-[11px] font-semibold uppercase tracking-widest
+           hover:bg-je-black hover:text-white transition-all duration-300 ease-in-out;
+  }
+
+  .btn-white {
+    @apply inline-block px-10 py-4 bg-white text-je-black text-[11px] font-semibold uppercase tracking-widest
+           hover:bg-je-offwhite transition-all duration-300 ease-in-out;
+  }
+
+  /* Section label */
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-widest text-je-muted;
+  }
+
+  /* Serif display heading */
+  .heading-serif {
+    @apply font-serif text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight leading-tight;
+  }
+}
+
+@layer utilities {
+  /* Smooth image reveal on load */
+  .img-reveal {
+    animation: fadeUp 0.8s ease-out both;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Screenshot / privacy protection */
 .screenshot-protected {
   user-select: none;
   -webkit-user-select: none;

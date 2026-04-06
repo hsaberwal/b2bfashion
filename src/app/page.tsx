@@ -1,52 +1,116 @@
 import Link from "next/link";
+import Image from "next/image";
 import { HOMEPAGE_IMAGE_URLS } from "@/data/homepageImages";
 import { HomepageGallery } from "@/components/HomepageGallery";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen">
-      {/* Front page: ~12 photos of what we do (change every few months via src/data/homepageImages.ts) */}
-      <section className="bg-je-offwhite border-b border-je-border">
-        <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
-          <h2 className="text-xl font-semibold text-je-black tracking-tight mb-6 text-center">
-            What we do
+    <main className="min-h-screen bg-white">
+      {/* Hero Section — full-width feature image */}
+      <section className="relative w-full" style={{ aspectRatio: "1920/800" }}>
+        <Image
+          src={HOMEPAGE_IMAGE_URLS[0]}
+          alt="Claudia Collection"
+          fill
+          className="object-cover"
+          priority
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+          <p className="section-label text-white/80 mb-4">New Season</p>
+          <h1 className="heading-serif text-white mb-8">
+            The Collection
+          </h1>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/products" className="btn-white">
+              Shop Now
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Brand Statement */}
+      <section className="py-16 md:py-24 px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="section-label mb-6">Claudia B2B</p>
+          <h2 className="heading-serif text-je-black mb-6">
+            Ladies Fashion, Wholesale
           </h2>
-          <HomepageGallery urls={HOMEPAGE_IMAGE_URLS} />
-          <p className="text-je-muted text-sm text-center mt-4">
-            Add your images to <code className="bg-je-cream px-1 rounded">public/images/home/</code> (1.jpg–12.jpg) or edit <code className="bg-je-cream px-1 rounded">src/data/homepageImages.ts</code>.
+          <p className="text-je-muted text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
+            Your wholesale destination for Claudia — curated ladies fashion wear.
+            Browse our latest collections, place bulk orders, and grow your retail business.
           </p>
         </div>
       </section>
 
-      <section className="max-w-4xl mx-auto p-8">
-        <header className="mb-12">
-          <h1 className="text-3xl font-bold text-je-black tracking-tight">
-            Claudia B2B
-          </h1>
-          <p className="text-je-muted mt-2 text-lg">
-            Wholesale platform for Claudia — ladies fashion wear. Log in to browse stock and place orders.
+      {/* Two-Column Feature */}
+      <section className="grid grid-cols-1 md:grid-cols-2">
+        <div className="relative aspect-[3/4] md:aspect-auto">
+          <Image
+            src={HOMEPAGE_IMAGE_URLS[1]}
+            alt="Featured collection"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 text-center px-4">
+            <h3 className="font-serif text-2xl md:text-3xl text-white mb-4">New Arrivals</h3>
+            <Link href="/products" className="btn-white">
+              View Collection
+            </Link>
+          </div>
+        </div>
+        <div className="relative aspect-[3/4] md:aspect-auto">
+          <Image
+            src={HOMEPAGE_IMAGE_URLS[2]}
+            alt="Seasonal styles"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 text-center px-4">
+            <h3 className="font-serif text-2xl md:text-3xl text-white mb-4">Best Sellers</h3>
+            <Link href="/products" className="btn-white">
+              Shop Now
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Grid */}
+      <section className="py-16 md:py-24 px-4 bg-je-offwhite">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="section-label mb-4">What We Do</p>
+            <h2 className="font-serif text-3xl md:text-4xl text-je-black">
+              Our Latest Looks
+            </h2>
+          </div>
+          <HomepageGallery urls={HOMEPAGE_IMAGE_URLS.slice(3)} />
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 md:py-28 px-4 bg-je-cream">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-je-black mb-6">
+            Start Ordering Today
+          </h2>
+          <p className="text-je-muted text-base md:text-lg mb-10 leading-relaxed">
+            Apply for a wholesale account to access our full catalogue, exclusive pricing, and seasonal collections.
           </p>
-        </header>
-        <nav className="flex flex-wrap gap-4">
-          <Link
-            href="/apply"
-            className="px-5 py-2.5 border border-je-charcoal text-je-charcoal rounded-sm hover:bg-je-offwhite transition-colors font-medium"
-          >
-            Apply for access
-          </Link>
-          <Link
-            href="/login"
-            className="px-5 py-2.5 bg-je-black text-je-white rounded-sm hover:bg-je-charcoal transition-colors font-medium"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/products"
-            className="px-5 py-2.5 border border-je-border bg-je-white text-je-black rounded-sm hover:bg-je-offwhite transition-colors font-medium"
-          >
-            Browse products
-          </Link>
-        </nav>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/apply" className="btn-primary">
+              Apply for Access
+            </Link>
+            <Link href="/login" className="btn-outline">
+              Log In
+            </Link>
+          </div>
+        </div>
       </section>
     </main>
   );

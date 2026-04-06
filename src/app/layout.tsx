@@ -1,7 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ScreenshotProtection } from "@/components/ScreenshotProtection";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const dmSerif = DM_Serif_Display({
+  subsets: ["latin"],
+  variable: "--font-dm-serif",
+  weight: "400",
+});
 
 export const metadata: Metadata = {
   title: "Claudia B2B | Wholesale",
@@ -27,12 +40,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased min-h-screen bg-je-cream text-je-black">
+    <html lang="en" className={`${dmSans.variable} ${dmSerif.variable}`}>
+      <body className="font-sans antialiased min-h-screen bg-white text-je-black">
         <ScreenshotProtection />
         <PwaRegister />
-        <div className="bg-je-black text-je-white text-center text-sm py-2 px-4">
-          Wholesale — bulk ordering only (pack sizes apply)
+        <div className="bg-je-black text-white text-center text-[11px] tracking-[0.15em] uppercase py-2.5 px-4 font-medium">
+          Wholesale &mdash; bulk ordering only (pack sizes apply)
         </div>
         {children}
       </body>
