@@ -84,7 +84,15 @@ Only return valid JSON, nothing else.`,
       );
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch {
+      return NextResponse.json(
+        { error: "Could not parse label information." },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(parsed);
   } catch (e) {
     const err = e as Error & { status?: number };

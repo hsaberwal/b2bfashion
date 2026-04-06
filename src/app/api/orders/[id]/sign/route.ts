@@ -11,17 +11,20 @@ import mongoose from "mongoose";
 import { z } from "zod";
 
 const deliverySnapshotSchema = z.object({
-  addressLine1: z.string().min(1),
-  addressLine2: z.string().optional(),
-  city: z.string().min(1),
-  postcode: z.string().min(1),
-  country: z.string().min(1),
-  vatNumber: z.string().optional(),
-  companyName: z.string().optional(),
+  addressLine1: z.string().min(1).max(200),
+  addressLine2: z.string().max(200).optional(),
+  city: z.string().min(1).max(100),
+  postcode: z.string().min(1).max(20),
+  country: z.string().min(1).max(100),
+  vatNumber: z.string().max(50).optional(),
+  companyName: z.string().max(200).optional(),
 });
 
 const bodySchema = z.object({
-  signatureDataUrl: z.string().url().or(z.string().startsWith("data:")),
+  signatureDataUrl: z.string().max(2_000_000).refine(
+    (s) => s.startsWith("data:") || s.startsWith("http"),
+    "Must be a data URL or HTTP URL"
+  ),
   deliverySnapshot: deliverySnapshotSchema,
   paymentOption: z.enum(["pay_now", "pay_deposit", "pay_later"]).optional(),
   depositAmount: z.number().min(0).optional(),
@@ -73,7 +76,13 @@ export async function POST(
       companyName: deliverySnapshot.companyName ?? "",
     };
     if (paymentOption) order.paymentOption = paymentOption;
-    if (depositAmount != null) order.depositAmount = depositAmount;
+    // Always calculate deposit server-side — never trust client value
+    const orderTotal = (order.items ?? []).reduce(
+      (sum: number, item: { pricePerItem?: number; quantity: number }) =>
+        sum + (item.pricePerItem ?? 0) * item.quantity,
+      0
+    );
+    order.depositAmount = Math.round(orderTotal * 0.1 * 100) / 100;
     order.signatureDataUrl = encrypt(signatureDataUrl);
     order.signedAt = new Date();
     order.status = "signed";

@@ -2,18 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { hashPassword } from "@/lib/auth";
+import { isRateLimited, getClientIp } from "@/lib/rateLimit";
+import { audit } from "@/lib/audit";
 import { z } from "zod";
+
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
 
 const bodySchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: passwordSchema,
   name: z.string().optional(),
   companyName: z.string().optional(),
-  applicationMessage: z.string().optional(),
+  applicationMessage: z.string().max(5000).optional(),
 });
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    if (isRateLimited(`register:${ip}`, 5, 60 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many registration attempts. Please try again later." }, { status: 429 });
+    }
+
     const body = await request.json();
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {
@@ -26,7 +40,12 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const existing = await User.findOne({ email });
     if (existing) {
-      return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+      // Don't reveal whether the email exists — return same response shape
+      return NextResponse.json({
+        id: "pending",
+        email,
+        message: "Account created. Please log in.",
+      });
     }
     const passwordHash = await hashPassword(password);
     const user = await User.create({
@@ -37,31 +56,21 @@ export async function POST(request: NextRequest) {
       applicationMessage: applicationMessage || undefined,
       pricingApproved: false,
     });
+
+    await audit({
+      action: "register",
+      userId: user._id.toString(),
+      userEmail: email,
+      ip,
+    });
+
     return NextResponse.json({
       id: user._id.toString(),
       email: user.email,
-      name: user.name,
-      companyName: user.companyName,
-      role: user.role ?? "customer",
-      pricingApproved: user.pricingApproved,
-      canViewForwardStock: user.role === "admin" ? true : (user.canViewForwardStock ?? false),
-      canViewCurrentStock: user.role === "admin" ? true : (user.canViewCurrentStock ?? true),
-      canViewPreviousStock: user.role === "admin" ? true : (user.canViewPreviousStock ?? true),
+      message: "Account created. Please log in.",
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Registration failed";
     console.error("Registration error:", e);
-    const isDev = process.env.NODE_ENV === "development";
-    const isDbError =
-      message.includes("MONGODB") ||
-      message.includes("MONGO") ||
-      message.includes("connect") ||
-      message.includes("ECONNREFUSED");
-    const userMessage = isDev
-      ? message
-      : isDbError
-        ? "Registration failed. Database is not available — check that MongoDB is running and MONGODB_URI (or MONGO_URL) is set."
-        : "Registration failed. Please try again.";
-    return NextResponse.json({ error: userMessage }, { status: 500 });
+    return NextResponse.json({ error: "Registration failed. Please try again." }, { status: 500 });
   }
 }

@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json({ error: "No account with this email" }, { status: 404 });
+      // Don't reveal whether account exists — same response as success
+      return NextResponse.json({ ok: true, message: "If an account exists, an OTP has been sent." });
     }
     const code = String(randomInt(100000, 999999));
     const otpExpires = new Date();

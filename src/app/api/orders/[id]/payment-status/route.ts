@@ -3,12 +3,18 @@ import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { getSessionToken } from "@/lib/auth";
 import { Session } from "@/models/Session";
+import { audit } from "@/lib/audit";
+import { isRateLimited, getClientIp } from "@/lib/rateLimit";
 import mongoose from "mongoose";
 
 /**
  * GET /api/orders/[id]/payment-status
  * Called by the checkout result page to get the current payment state.
- * Also accepts ?worldpayStatus=success|failure|pending|cancelled to update.
+ *
+ * SECURITY: worldpayStatus is only accepted as a hint. In production,
+ * payment confirmation should come from Worldpay server-to-server
+ * webhook with MAC verification. The redirect status is treated as
+ * provisional — only the Worldpay order code match provides assurance.
  */
 export async function GET(
   request: NextRequest,
@@ -24,6 +30,11 @@ export async function GET(
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
     }
 
+    const ip = getClientIp(request);
+    if (isRateLimited(`payment-status:${ip}`, 60, 60 * 1000)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     await connectDB();
     const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
     if (!session) {
@@ -35,11 +46,14 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Update payment status from Worldpay redirect
+    // Update payment status from Worldpay redirect — only if:
+    // 1. Order has a Worldpay order code (was actually sent to Worldpay)
+    // 2. Payment is still pending (idempotent — won't re-process)
+    // 3. The user owns this order (checked above)
     const { searchParams } = new URL(request.url);
     const worldpayStatus = searchParams.get("worldpayStatus");
 
-    if (worldpayStatus && order.paymentStatus === "pending") {
+    if (worldpayStatus && order.paymentStatus === "pending" && order.worldpayOrderCode) {
       switch (worldpayStatus) {
         case "success":
           order.paymentStatus = "paid";
@@ -48,16 +62,31 @@ export async function GET(
             order.depositPaid = true;
           }
           await order.save();
+          await audit({
+            action: "payment_completed",
+            userId: session.userId.toString(),
+            targetType: "order",
+            targetId: id,
+            ip,
+            details: { paymentOption: order.paymentOption, amountPaid: order.amountPaid },
+          });
           break;
         case "failure":
           order.paymentStatus = "failed";
           await order.save();
+          await audit({
+            action: "payment_failed",
+            userId: session.userId.toString(),
+            targetType: "order",
+            targetId: id,
+            ip,
+          });
           break;
         case "cancelled":
           order.paymentStatus = "none";
           await order.save();
           break;
-        // "pending" — leave as-is, Worldpay is still processing
+        // "pending" — leave as-is
       }
     }
 
@@ -69,7 +98,6 @@ export async function GET(
       amountPaid: order.amountPaid,
       depositAmount: order.depositAmount,
       depositPaid: order.depositPaid,
-      worldpayOrderCode: order.worldpayOrderCode,
     });
   } catch (e) {
     console.error(e);
