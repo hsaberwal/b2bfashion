@@ -179,12 +179,14 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
   };
 
   const handleLabelScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files?.length) return;
     setScanningLabel(true);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      for (let i = 0; i < files.length; i++) {
+        fd.append("files", files[i]);
+      }
       const res = await fetch("/api/admin/scan-label", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
@@ -252,16 +254,16 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              {scanningLabel ? "Scanning label..." : "Scan Care Label"}
+              {scanningLabel ? "Scanning labels..." : "Scan Care Labels"}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Photo the label to auto-fill materials, care &amp; sizes
+              Photo all labels (materials, care symbols, sizes) — select multiple
             </p>
           </div>
           <input
             type="file"
             accept="image/*"
-            capture="environment"
+            multiple
             onChange={handleLabelScan}
             className="hidden"
             disabled={scanningLabel}

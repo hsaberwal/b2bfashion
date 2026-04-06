@@ -16,45 +16,55 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const files = formData.getAll("files") as File[];
 
-    if (!file) {
-      return NextResponse.json({ error: "No image file provided." }, { status: 400 });
+    // Support both "files" (multiple) and legacy "file" (single)
+    if (files.length === 0) {
+      const singleFile = formData.get("file") as File | null;
+      if (singleFile) files.push(singleFile);
     }
 
-    const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
+    if (files.length === 0) {
+      return NextResponse.json({ error: "No image files provided." }, { status: 400 });
+    }
 
-    const mediaType = file.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+    // Build content blocks: all images first, then the text prompt
+    const contentBlocks: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
+
+    for (const file of files) {
+      const bytes = await file.arrayBuffer();
+      const base64 = Buffer.from(bytes).toString("base64");
+      const mediaType = file.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+      contentBlocks.push({
+        type: "image",
+        source: { type: "base64", media_type: mediaType, data: base64 },
+      });
+    }
+
+    contentBlocks.push({
+      type: "text",
+      text: `You are looking at ${files.length > 1 ? `${files.length} photos of clothing labels` : "a clothing label photo"}. These may include materials/composition labels, care instruction labels, size labels, or brand labels. Look at ALL the images together to extract the complete information.
+
+For care symbols (washing, ironing, bleaching, drying icons), translate them into readable English instructions.
+
+Return the extracted information as JSON only (no markdown, no explanation):
+
+{
+  "materials": "the full fabric composition, e.g. 95% Polyester, 5% Elastane. Combine info from multiple labels if needed.",
+  "careGuide": "all care instructions as a readable sentence, e.g. Machine wash at 30°C, Do not bleach, Iron on low heat, Do not tumble dry. Translate any care symbols you see.",
+  "sizes": ["array of ALL sizes if visible on any label, e.g. S, M, L, XL"],
+  "colour": "colour name if visible on any label, otherwise empty string"
+}
+
+If a field is not visible on any of the labels, use an empty string (or empty array for sizes).
+Only return valid JSON, nothing else.`,
+    });
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "base64", media_type: mediaType, data: base64 },
-            },
-            {
-              type: "text",
-              text: `You are looking at a clothing care/materials label. Extract the following information and return it as JSON only (no markdown, no explanation):
-
-{
-  "materials": "the fabric composition, e.g. 95% Polyester, 5% Elastane",
-  "careGuide": "the care instructions as a readable sentence, e.g. Machine wash at 30°C, Do not bleach, Iron on low heat, Do not tumble dry",
-  "sizes": ["array of sizes if visible on the label, e.g. S, M, L, XL"],
-  "colour": "colour name if visible on the label, otherwise empty string"
-}
-
-If a field is not visible on the label, use an empty string (or empty array for sizes).
-Only return valid JSON, nothing else.`,
-            },
-          ],
-        },
-      ],
+      messages: [{ role: "user", content: contentBlocks }],
     });
 
     const text = response.content
@@ -62,7 +72,6 @@ Only return valid JSON, nothing else.`,
       .map((block) => block.text)
       .join("");
 
-    // Parse the JSON response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
