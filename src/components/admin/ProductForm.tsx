@@ -69,11 +69,12 @@ function imageDisplaySrc(url: string): string {
 }
 
 const EXAMPLE_PROMPTS = [
-  { label: "Studio, heels, minimal", prompt: "Studio background, model in neutral heels and minimal jewellery." },
-  { label: "Autumn, boots", prompt: "Display on a model in a chilly autumn scene, wearing boots." },
-  { label: "Outdoor casual", prompt: "Casual outdoor setting, model in sneakers and simple accessories." },
-  { label: "Elegant indoor", prompt: "Elegant indoor setting, model in heels and subtle gold accessories." },
+  { label: "Studio, heels, minimal", prompt: "Studio background, neutral heels and minimal jewellery." },
+  { label: "Autumn, boots", prompt: "Chilly autumn scene, wearing boots and a light scarf." },
+  { label: "Outdoor casual", prompt: "Casual outdoor setting, sneakers and simple accessories." },
+  { label: "Elegant indoor", prompt: "Elegant indoor setting, heels and subtle gold accessories." },
   { label: "White backdrop", prompt: "Minimal white backdrop, clean look, no extra accessories." },
+  { label: "City street", prompt: "Urban city street background, stylish handbag, walking pose." },
 ];
 
 type Props = {
@@ -512,7 +513,8 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
                   Generate AI model photos from Image {generateFromIndex + 1}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  FASHN AI will create model photos wearing this garment
+                  FASHN AI will create model photos wearing this garment.
+                  Default: women aged 35-55, diverse ethnicities. Add styling below.
                 </p>
               </div>
             </div>

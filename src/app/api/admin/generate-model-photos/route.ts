@@ -63,9 +63,16 @@ export async function POST(request: NextRequest) {
     const garmentImageValue = images[imageIndex];
     const productImageUrl = await getFetchableImageUrl(garmentImageValue);
 
+    // Default demographic: ladies aged 35-55, diverse ethnicities
+    const defaultPrompt = "Woman aged 35-55, diverse ethnicity and race.";
+    const userPrompt = prompt?.trim();
+    const fullPrompt = userPrompt
+      ? `${defaultPrompt} ${userPrompt}`
+      : defaultPrompt;
+
     const predictionId = await fashnRun({
       product_image: productImageUrl,
-      prompt: prompt?.trim() || undefined,
+      prompt: fullPrompt,
       num_images,
       aspect_ratio: "3:4",
       resolution: "1k",
