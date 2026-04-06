@@ -3,6 +3,7 @@ import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ScreenshotProtection } from "@/components/ScreenshotProtection";
+import { Chatbot } from "@/components/Chatbot";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -48,6 +49,7 @@ export default function RootLayout({
           Wholesale &mdash; bulk ordering only (pack sizes apply)
         </div>
         {children}
+        <Chatbot />
       </body>
     </html>
   );
