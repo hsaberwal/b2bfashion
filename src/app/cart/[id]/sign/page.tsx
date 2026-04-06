@@ -31,7 +31,7 @@ export default function SignOrderPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
-  const [paymentOption, setPaymentOption] = useState<"pay_now" | "pay_later">("pay_later");
+  const [paymentOption, setPaymentOption] = useState<"pay_now" | "pay_deposit" | "pay_later">("pay_deposit");
   const [delivery, setDelivery] = useState<DeliverySnapshot>({
     addressLine1: "",
     addressLine2: "",
@@ -129,7 +129,7 @@ export default function SignOrderPage() {
     );
   }
 
-  async function submitSignature() {
+  async function submitOrder() {
     if (!deliveryValid()) {
       setError("Please fill in delivery address (address line 1, city, postcode, country).");
       return;
@@ -142,8 +142,10 @@ export default function SignOrderPage() {
     const dataUrl = canvas.toDataURL("image/png");
     setSigning(true);
     setError("");
+
     try {
-      const res = await fetch(`/api/orders/${orderId}/sign`, {
+      // Step 1: Sign the order
+      const signRes = await fetch(`/api/orders/${orderId}/sign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -161,12 +163,32 @@ export default function SignOrderPage() {
           depositAmount: orderTotal > 0 ? depositAmount : undefined,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Failed to sign order");
+      const signData = await signRes.json();
+      if (!signRes.ok) {
+        setError(signData.error ?? "Failed to sign order");
         return;
       }
-      router.push("/cart");
+
+      // Step 2: Initiate payment
+      const payRes = await fetch(`/api/orders/${orderId}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentOption }),
+      });
+      const payData = await payRes.json();
+      if (!payRes.ok) {
+        setError(payData.error ?? "Payment initiation failed");
+        return;
+      }
+
+      // Step 3: Redirect to Worldpay or confirmation
+      if (payData.redirectUrl) {
+        // Redirect to Worldpay hosted payment page
+        window.location.href = payData.redirectUrl;
+      } else {
+        // Invoice / pay later — go to confirmation
+        router.push(`/checkout/result?orderId=${orderId}&status=success`);
+      }
     } finally {
       setSigning(false);
     }
@@ -174,128 +196,133 @@ export default function SignOrderPage() {
 
   if (loading || !order) {
     return (
-      <main className="min-h-screen p-4 md:p-8 bg-je-cream">
-        <Link href="/cart" className="text-sm text-je-muted hover:underline mb-4 inline-block">
-          ← Back to orders
+      <main className="min-h-screen p-4 md:p-8 bg-white">
+        <Link href="/cart" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors">
+          &larr; Back to orders
         </Link>
-        <p className="text-je-muted">{loading ? "Loading…" : "Order not found."}</p>
+        <p className="text-je-muted mt-8">{loading ? "Loading..." : "Order not found."}</p>
       </main>
     );
   }
 
   if (order.status !== "pending") {
     return (
-      <main className="min-h-screen p-4 md:p-8 bg-je-cream">
-        <Link href="/cart" className="text-sm text-je-muted hover:underline mb-4 inline-block">
-          ← Back to orders
+      <main className="min-h-screen p-4 md:p-8 bg-white">
+        <Link href="/cart" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors">
+          &larr; Back to orders
         </Link>
-        <p className="text-je-muted">This order is already signed or cancelled.</p>
+        <p className="text-je-muted mt-8">This order is already signed or cancelled.</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-je-cream">
-      <Link href="/cart" className="text-sm text-je-muted hover:underline mb-4 inline-block">
-        ← Back to orders
+    <main className="min-h-screen p-4 md:p-8 bg-white">
+      <Link href="/cart" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors">
+        &larr; Back to orders
       </Link>
-      <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold text-je-black tracking-tight mb-2">
-          Checkout — delivery & sign
-        </h1>
-        <p className="text-je-muted text-sm mb-6">
-          Enter delivery details, then sign to accept. You can save your details in <Link href="/account" className="text-je-black font-medium underline">Your account</Link> for next time.
+      <div className="max-w-lg mx-auto mt-6">
+        <h1 className="font-serif text-3xl text-je-black mb-2">Checkout</h1>
+        <p className="text-je-muted text-sm mb-8">
+          Enter delivery details, choose payment, then sign to confirm.
         </p>
 
-        {/* Delivery details (required before signing) */}
-        <section className="mb-6 border border-je-border p-4 bg-je-white">
-          <h2 className="text-sm font-semibold text-je-black mb-3">Delivery details *</h2>
+        {/* Delivery details */}
+        <section className="mb-8">
+          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
+            Delivery Address
+          </h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs text-je-muted mb-0.5">Address line 1</label>
+              <label className="block text-xs text-je-muted mb-1">Address line 1 *</label>
               <input
                 type="text"
                 value={delivery.addressLine1}
                 onChange={(e) => setDelivery((d) => ({ ...d, addressLine1: e.target.value }))}
-                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
+                className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors"
                 required
                 placeholder="Street address"
               />
             </div>
             <div>
-              <label className="block text-xs text-je-muted mb-0.5">Address line 2</label>
+              <label className="block text-xs text-je-muted mb-1">Address line 2</label>
               <input
                 type="text"
                 value={delivery.addressLine2}
                 onChange={(e) => setDelivery((d) => ({ ...d, addressLine2: e.target.value }))}
-                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
+                className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors"
                 placeholder="Optional"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-je-muted mb-0.5">City</label>
+                <label className="block text-xs text-je-muted mb-1">City *</label>
                 <input
                   type="text"
                   value={delivery.city}
                   onChange={(e) => setDelivery((d) => ({ ...d, city: e.target.value }))}
-                  className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
+                  className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-je-muted mb-0.5">Postcode</label>
+                <label className="block text-xs text-je-muted mb-1">Postcode *</label>
                 <input
                   type="text"
                   value={delivery.postcode}
                   onChange={(e) => setDelivery((d) => ({ ...d, postcode: e.target.value }))}
-                  className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
+                  className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-je-muted mb-0.5">Country</label>
+              <label className="block text-xs text-je-muted mb-1">Country *</label>
               <input
                 type="text"
                 value={delivery.country}
                 onChange={(e) => setDelivery((d) => ({ ...d, country: e.target.value }))}
-                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
+                className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors"
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs text-je-muted mb-0.5">Company name</label>
-              <input
-                type="text"
-                value={delivery.companyName}
-                onChange={(e) => setDelivery((d) => ({ ...d, companyName: e.target.value }))}
-                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-je-muted mb-0.5">VAT number</label>
-              <input
-                type="text"
-                value={delivery.vatNumber}
-                onChange={(e) => setDelivery((d) => ({ ...d, vatNumber: e.target.value }))}
-                placeholder="e.g. GB123456789"
-                className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-je-muted mb-1">Company name</label>
+                <input
+                  type="text"
+                  value={delivery.companyName}
+                  onChange={(e) => setDelivery((d) => ({ ...d, companyName: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-je-muted mb-1">VAT number</label>
+                <input
+                  type="text"
+                  value={delivery.vatNumber}
+                  onChange={(e) => setDelivery((d) => ({ ...d, vatNumber: e.target.value }))}
+                  placeholder="e.g. GB123456789"
+                  className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors"
+                />
+              </div>
             </div>
           </div>
         </section>
 
         {/* Order summary */}
-        <section className="mb-4 border border-je-border p-4 bg-je-white">
-          <p className="text-sm font-medium text-je-black mb-2">Order summary</p>
-          <ul className="text-sm text-je-muted space-y-1">
+        <section className="mb-8 border-t border-je-border pt-6">
+          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
+            Order Summary
+          </h2>
+          <ul className="text-sm text-je-muted space-y-2">
             {order.items.map((item, i) => (
-              <li key={i}>
-                {item.sku}
-                {item.size ? ` · ${item.size}` : ""} × {item.quantity}
+              <li key={i} className="flex justify-between">
+                <span>
+                  {item.sku}{item.size ? ` · ${item.size}` : ""} &times; {item.quantity}
+                </span>
                 {item.pricePerItem != null && (
-                  <span className="screenshot-protected ml-2 text-je-charcoal">
+                  <span className="screenshot-protected text-je-black font-medium">
                     £{(item.pricePerItem * item.quantity).toFixed(2)}
                   </span>
                 )}
@@ -303,45 +330,107 @@ export default function SignOrderPage() {
             ))}
           </ul>
           {orderTotal > 0 && (
-            <p className="mt-2 text-sm text-je-black screenshot-protected">
-              Total: £{orderTotal.toFixed(2)} · 10% deposit: £{depositAmount.toFixed(2)}
-            </p>
+            <div className="mt-4 pt-4 border-t border-je-border">
+              <div className="flex justify-between text-sm">
+                <span className="text-je-muted">Order total</span>
+                <span className="screenshot-protected text-je-black font-semibold text-base">
+                  £{orderTotal.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-je-muted">10% deposit</span>
+                <span className="screenshot-protected text-je-muted">
+                  £{depositAmount.toFixed(2)}
+                </span>
+              </div>
+            </div>
           )}
         </section>
 
-        {/* Pay now / Pay later */}
-        <section className="mb-4 border border-je-border p-4 bg-je-white">
-          <p className="text-sm font-medium text-je-black mb-2">Payment</p>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="radio"
-              name="payment"
-              checked={paymentOption === "pay_later"}
-              onChange={() => setPaymentOption("pay_later")}
-              className="text-je-black"
-            />
-            Pay later (10% deposit required)
-          </label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer mt-1">
-            <input
-              type="radio"
-              name="payment"
-              checked={paymentOption === "pay_now"}
-              onChange={() => setPaymentOption("pay_now")}
-              className="text-je-black"
-            />
-            Pay now (include 10% deposit)
-          </label>
+        {/* Payment options */}
+        <section className="mb-8 border-t border-je-border pt-6">
+          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
+            Payment Method
+          </h2>
+          <div className="space-y-3">
+            <label
+              className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
+                paymentOption === "pay_now"
+                  ? "border-je-black bg-je-offwhite"
+                  : "border-je-border hover:border-je-charcoal"
+              }`}
+            >
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentOption === "pay_now"}
+                onChange={() => setPaymentOption("pay_now")}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-medium text-je-black">Pay in full</p>
+                <p className="text-xs text-je-muted mt-0.5">
+                  Pay the full amount of £{orderTotal.toFixed(2)} now via Worldpay
+                </p>
+              </div>
+            </label>
+
+            <label
+              className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
+                paymentOption === "pay_deposit"
+                  ? "border-je-black bg-je-offwhite"
+                  : "border-je-border hover:border-je-charcoal"
+              }`}
+            >
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentOption === "pay_deposit"}
+                onChange={() => setPaymentOption("pay_deposit")}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-medium text-je-black">Pay 10% deposit</p>
+                <p className="text-xs text-je-muted mt-0.5">
+                  Pay £{depositAmount.toFixed(2)} now, remaining balance on delivery
+                </p>
+              </div>
+            </label>
+
+            <label
+              className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
+                paymentOption === "pay_later"
+                  ? "border-je-black bg-je-offwhite"
+                  : "border-je-border hover:border-je-charcoal"
+              }`}
+            >
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentOption === "pay_later"}
+                onChange={() => setPaymentOption("pay_later")}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-medium text-je-black">Invoice (pay later)</p>
+                <p className="text-xs text-je-muted mt-0.5">
+                  We&apos;ll send an invoice. Payment due on delivery.
+                </p>
+              </div>
+            </label>
+          </div>
         </section>
 
         {/* Signature */}
-        <section className="mb-4">
-          <label className="block text-sm font-medium text-je-black mb-2">Your signature *</label>
+        <section className="mb-6 border-t border-je-border pt-6">
+          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
+            Signature
+          </h2>
           <canvas
             ref={canvasRef}
             width={400}
             height={160}
-            className="border border-je-border rounded w-full max-w-md bg-je-white text-je-black touch-none"
+            className="border border-je-border w-full max-w-md bg-je-offwhite touch-none"
             style={{ touchAction: "none" }}
             onMouseDown={startDrawing}
             onMouseMove={draw}
@@ -351,21 +440,30 @@ export default function SignOrderPage() {
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
           />
-          <p className="mt-1 text-xs text-je-muted">Draw in the box above (mouse or touch).</p>
+          <p className="mt-2 text-xs text-je-muted">Sign in the box above to confirm your order.</p>
         </section>
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
-        <div className="flex gap-4">
+
+        <div className="flex gap-4 mb-12">
           <button
-            onClick={submitSignature}
+            onClick={submitOrder}
             disabled={signing || !hasSignature}
-            className="px-4 py-2 bg-je-black text-je-white font-medium hover:bg-je-charcoal disabled:opacity-50"
+            className="flex-1 py-4 bg-je-black text-white text-[11px] uppercase tracking-widest font-semibold
+                       hover:bg-je-charcoal disabled:opacity-40 transition-all duration-300"
           >
-            {signing ? "Submitting…" : "Submit — sign order"}
+            {signing
+              ? "Processing..."
+              : paymentOption === "pay_later"
+                ? "Confirm Order"
+                : paymentOption === "pay_deposit"
+                  ? `Pay Deposit — £${depositAmount.toFixed(2)}`
+                  : `Pay Now — £${orderTotal.toFixed(2)}`}
           </button>
           <Link
             href="/cart"
-            className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite"
+            className="px-6 py-4 border border-je-border text-je-black text-[11px] uppercase tracking-widest font-semibold
+                       hover:bg-je-offwhite transition-all duration-300 flex items-center"
           >
             Cancel
           </Link>

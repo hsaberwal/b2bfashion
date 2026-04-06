@@ -34,9 +34,17 @@ const orderSchema = new mongoose.Schema(
     signatureDataUrl: String,
     signedAt: Date,
     deliverySnapshot: deliverySnapshotSchema,
-    paymentOption: { type: String, enum: ["pay_now", "pay_later"], default: "pay_later" },
+    paymentOption: { type: String, enum: ["pay_now", "pay_deposit", "pay_later"], default: "pay_later" },
     depositAmount: Number,
     depositPaid: { type: Boolean, default: false },
+    paymentStatus: {
+      type: String,
+      enum: ["none", "pending", "paid", "failed", "refunded"],
+      default: "none",
+    },
+    amountPaid: Number,
+    worldpayOrderCode: String,
+    worldpayPaymentId: String,
   },
   { timestamps: true }
 );

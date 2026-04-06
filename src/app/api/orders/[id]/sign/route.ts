@@ -20,7 +20,7 @@ const deliverySnapshotSchema = z.object({
 const bodySchema = z.object({
   signatureDataUrl: z.string().url().or(z.string().startsWith("data:")),
   deliverySnapshot: deliverySnapshotSchema,
-  paymentOption: z.enum(["pay_now", "pay_later"]).optional(),
+  paymentOption: z.enum(["pay_now", "pay_deposit", "pay_later"]).optional(),
   depositAmount: z.number().min(0).optional(),
 });
 
