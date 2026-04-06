@@ -4,6 +4,9 @@ import { Order } from "@/models/Order";
 import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
+import { audit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rateLimit";
+import { encrypt } from "@/lib/encrypt";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -71,10 +74,19 @@ export async function POST(
     };
     if (paymentOption) order.paymentOption = paymentOption;
     if (depositAmount != null) order.depositAmount = depositAmount;
-    order.signatureDataUrl = signatureDataUrl;
+    order.signatureDataUrl = encrypt(signatureDataUrl);
     order.signedAt = new Date();
     order.status = "signed";
     await order.save();
+
+    await audit({
+      action: "order_signed",
+      userId: session.userId.toString(),
+      targetType: "order",
+      targetId: id,
+      ip: getClientIp(request),
+      details: { paymentOption, itemCount: order.items.length },
+    });
 
     const user = await User.findById(session.userId);
     if (user) {

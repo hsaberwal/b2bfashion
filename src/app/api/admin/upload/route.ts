@@ -10,6 +10,27 @@ import {
   getProductBlobKeyPrefix,
 } from "@/lib/imageService";
 
+/** Verify that the file's magic bytes match the declared MIME type. */
+function verifyImageMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  if (buffer.length < 4) return false;
+  switch (mimeType) {
+    case "image/jpeg":
+      return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    case "image/png":
+      return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+    case "image/gif":
+      return buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46;
+    case "image/webp":
+      return (
+        buffer.length >= 12 &&
+        buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+        buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+      );
+    default:
+      return false;
+  }
+}
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 const EXT_MAP: Record<string, string> = {
@@ -32,10 +53,7 @@ export async function POST(request: NextRequest) {
 
     if (!useImageService && !volumePath && !useCloudinary) {
       return NextResponse.json(
-        {
-          error:
-            "Image upload not configured. Deploy Railway Image Service and set IMAGE_SERVICE_URL + IMAGE_SERVICE_SECRET_KEY, or add a Volume + UPLOAD_VOLUME_PATH, or set CLOUDINARY_* env vars. You can also add image URLs manually.",
-        },
+        { error: "Image upload is not configured. Please contact support." },
         { status: 503 }
       );
     }
@@ -55,6 +73,11 @@ export async function POST(request: NextRequest) {
     const ext = EXT_MAP[file.type] ?? "jpg";
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Verify file magic bytes match the declared MIME type
+    if (!verifyImageMagicBytes(buffer, file.type)) {
+      return NextResponse.json({ error: "File content does not match its type. Upload a genuine image." }, { status: 400 });
+    }
 
     // 1) Railway Image Service (recommended: resize, WebP/AVIF on the fly)
     if (useImageService) {

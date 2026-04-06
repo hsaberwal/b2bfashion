@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth";
+import { generateCsrfToken } from "@/lib/csrf";
 import { connectDB } from "@/lib/mongodb";
 import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 
 export async function GET() {
   try {
+    // Generate CSRF token on every session check
+    const csrfToken = await generateCsrfToken();
+
     const token = await getSessionToken();
     if (!token) {
-      return NextResponse.json({ user: null });
+      return NextResponse.json({ user: null, csrfToken });
     }
     await connectDB();
     const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
@@ -23,6 +27,7 @@ export async function GET() {
     }
     const isAdmin = user.role === "admin";
     return NextResponse.json({
+      csrfToken,
       user: {
         id: user._id.toString(),
         email: user.email,

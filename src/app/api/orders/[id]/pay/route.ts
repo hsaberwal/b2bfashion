@@ -5,6 +5,8 @@ import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
 import { createWorldpayOrder, isWorldpayConfigured } from "@/lib/worldpay";
+import { audit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rateLimit";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -113,6 +115,15 @@ export async function POST(
     order.depositAmount = depositAmount;
     order.amountPaid = amountToCharge;
     await order.save();
+
+    await audit({
+      action: "payment_initiated",
+      userId: session.userId.toString(),
+      targetType: "order",
+      targetId: id,
+      ip: getClientIp(request),
+      details: { paymentOption, amount: amountToCharge, orderCode },
+    });
 
     return NextResponse.json({
       id: order._id.toString(),

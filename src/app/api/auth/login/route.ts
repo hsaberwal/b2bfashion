@@ -4,6 +4,7 @@ import { User } from "@/models/User";
 import { Session } from "@/models/Session";
 import { verifyPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
 import { isRateLimited, getClientIp } from "@/lib/rateLimit";
+import { audit } from "@/lib/audit";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -28,8 +29,10 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const user = await User.findOne({ email });
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      await audit({ action: "login_failed", userEmail: email, ip, details: { reason: "invalid_credentials" } });
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
+    await audit({ action: "login_success", userId: user._id.toString(), userEmail: email, ip });
     const token = createSessionToken();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + SESSION_DAYS);
