@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
+import { addToGuestCart } from "@/lib/guestCart";
 
 const ZOOM = 2.2;
 const LENS_SIZE = 180;
@@ -37,7 +38,9 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [addedMessage, setAddedMessage] = useState("");
   const [user, setUser] = useState<{ pricingApproved?: boolean } | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [zoomLens, setZoomLens] = useState<{
     x: number;
@@ -54,7 +57,10 @@ export default function ProductDetailPage() {
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
-      .then((d) => setUser(d.user));
+      .then((d) => {
+        setUser(d.user ?? null);
+        setIsLoggedIn(!!d.user);
+      });
   }, []);
 
   useEffect(() => {
@@ -78,20 +84,37 @@ export default function ProductDetailPage() {
       return;
     }
     setAdding(true);
+    setAddedMessage("");
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: [{ productId: product.id, quantity, ...(hasSizes ? { size: selectedSize } : {}) }],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error ?? "Failed to add to order");
-        return;
+      if (isLoggedIn) {
+        // Logged in — add to server cart
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: [{ productId: product.id, quantity, ...(hasSizes ? { size: selectedSize } : {}) }],
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error ?? "Failed to add to order");
+          return;
+        }
+      } else {
+        // Guest — add to localStorage cart
+        addToGuestCart({
+          productId: product.id,
+          sku: product.sku,
+          name: product.name,
+          quantity,
+          packSize: product.packSize,
+          size: hasSizes ? selectedSize : undefined,
+          pricePerItem: product.pricePerItem,
+          image: product.images?.[0],
+        });
       }
-      router.push("/cart");
+      setAddedMessage(`Added ${quantity} × ${product.name} to your order`);
+      setTimeout(() => setAddedMessage(""), 4000);
     } finally {
       setAdding(false);
     }
@@ -362,6 +385,14 @@ export default function ProductDetailPage() {
                     <p className="mt-2 text-xs text-je-sale">
                       Quantity must be a multiple of {product.packSize}
                     </p>
+                  )}
+                  {addedMessage && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800 flex items-center justify-between">
+                      <span>{addedMessage}</span>
+                      <Link href="/cart" className="text-green-900 font-semibold underline ml-3">
+                        View Cart
+                      </Link>
+                    </div>
                   )}
                 </div>
 
