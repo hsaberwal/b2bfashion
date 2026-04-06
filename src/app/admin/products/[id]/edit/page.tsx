@@ -20,6 +20,7 @@ type Product = {
   colours?: string[];
   sizes?: string[];
   images?: string[];
+  featured?: boolean;
   packSize: number;
   pricePerItem?: number;
   compareAtPrice?: number;
@@ -68,6 +69,7 @@ export default function EditProductPage() {
       colours: data.colours?.length ? data.colours : undefined,
       sizes: data.sizes?.length ? data.sizes : undefined,
       images: data.images?.length ? data.images : undefined,
+      featured: data.featured,
       packSize: data.packSize,
       pricePerItem: data.pricePerItem,
       compareAtPrice: data.compareAtPrice,
@@ -99,6 +101,7 @@ export default function EditProductPage() {
     colours: product.colours ?? [],
     sizes: product.sizes ?? [],
     images: product.images ?? [],
+    featured: product.featured ?? false,
     packSize: product.packSize,
     pricePerItem: product.pricePerItem != null ? String(product.pricePerItem) : "",
     compareAtPrice: product.compareAtPrice != null ? String(product.compareAtPrice) : "",

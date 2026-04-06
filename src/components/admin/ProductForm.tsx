@@ -21,6 +21,7 @@ export type ProductFormData = {
   colours: string[];
   sizes: string[];
   images: string[];
+  featured: boolean;
   packSize: number;
   pricePerItem: string;
   compareAtPrice: string;
@@ -40,6 +41,7 @@ const defaultForm: ProductFormData = {
   colours: [],
   sizes: [],
   images: [],
+  featured: false,
   packSize: 6,
   pricePerItem: "",
   compareAtPrice: "",
@@ -50,6 +52,7 @@ export type ProductSubmitPayload = Omit<ProductFormData, "pricePerItem" | "compa
   compareAtPrice?: number;
   colours?: string[];
   sizes?: string[];
+  featured?: boolean;
 };
 
 /** Blob keys (Image Service) need a signed URL for display; full URLs and /api/uploads/ work as-is. */
@@ -359,6 +362,23 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
             <option value="forward">Forward</option>
           </select>
         </div>
+      </div>
+
+      {/* Featured on homepage */}
+      <div className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+        <input
+          type="checkbox"
+          id="featured"
+          checked={form.featured}
+          onChange={(e) => update("featured", e.target.checked)}
+          className="w-5 h-5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+        />
+        <label htmlFor="featured" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+          Feature on homepage
+          <span className="block text-xs text-gray-500 dark:text-gray-400 font-normal">
+            This product will appear in the featured section on the main page
+          </span>
+        </label>
       </div>
 
       <div>

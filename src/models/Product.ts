@@ -23,6 +23,7 @@ const productSchema = new mongoose.Schema(
     sizes: [String],
     attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
     images: { type: [String], default: [] },
+    featured: { type: Boolean, default: false },
     packSize: { type: Number, required: true, min: 1 },
     pricePerItem: Number,
     compareAtPrice: Number,

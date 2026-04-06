@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { HOMEPAGE_IMAGE_URLS } from "@/data/homepageImages";
 import { HomepageGallery } from "@/components/HomepageGallery";
+import { FeaturedProducts } from "@/components/FeaturedProducts";
 
 export default function HomePage() {
   return (
@@ -77,6 +78,19 @@ export default function HomePage() {
               Shop Now
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Featured Products */}
+      <section className="py-16 md:py-24 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="section-label mb-4">Curated For You</p>
+            <h2 className="font-serif text-3xl md:text-4xl text-je-black">
+              Featured Styles
+            </h2>
+          </div>
+          <FeaturedProducts />
         </div>
       </section>
 
