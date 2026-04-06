@@ -5,6 +5,7 @@ import { PwaRegister } from "@/components/PwaRegister";
 import { ScreenshotProtection } from "@/components/ScreenshotProtection";
 import { Chatbot } from "@/components/Chatbot";
 import { Navbar } from "@/components/Navbar";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -22,7 +23,13 @@ export const metadata: Metadata = {
   title: "Claudia B2B | Wholesale",
   description: "B2B wholesale platform for Claudia — ladies fashion wear",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -52,6 +59,7 @@ export default function RootLayout({
         <Navbar />
         {children}
         <Chatbot />
+        <InstallPrompt />
       </body>
     </html>
   );
