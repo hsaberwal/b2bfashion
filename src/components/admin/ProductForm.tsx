@@ -138,8 +138,26 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
       return;
     }
     setGeneratingAI(true);
-    setAiStatus(`Generating ${generateNumImages} model photo${generateNumImages > 1 ? "s" : ""} from Image ${imageIndex + 1}...`);
+    setGenerateFromIndex(null);
+
     try {
+      // Step 1: Save current images to DB first so FASHN can access the image
+      setAiStatus("Saving images...");
+      const saveRes = await fetch(`/api/admin/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: form.images }),
+      });
+      if (!saveRes.ok) {
+        const saveData = await saveRes.json();
+        alert(saveData.error ?? "Failed to save images before generating.");
+        setGeneratingAI(false);
+        setAiStatus("");
+        return;
+      }
+
+      // Step 2: Generate model photos
+      setAiStatus(`Generating ${generateNumImages} model photo${generateNumImages > 1 ? "s" : ""} from Image ${imageIndex + 1}... (this may take 1-2 minutes)`);
       const res = await fetch("/api/admin/generate-model-photos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,14 +170,16 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
       });
       const data = await res.json();
       if (!res.ok) {
+        alert(data.error ?? "AI generation failed. Check that FASHN_API_KEY is set.");
         setAiStatus(`Failed: ${data.error ?? "unknown error"}`);
+        setTimeout(() => { setGeneratingAI(false); setAiStatus(""); }, 5000);
         return;
       }
       const newUrls = (data.urls ?? []) as string[];
       if (newUrls.length > 0) {
         const updatedImages = [...form.images, ...newUrls];
         setForm((prev) => ({ ...prev, images: updatedImages }));
-        // Save to DB
+        // Save generated images to DB
         await fetch(`/api/admin/products/${productId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -169,14 +189,15 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
       } else {
         setAiStatus("No photos returned.");
       }
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Generation failed";
+      alert(`AI generation error: ${msg}`);
       setAiStatus("Generation failed.");
     } finally {
-      setGenerateFromIndex(null);
       setTimeout(() => {
         setGeneratingAI(false);
         setAiStatus("");
-      }, 4000);
+      }, 5000);
     }
   };
 
