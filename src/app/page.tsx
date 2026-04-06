@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { HOMEPAGE_IMAGE_URLS } from "@/data/homepageImages";
-import { HomepageGallery } from "@/components/HomepageGallery";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { HeroSection } from "@/components/HeroSection";
+import { LatestLooks } from "@/components/LatestLooks";
 
 export default function HomePage() {
   return (
@@ -37,7 +37,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Gallery Grid */}
+      {/* Our Latest Looks — rotating product images */}
       <section className="py-16 md:py-24 px-4 bg-je-offwhite">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
@@ -46,7 +46,7 @@ export default function HomePage() {
               Our Latest Looks
             </h2>
           </div>
-          <HomepageGallery urls={HOMEPAGE_IMAGE_URLS.slice(3)} />
+          <LatestLooks />
         </div>
       </section>
 
