@@ -83,6 +83,8 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [scanningLabel, setScanningLabel] = useState(false);
+  const [labelPhotos, setLabelPhotos] = useState<File[]>([]);
+  const [labelPreviews, setLabelPreviews] = useState<string[]>([]);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiStatus, setAiStatus] = useState("");
   const [generatePrompt, setGeneratePrompt] = useState("");
@@ -178,14 +180,30 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
     }
   };
 
-  const handleLabelScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
+  /** Add a label photo to the queue */
+  const handleAddLabelPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLabelPhotos((prev) => [...prev, file]);
+    setLabelPreviews((prev) => [...prev, URL.createObjectURL(file)]);
+    e.target.value = "";
+  };
+
+  /** Remove a label photo from the queue */
+  const removeLabelPhoto = (index: number) => {
+    URL.revokeObjectURL(labelPreviews[index]);
+    setLabelPhotos((prev) => prev.filter((_, i) => i !== index));
+    setLabelPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  /** Send all queued label photos to Claude for scanning */
+  const handleScanLabels = async () => {
+    if (labelPhotos.length === 0) return;
     setScanningLabel(true);
     try {
       const fd = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        fd.append("files", files[i]);
+      for (const file of labelPhotos) {
+        fd.append("files", file);
       }
       const res = await fetch("/api/admin/scan-label", { method: "POST", body: fd });
       const data = await res.json();
@@ -200,11 +218,14 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
         sizes: data.sizes?.length ? data.sizes : prev.sizes,
         colour: data.colour || prev.colour,
       }));
+      // Clear the queue after successful scan
+      labelPreviews.forEach((url) => URL.revokeObjectURL(url));
+      setLabelPhotos([]);
+      setLabelPreviews([]);
     } catch {
-      alert("Failed to scan label. Please try again.");
+      alert("Failed to scan labels. Please try again.");
     } finally {
       setScanningLabel(false);
-      e.target.value = "";
     }
   };
 
@@ -232,43 +253,117 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
 
       {/* ===== QUICK ACTIONS: Label Scanner + Photo Upload ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Scan Label */}
-        <label className={`flex items-center gap-4 p-5 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+      <div className="space-y-3">
+        {/* Scan Labels — multi-photo capture */}
+        <div className={`p-5 border-2 border-dashed rounded-lg transition-all ${
           scanningLabel
             ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-            : "border-gray-300 dark:border-gray-600 hover:border-gray-500 bg-white dark:bg-gray-900"
+            : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
         }`}>
-          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-            {scanningLabel ? (
-              <svg className="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600 dark:text-gray-400">
-                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
+          <div className="flex items-center gap-4 mb-3">
+            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+              {scanningLabel ? (
+                <svg className="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600 dark:text-gray-400">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                {scanningLabel ? "Scanning labels..." : "Scan Care Labels"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Take photos of each label (materials, care symbols, sizes) then scan all at once
+              </p>
+            </div>
+          </div>
+
+          {/* Label photo previews */}
+          {labelPreviews.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {labelPreviews.map((src, i) => (
+                <div key={i} className="relative group">
+                  <img src={src} alt={`Label ${i + 1}`} className="w-20 h-20 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                  <button
+                    type="button"
+                    onClick={() => removeLabelPhoto(i)}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {/* Take / add another photo */}
+            <label className="px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+              <span className="flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                {labelPhotos.length === 0 ? "Take Photo" : "Add Another"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleAddLabelPhoto}
+                className="hidden"
+                disabled={scanningLabel}
+              />
+            </label>
+
+            {/* Pick from gallery */}
+            <label className="px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+              <span className="flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                From Gallery
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (!files) return;
+                  for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    setLabelPhotos((prev) => [...prev, file]);
+                    setLabelPreviews((prev) => [...prev, URL.createObjectURL(file)]);
+                  }
+                  e.target.value = "";
+                }}
+                className="hidden"
+                disabled={scanningLabel}
+              />
+            </label>
+
+            {/* Scan all button */}
+            {labelPhotos.length > 0 && (
+              <button
+                type="button"
+                onClick={handleScanLabels}
+                disabled={scanningLabel}
+                className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:opacity-50"
+              >
+                {scanningLabel ? "Scanning..." : `Scan ${labelPhotos.length} Label${labelPhotos.length > 1 ? "s" : ""}`}
+              </button>
             )}
           </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              {scanningLabel ? "Scanning labels..." : "Scan Care Labels"}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Photo all labels (materials, care symbols, sizes) — select multiple
-            </p>
-          </div>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleLabelScan}
-            className="hidden"
-            disabled={scanningLabel}
-          />
-        </label>
+        </div>
 
         {/* Upload Photos */}
         <label className={`flex items-center gap-4 p-5 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
