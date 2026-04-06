@@ -151,7 +151,7 @@ export default function LoginPage() {
             {otpSent && (
               <div>
                 <label className="block text-sm font-medium text-je-black mb-1">
-                  OTP code (check your email / console in dev)
+                  OTP code (check your email)
                 </label>
                 <input
                   type="text"

@@ -7,18 +7,12 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.EMAIL_API_KEY);
 
 async function sendOtpEmail(email: string, code: string): Promise<void> {
-  console.log("[sendOtpEmail] Called for:", email);
-  console.log("[sendOtpEmail] NODE_ENV:", process.env.NODE_ENV);
-
   if (process.env.NODE_ENV === "development") {
     console.log("[OTP for", email, "]:", code);
     return;
   }
 
   const emailFrom = process.env.EMAIL_FROM;
-  console.log("[sendOtpEmail] EMAIL_FROM:", emailFrom);
-  console.log("[sendOtpEmail] EMAIL_API_KEY set:", !!process.env.EMAIL_API_KEY);
-
   if (!emailFrom) {
     console.error("EMAIL_FROM not set");
     return;
@@ -30,8 +24,7 @@ async function sendOtpEmail(email: string, code: string): Promise<void> {
   }
 
   try {
-    console.log("[sendOtpEmail] About to call resend.emails.send...");
-    const result = await resend.emails.send({
+    await resend.emails.send({
       from: emailFrom,
       to: email,
       subject: "Your password reset code",
@@ -47,7 +40,6 @@ async function sendOtpEmail(email: string, code: string): Promise<void> {
         </div>
       `,
     });
-    console.log("[sendOtpEmail] Resend response:", result);
   } catch (error) {
     console.error("Failed to send OTP email:", error);
   }

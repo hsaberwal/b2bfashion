@@ -11,18 +11,12 @@ const RESET_EXPIRY_HOURS = 1;
 const resend = new Resend(process.env.EMAIL_API_KEY);
 
 async function sendResetEmail(email: string, resetLink: string): Promise<void> {
-  console.log("[sendResetEmail] Called for:", email);
-  console.log("[sendResetEmail] NODE_ENV:", process.env.NODE_ENV);
-
   if (process.env.NODE_ENV === "development") {
     console.log("[Password reset link for", email, "]:", resetLink);
     return;
   }
 
   const emailFrom = process.env.EMAIL_FROM;
-  console.log("[sendResetEmail] EMAIL_FROM:", emailFrom);
-  console.log("[sendResetEmail] EMAIL_API_KEY set:", !!process.env.EMAIL_API_KEY);
-
   if (!emailFrom) {
     console.error("EMAIL_FROM not set");
     return;
@@ -34,8 +28,7 @@ async function sendResetEmail(email: string, resetLink: string): Promise<void> {
   }
 
   try {
-    console.log("[sendResetEmail] About to call resend.emails.send...");
-    const result = await resend.emails.send({
+    await resend.emails.send({
       from: emailFrom,
       to: email,
       subject: "Reset your password",
@@ -54,7 +47,6 @@ async function sendResetEmail(email: string, resetLink: string): Promise<void> {
         </div>
       `,
     });
-    console.log("[sendResetEmail] Resend response:", result);
   } catch (error) {
     console.error("Failed to send reset email:", error);
   }
