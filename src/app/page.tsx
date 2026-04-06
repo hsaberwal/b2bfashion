@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { HOMEPAGE_IMAGE_URLS } from "@/data/homepageImages";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { HeroSection } from "@/components/HeroSection";
 import { LatestLooks } from "@/components/LatestLooks";
@@ -8,7 +7,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero + Two-Column — pulls from featured products */}
-      <HeroSection fallbackImages={HOMEPAGE_IMAGE_URLS} />
+      <HeroSection />
 
       {/* Brand Statement */}
       <section className="py-16 md:py-24 px-4">
