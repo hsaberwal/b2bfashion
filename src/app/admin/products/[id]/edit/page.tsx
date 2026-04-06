@@ -258,6 +258,7 @@ export default function EditProductPage() {
           initial={initial}
           onSubmit={handleSubmit}
           submitLabel="Save changes"
+          productId={id}
         />
       </div>
     </main>
