@@ -14,6 +14,10 @@ export function InstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    // Only show on mobile/tablet devices
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!isMobile) return;
+
     // Check if already installed as PWA
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
