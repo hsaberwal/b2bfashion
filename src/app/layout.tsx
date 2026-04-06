@@ -4,6 +4,7 @@ import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ScreenshotProtection } from "@/components/ScreenshotProtection";
 import { Chatbot } from "@/components/Chatbot";
+import { Navbar } from "@/components/Navbar";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -48,6 +49,7 @@ export default function RootLayout({
         <div className="bg-je-black text-white text-center text-[11px] tracking-[0.15em] uppercase py-2.5 px-4 font-medium">
           Wholesale &mdash; bulk ordering only (pack sizes apply)
         </div>
+        <Navbar />
         {children}
         <Chatbot />
       </body>
