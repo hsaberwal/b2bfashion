@@ -25,7 +25,8 @@ const productSchema = new mongoose.Schema(
     attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
     images: { type: [String], default: [] },
     heroFocalPoint: { type: String, default: "50% 50%" }, // CSS object-position, e.g. "50% 30%"
-    heroImageIndex: { type: Number, default: 0 }, // Which image to use on Front Page
+    heroImageIndex: { type: Number, default: 0 }, // Primary image for Front Page
+    heroExcludedIndexes: { type: [Number], default: [] }, // Image indexes excluded from hero cycling
     featured: { type: Boolean, default: false },
     showOnHero: { type: Boolean, default: false },
     latestLooks: { type: Boolean, default: false },

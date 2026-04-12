@@ -26,6 +26,7 @@ type Product = {
   latestLooks?: boolean;
   heroFocalPoint?: string;
   heroImageIndex?: number;
+  heroExcludedIndexes?: number[];
   minPacks?: number;
   packSize: number;
   pricePerPack?: number;
@@ -69,6 +70,7 @@ export default function EditProductPage() {
       latestLooks: data.latestLooks,
       heroFocalPoint: data.heroFocalPoint,
       heroImageIndex: data.heroImageIndex,
+      heroExcludedIndexes: data.heroExcludedIndexes,
       minPacks: data.minPacks,
       packSize: data.packSize,
       pricePerPack: data.pricePerPack,
@@ -106,6 +108,7 @@ export default function EditProductPage() {
     latestLooks: product.latestLooks ?? false,
     heroFocalPoint: product.heroFocalPoint ?? "50% 50%",
     heroImageIndex: product.heroImageIndex ?? 0,
+    heroExcludedIndexes: product.heroExcludedIndexes ?? [],
     minPacks: product.minPacks ?? 1,
     packSize: product.packSize,
     pricePerPack: product.pricePerPack != null ? String(product.pricePerPack) : "",

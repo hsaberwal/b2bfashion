@@ -27,6 +27,7 @@ export type ProductFormData = {
   latestLooks: boolean;
   heroFocalPoint: string;
   heroImageIndex: number;
+  heroExcludedIndexes: number[];
   minPacks: number;
   packSize: number;
   pricePerPack: string;
@@ -52,6 +53,7 @@ const defaultForm: ProductFormData = {
   latestLooks: false,
   heroFocalPoint: "50% 50%",
   heroImageIndex: 0,
+  heroExcludedIndexes: [],
   minPacks: 1,
   packSize: 6,
   pricePerPack: "",
@@ -67,6 +69,7 @@ export type ProductSubmitPayload = Omit<ProductFormData, "pricePerPack" | "colou
   latestLooks?: boolean;
   heroFocalPoint?: string;
   heroImageIndex?: number;
+  heroExcludedIndexes?: number[];
 };
 
 function imageDisplaySrc(url: string): string {
@@ -883,26 +886,57 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           <div className="mt-3 p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Front Page Image Settings</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Select which image to use on the hero banner and click on it to set the focal point (where the image centers when cropped).
+              Click an image to select it as the primary hero image (blue border). Use the checkbox to exclude images from cycling.
             </p>
 
-            {/* Image selector */}
+            {/* Image selector with exclude checkboxes */}
             <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-              {form.images.map((url, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => update("heroImageIndex", i)}
-                  className={`w-16 h-20 shrink-0 border-2 overflow-hidden rounded transition-all ${
-                    form.heroImageIndex === i
-                      ? "border-blue-600 ring-1 ring-blue-400"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
-                  }`}
-                >
-                  <img src={imageDisplaySrc(url)} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
+              {form.images.map((url, i) => {
+                const isExcluded = form.heroExcludedIndexes.includes(i);
+                const isPrimary = form.heroImageIndex === i;
+                return (
+                  <div key={i} className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => update("heroImageIndex", i)}
+                      className={`w-16 h-20 border-2 overflow-hidden rounded transition-all ${
+                        isPrimary
+                          ? "border-blue-600 ring-1 ring-blue-400"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+                      } ${isExcluded ? "opacity-30" : ""}`}
+                    >
+                      <img src={imageDisplaySrc(url)} alt="" className="w-full h-full object-cover" />
+                    </button>
+                    {/* Exclude checkbox */}
+                    <label
+                      className="absolute -top-1 -right-1 bg-white border border-gray-300 rounded p-0.5 cursor-pointer shadow-sm"
+                      title={isExcluded ? "Excluded from hero" : "Include in hero"}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!isExcluded}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            update("heroExcludedIndexes", form.heroExcludedIndexes.filter((idx) => idx !== i));
+                          } else {
+                            update("heroExcludedIndexes", [...form.heroExcludedIndexes, i]);
+                          }
+                        }}
+                        className="w-3 h-3 cursor-pointer"
+                      />
+                    </label>
+                    {isPrimary && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1 py-0.5 text-[8px] font-semibold bg-blue-600 text-white rounded uppercase tracking-wider">
+                        Main
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-3">
+              {form.images.length - form.heroExcludedIndexes.length} of {form.images.length} images will appear on the hero
+            </p>
 
             {/* Focal point preview — click to set */}
             <div className="relative">

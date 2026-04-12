@@ -12,6 +12,7 @@ type FeaturedProduct = {
   images: string[];
   heroFocalPoint?: string;
   heroImageIndex?: number;
+  heroExcludedIndexes?: number[];
 };
 
 /**
@@ -38,18 +39,20 @@ export function HeroSection() {
         const prods = (d.products ?? []) as FeaturedProduct[];
         setProducts(prods);
 
-        // Build flat list of hero images — use heroImageIndex if set, otherwise all images
+        // Build flat list of hero images — primary image first, then others
+        // Exclude any image marked as hidden from hero
         const allSlides: { image: string; product: FeaturedProduct; focalPoint: string }[] = [];
         for (const p of prods) {
           if (p.images.length === 0) continue;
+          const excluded = new Set(p.heroExcludedIndexes ?? []);
           const idx = p.heroImageIndex ?? 0;
-          if (idx < p.images.length) {
-            // Use the specifically selected hero image
+          // Use the specifically selected hero image first (if not excluded)
+          if (idx < p.images.length && !excluded.has(idx)) {
             allSlides.push({ image: p.images[idx], product: p, focalPoint: p.heroFocalPoint ?? "50% 50%" });
           }
-          // Also include other images for variety
+          // Then include other images for variety (skipping excluded and the primary)
           for (let i = 0; i < p.images.length; i++) {
-            if (i !== idx) {
+            if (i !== idx && !excluded.has(i)) {
               allSlides.push({ image: p.images[i], product: p, focalPoint: "50% 50%" });
             }
           }
