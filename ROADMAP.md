@@ -179,7 +179,14 @@ Beyond the PWA, a native iOS and Android app with:
 
 ## Priority Order
 
-**Phase 1 (Next up):**
+**Phase 1 (In progress):**
+
+- ✅ SEO foundation (sitemap, robots, structured data, metadata, breadcrumbs)
+- Legal pages (Privacy, Terms, Cookie consent)
+- Footer with company details
+- Newsletter signup
+
+**Phase 2:**
 
 1. Orders dashboard with filtering
 2. Shipping label generation

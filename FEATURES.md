@@ -324,6 +324,24 @@ See [README.md](README.md) for the full API reference.
 
 ---
 
+## SEO
+
+### Search Engine Optimisation
+- **Dynamic sitemap.xml** — automatically includes all current and forward stock products plus static pages
+- **robots.txt** — explicit indexing rules with private routes (admin, cart, checkout, login) excluded
+- **Per-page metadata** — every page has unique title, description, and canonical URL
+- **Open Graph + Twitter Card tags** — links shared on social media show beautiful preview cards
+- **Structured data (JSON-LD)**:
+  - Organization schema (site-wide)
+  - WebSite schema (site-wide)
+  - Product schema on every product detail page (with brand, image, SKU, category, colour, currency)
+  - BreadcrumbList schema on product pages
+- **Breadcrumb navigation** — Home > Garments > Category > Product Name
+- **Server-rendered metadata** — Next.js `generateMetadata()` fetches product data server-side so search engines see correct titles
+- **Descriptive alt tags** — all customer-facing images have product-specific alt text
+- **Custom domain** with HTTPS (`claudia-c.com`)
+- **PWA manifest** for mobile install
+
 ## Technical Highlights
 
 - **Zero static image dependency** — homepage is fully dynamic from the database

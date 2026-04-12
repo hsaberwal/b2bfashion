@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 import { addToGuestCart } from "@/lib/guestCart";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 const ZOOM = 2.2;
 const LENS_SIZE = 180;
@@ -159,12 +160,14 @@ export default function ProductDetailPage() {
   return (
     <main className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Breadcrumb */}
-        <nav className="mb-6">
-          <Link href="/products" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors">
-            &larr; Back to garments
-          </Link>
-        </nav>
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Garments", href: "/products" },
+            { label: product.category, href: `/products?category=${encodeURIComponent(product.category)}` },
+            { label: product.name },
+          ]}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
           {/* Left: Image Gallery — BR style with thumbnails on left, main image right */}
@@ -186,7 +189,7 @@ export default function ProductDetailPage() {
                   >
                     <img
                       src={imageDisplayUrl(url)}
-                      alt=""
+                      alt={`${product.name} — view ${i + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>

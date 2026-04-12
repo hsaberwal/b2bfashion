@@ -16,7 +16,7 @@ export function HomepageGallery({ urls }: { urls: string[] }) {
         >
           <Image
             src={src}
-            alt=""
+            alt={`Claudia.C wholesale fashion ${i + 1}`}
             fill
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             sizes="(max-width: 768px) 50vw, 33vw"

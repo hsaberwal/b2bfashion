@@ -29,6 +29,7 @@ See [USER_GUIDE.md](USER_GUIDE.md) for end user documentation.
 See [ROADMAP.md](ROADMAP.md) for upcoming features.
 
 **Highlights:**
+- SEO-optimised: dynamic sitemap, JSON-LD structured data, per-page metadata, breadcrumbs
 - AI chatbot that knows the entire catalogue
 - AI label scanner — photograph garment labels to auto-fill product data
 - AI model photo generation with demographic targeting and front/back view
