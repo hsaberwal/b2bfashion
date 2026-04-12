@@ -19,6 +19,7 @@ type Product = {
   colour: string;
   colours?: string[];
   sizes?: string[];
+  sizeRatio?: number[];
   images?: string[];
   featured?: boolean;
   showOnHero?: boolean;
@@ -59,6 +60,7 @@ export default function EditProductPage() {
       colour: data.colour,
       colours: data.colours?.length ? data.colours : undefined,
       sizes: data.sizes?.length ? data.sizes : undefined,
+      sizeRatio: data.sizeRatio?.length ? data.sizeRatio : undefined,
       images: data.images?.length ? data.images : undefined,
       featured: data.featured,
       showOnHero: data.showOnHero,
@@ -93,6 +95,7 @@ export default function EditProductPage() {
     colour: product.colour,
     colours: product.colours ?? [],
     sizes: product.sizes ?? [],
+    sizeRatio: product.sizeRatio ?? [],
     images: product.images ?? [],
     featured: product.featured ?? false,
     showOnHero: product.showOnHero ?? false,

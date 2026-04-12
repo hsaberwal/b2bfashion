@@ -20,6 +20,7 @@ export type ProductFormData = {
   colour: string;
   colours: string[];
   sizes: string[];
+  sizeRatio: number[];
   images: string[];
   featured: boolean;
   showOnHero: boolean;
@@ -42,6 +43,7 @@ const defaultForm: ProductFormData = {
   colour: "",
   colours: [],
   sizes: [],
+  sizeRatio: [],
   images: [],
   featured: false,
   showOnHero: false,
@@ -51,11 +53,12 @@ const defaultForm: ProductFormData = {
   compareAtPrice: "",
 };
 
-export type ProductSubmitPayload = Omit<ProductFormData, "pricePerItem" | "compareAtPrice" | "colours" | "sizes"> & {
+export type ProductSubmitPayload = Omit<ProductFormData, "pricePerItem" | "compareAtPrice" | "colours" | "sizes" | "sizeRatio"> & {
   pricePerItem?: number;
   compareAtPrice?: number;
   colours?: string[];
   sizes?: string[];
+  sizeRatio?: number[];
   featured?: boolean;
   showOnHero?: boolean;
   latestLooks?: boolean;
@@ -302,6 +305,10 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
         compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : undefined,
         colours: form.colours.length ? form.colours : undefined,
         sizes: form.sizes.filter(Boolean).length ? form.sizes.filter(Boolean) : undefined,
+        sizeRatio: form.sizeRatio.length ? form.sizeRatio : undefined,
+        packSize: form.sizeRatio.length
+          ? form.sizeRatio.reduce((sum, n) => sum + n, 0) || 1
+          : form.packSize,
       };
       await onSubmit(payload);
     } catch (err) {
@@ -881,27 +888,142 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sizes (one per line or comma)</label>
-        <textarea
-          value={Array.isArray(form.sizes) ? form.sizes.join("\n") : ""}
-          onChange={(e) => update("sizes", e.target.value.split(/[\n,]/).map((s) => s.trim()))}
-          rows={6}
-          placeholder="UK: 10 - EU: 36 - US: XS&#10;UK: 12 - EU: 38 - US: S"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-        />
+      {/* Size Ratio Builder */}
+      <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Pack Size Ratio
+        </label>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Define the sizes in each pack and how many of each. Pack size is calculated automatically.
+        </p>
+
+        {/* Add size button */}
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            id="newSizeInput"
+            placeholder="Add a size (e.g. S, M, L, XL, 10, 12...)"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const input = e.currentTarget;
+                const val = input.value.trim();
+                if (val && !form.sizes.includes(val)) {
+                  update("sizes", [...form.sizes, val]);
+                  update("sizeRatio", [...form.sizeRatio, 1]);
+                  input.value = "";
+                }
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const input = document.getElementById("newSizeInput") as HTMLInputElement;
+              const val = input?.value?.trim();
+              if (val && !form.sizes.includes(val)) {
+                update("sizes", [...form.sizes, val]);
+                update("sizeRatio", [...form.sizeRatio, 1]);
+                input.value = "";
+              }
+            }}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            Add
+          </button>
+        </div>
+
+        {/* Quick add common sizes */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {["XS", "S", "M", "L", "XL", "XXL", "8", "10", "12", "14", "16", "18", "20"].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                if (!form.sizes.includes(s)) {
+                  update("sizes", [...form.sizes, s]);
+                  update("sizeRatio", [...form.sizeRatio, 1]);
+                }
+              }}
+              disabled={form.sizes.includes(s)}
+              className={`px-2 py-1 text-xs rounded border transition-colors ${
+                form.sizes.includes(s)
+                  ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 cursor-not-allowed"
+                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* Size ratio table */}
+        {form.sizes.length > 0 && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_80px_40px] gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <span>Size</span>
+              <span>Qty per pack</span>
+              <span></span>
+            </div>
+            {form.sizes.map((size, i) => (
+              <div key={size} className="grid grid-cols-[1fr_80px_40px] gap-2 items-center">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{size}</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.sizeRatio[i] ?? 1}
+                  onChange={(e) => {
+                    const newRatio = [...form.sizeRatio];
+                    newRatio[i] = Math.max(0, parseInt(e.target.value, 10) || 0);
+                    update("sizeRatio", newRatio);
+                    // Auto-calculate pack size
+                    update("packSize", newRatio.reduce((sum, n) => sum + n, 0));
+                  }}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm text-center"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSizes = form.sizes.filter((_, j) => j !== i);
+                    const newRatio = form.sizeRatio.filter((_, j) => j !== i);
+                    update("sizes", newSizes);
+                    update("sizeRatio", newRatio);
+                    update("packSize", newRatio.reduce((sum, n) => sum + n, 0) || 1);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-sm"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Pack size: {form.sizeRatio.reduce((sum, n) => sum + n, 0) || 0} items
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Ratio: {form.sizes.map((s, i) => `${form.sizeRatio[i] ?? 0}×${s}`).join(", ")}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {form.sizes.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            No sizes added. Click sizes above or type a custom size.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pack size *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pack size</label>
           <input
             type="number"
             min={1}
             value={form.packSize}
-            onChange={(e) => update("packSize", parseInt(e.target.value, 10) || 1)}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            readOnly
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-white cursor-not-allowed"
           />
         </div>
         <div>

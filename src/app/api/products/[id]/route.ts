@@ -50,6 +50,7 @@ export async function GET(
       colour: product.colour,
       colours: product.colours,
       sizes: product.sizes,
+      sizeRatio: product.sizeRatio,
       attributes: product.attributes,
       images,
       packSize: product.packSize,

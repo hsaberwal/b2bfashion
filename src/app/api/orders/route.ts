@@ -108,21 +108,12 @@ export async function POST(request: NextRequest) {
     }
     const { items } = parsed.data;
 
-    // Resolve products and build new lines (validate pack size and size when product has sizes)
-    const newLines: { productId: string; sku: string; quantity: number; pricePerItem?: number; packSize: number; size?: string }[] = [];
+    // Resolve products and build new lines (validate pack size)
+    const newLines: { productId: string; sku: string; quantity: number; pricePerItem?: number; packSize: number }[] = [];
     for (const item of items) {
       const product = await Product.findById(item.productId);
       if (!product) {
         return NextResponse.json({ error: `Product not found: ${item.productId}` }, { status: 400 });
-      }
-      const productSizes = (product.sizes ?? []).filter(Boolean);
-      if (productSizes.length > 0) {
-        if (!item.size || typeof item.size !== "string" || !productSizes.includes(item.size.trim())) {
-          return NextResponse.json(
-            { error: `Please select a valid size for ${product.sku}. Available: ${productSizes.join(", ")}` },
-            { status: 400 }
-          );
-        }
       }
       if (item.quantity % product.packSize !== 0) {
         return NextResponse.json(
@@ -136,7 +127,6 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         pricePerItem: user.pricingApproved ? product.pricePerItem : undefined,
         packSize: product.packSize,
-        size: productSizes.length > 0 ? item.size!.trim() : undefined,
       });
     }
 
@@ -154,31 +144,26 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Merge: add new lines into existing items (same productId + same size => add quantity)
-    const existing = order.items as { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize?: number; size?: string }[];
-    const mergeKey = (id: string, size?: string) => `${id}:${size ?? ""}`;
-    const byKey = new Map<string, { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize: number; size?: string }>();
+    // Merge: add new lines into existing items (same productId => add quantity)
+    const existing = order.items as { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize?: number }[];
+    const byKey = new Map<string, { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize: number }>();
     for (const line of existing) {
       const id = line.productId.toString();
       const packSize = line.packSize ?? (await Product.findById(line.productId))?.packSize ?? 1;
-      const key = mergeKey(id, line.size);
-      byKey.set(key, { ...line, productId: line.productId, quantity: line.quantity, packSize, size: line.size });
+      byKey.set(id, { ...line, productId: line.productId, quantity: line.quantity, packSize });
     }
     for (const line of newLines) {
-      const key = mergeKey(line.productId, line.size);
-      const current = byKey.get(key);
+      const current = byKey.get(line.productId);
       if (current) {
         current.quantity += line.quantity;
-        // Always update to latest price
         current.pricePerItem = line.pricePerItem;
       } else {
-        byKey.set(key, {
+        byKey.set(line.productId, {
           productId: new mongoose.Types.ObjectId(line.productId),
           sku: line.sku,
           quantity: line.quantity,
           pricePerItem: line.pricePerItem,
           packSize: line.packSize,
-          size: line.size,
         });
       }
     }

@@ -20,7 +20,8 @@ const productSchema = new mongoose.Schema(
     },
     colour: { type: String, required: true },
     colours: [String],
-    sizes: [String],
+    sizes: [String],            // e.g. ["XS", "S", "M", "L"]
+    sizeRatio: [Number],        // e.g. [1, 1, 2, 2] — matches sizes array order
     attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
     images: { type: [String], default: [] },
     featured: { type: Boolean, default: false },
