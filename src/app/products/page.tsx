@@ -17,7 +17,6 @@ type Product = {
 };
 
 const STOCK_LABELS: Record<string, string> = {
-  previous: "Previous year stock",
   current: "Current stock",
   forward: "Forward / upcoming stock",
 };
@@ -55,15 +54,9 @@ export default function ProductsPage() {
   useEffect(() => {
     if (!user) return;
     if (user.role === "admin") return;
-    const canCurrent = user.canViewCurrentStock ?? true;
-    const canPrevious = user.canViewPreviousStock ?? true;
     const canForward = user.canViewForwardStock ?? false;
     if (stockFilter === "forward" && !canForward) {
-      setStockFilter(canCurrent ? "current" : canPrevious ? "previous" : "all");
-    } else if (stockFilter === "current" && !canCurrent) {
-      setStockFilter(canPrevious ? "previous" : canForward ? "forward" : "all");
-    } else if (stockFilter === "previous" && !canPrevious) {
-      setStockFilter(canCurrent ? "current" : canForward ? "forward" : "all");
+      setStockFilter("current");
     }
   }, [user, stockFilter]);
 
@@ -98,7 +91,7 @@ export default function ProductsPage() {
             Garments
           </h1>
           <p className="text-je-muted text-sm mt-0.5">
-            Claudia B2B — bulk ordering only (pack sizes apply)
+            Claudia.C B2B — bulk ordering only (pack sizes apply)
           </p>
         </div>
         <nav className="flex gap-2">
@@ -157,19 +150,11 @@ export default function ProductsPage() {
               className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
             >
               <option value="all">All stock</option>
-              {(user?.role === "admin" || user?.canViewCurrentStock) && (
-                <option value="current">Current stock</option>
-              )}
-              {(user?.role === "admin" || user?.canViewPreviousStock) && (
-                <option value="previous">Previous year stock</option>
-              )}
+              <option value="current">Current stock</option>
               {(user?.role === "admin" || user?.canViewForwardStock) && (
                 <option value="forward">Forward / upcoming stock</option>
               )}
             </select>
-            {(user?.role === "admin" || user?.canViewForwardStock) && (
-              <p className="text-xs text-je-muted mt-1">Forward stock is sign-in and permission protected.</p>
-            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-je-black mb-1">

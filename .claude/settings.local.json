@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:bonobos.com)",
+      "WebSearch",
+      "WebFetch(domain:www.bonobos.com)",
+      "Bash(grep -r '$where\\\\|$expr\\\\|$function' /c/Github/b2bfashion/src '--include=*.ts' '--include=*.tsx')",
+      "Bash(grep -n \"requireAdmin\\\\|Unauthorized\\\\|401\" /c/Github/b2bfashion/src/app/api/admin/products/[id]/route.ts)",
+      "Bash(git commit -m ':*)",
+      "Bash(sed -i 's/Claudia B2B/Claudia.C B2B/g' src/app/login/page.tsx src/app/register/page.tsx src/app/admin/page.tsx)",
+      "Bash(sed -i 's/Claudia Assistant/Claudia.C Assistant/g' src/components/Chatbot.tsx)",
+      "Bash(sed -i 's/your Claudia fashion/your Claudia.C fashion/g' src/components/Chatbot.tsx)",
+      "Bash(sed -i 's/Add Claudia to/Add Claudia.C to/g' src/components/InstallPrompt.tsx)",
+      "Bash(sed -i 's/\"Claudia Collection\"/\"Claudia.C Collection\"/g' src/components/HeroSection.tsx)"
+    ]
+  }
+}

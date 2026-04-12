@@ -12,12 +12,12 @@ export default function HomePage() {
       {/* Brand Statement */}
       <section className="py-16 md:py-24 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="section-label mb-6">Claudia B2B</p>
+          <p className="section-label mb-6">Claudia.C B2B</p>
           <h2 className="heading-serif text-je-black mb-6">
             Ladies Fashion, Wholesale
           </h2>
           <p className="text-je-muted text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-            Your wholesale destination for Claudia — curated ladies fashion wear.
+            Your wholesale destination for Claudia.C — curated ladies fashion wear.
             Browse our latest collections, place bulk orders, and grow your retail business.
           </p>
         </div>

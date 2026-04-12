@@ -61,7 +61,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
         {/* Logo */}
         <Link href="/" className="text-lg font-serif text-je-black tracking-tight">
-          Claudia
+          Claudia.C
         </Link>
 
         {/* Center links */}

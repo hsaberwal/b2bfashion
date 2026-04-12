@@ -82,7 +82,7 @@ export default function LoginPage() {
           Log in
         </h1>
         <p className="text-je-muted text-sm mb-6">
-          Claudia B2B — use password or email OTP
+          Claudia.C B2B — use password or email OTP
         </p>
         <Link href="/" className="text-sm text-je-muted hover:underline mb-4 inline-block">
           ← Back to home

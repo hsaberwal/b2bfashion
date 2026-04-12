@@ -13,7 +13,7 @@ export function Chatbot() {
     {
       role: "assistant",
       content:
-        "Hi! I'm your Claudia fashion assistant. I can help you find the perfect pieces, suggest styles, or answer questions about our wholesale catalogue. What are you looking for?",
+        "Hi! I'm your Claudia.C fashion assistant. I can help you find the perfect pieces, suggest styles, or answer questions about our wholesale catalogue. What are you looking for?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -105,7 +105,7 @@ export function Chatbot() {
                 C
               </div>
               <div>
-                <p className="text-sm font-semibold tracking-wide">Claudia Assistant</p>
+                <p className="text-sm font-semibold tracking-wide">Claudia.C Assistant</p>
                 <p className="text-[10px] uppercase tracking-widest text-white/60">Fashion Advisor</p>
               </div>
             </div>

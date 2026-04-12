@@ -48,29 +48,12 @@ export async function GET(request: NextRequest) {
       }
       filter.stockCategory = "forward";
     } else if (stockCategory === "current") {
-      if (!canViewCurrent) {
-        return NextResponse.json(
-          { error: "You do not have permission to view current stock." },
-          { status: 403 }
-        );
-      }
       filter.stockCategory = "current";
-    } else if (stockCategory === "previous") {
-      if (!canViewPrevious) {
-        return NextResponse.json(
-          { error: "You do not have permission to view previous stock." },
-          { status: 403 }
-        );
-      }
-      filter.stockCategory = "previous";
     } else if (stockCategory === null) {
-      // "All stock": include only permitted categories
-      const allowed: string[] = [];
-      if (canViewPrevious) allowed.push("previous");
-      if (canViewCurrent) allowed.push("current");
+      // "All stock": current + forward (if permitted)
+      const allowed: string[] = ["current"];
       if (canViewForward) allowed.push("forward");
-      if (allowed.length === 0) filter.stockCategory = { $exists: false };
-      else if (allowed.length < 3) filter.stockCategory = { $in: allowed };
+      filter.stockCategory = { $in: allowed };
     }
     if (category) filter.category = category;
     if (colour) filter.colour = colour;

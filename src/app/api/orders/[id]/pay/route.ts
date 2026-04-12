@@ -106,8 +106,8 @@ export async function POST(
       redirectUrl = await createWorldpayOrder({
         orderCode,
         description: paymentOption === "pay_deposit"
-          ? `Claudia B2B — 10% Deposit (Order ${order._id.toString().slice(-8)})`
-          : `Claudia B2B — Full Payment (Order ${order._id.toString().slice(-8)})`,
+          ? `Claudia.C B2B — 10% Deposit (Order ${order._id.toString().slice(-8)})`
+          : `Claudia.C B2B — Full Payment (Order ${order._id.toString().slice(-8)})`,
         amount: amountToCharge,
         currencyCode: "GBP",
         shopperEmail,

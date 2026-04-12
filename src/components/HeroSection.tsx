@@ -42,7 +42,7 @@ export function HeroSection() {
         {heroImage && (
           <img
             src={heroImage}
-            alt={heroProduct?.name ?? "Claudia Collection"}
+            alt={heroProduct?.name ?? "Claudia.C Collection"}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
           />
         )}

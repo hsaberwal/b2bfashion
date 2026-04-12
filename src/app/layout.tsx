@@ -21,8 +21,8 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Claudia B2B | Wholesale",
-  description: "B2B wholesale platform for Claudia — ladies fashion wear",
+  title: "Claudia.C B2B | Wholesale",
+  description: "B2B wholesale platform for Claudia.C — ladies fashion wear",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Claudia B2B",
+    title: "Claudia.C B2B",
   },
 };
 

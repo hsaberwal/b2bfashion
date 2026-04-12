@@ -9,10 +9,10 @@ function getClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
-const SYSTEM_PROMPT = `You are a helpful fashion assistant for **Claudia B2B** (claudia-c.com), a wholesale ladies fashion platform targeting retailers who buy in bulk.
+const SYSTEM_PROMPT = `You are a helpful fashion assistant for **Claudia.C B2B** (claudia-c.com), a wholesale ladies fashion platform targeting retailers who buy in bulk.
 
 ## About the Business
-- Claudia B2B is a **business-to-business (B2B) wholesale** platform — this is NOT a retail shop
+- Claudia.C B2B is a **business-to-business (B2B) wholesale** platform — this is NOT a retail shop
 - We sell to **retailers, boutiques, and trade buyers** only — not to the general public
 - Target demographic for the clothing: women aged 35–55
 - Products come in **packs** (e.g. pack of 6) — customers must order in multiples of the pack size

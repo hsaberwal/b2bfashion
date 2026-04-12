@@ -82,7 +82,7 @@ export function InstallPrompt() {
           C
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">Add Claudia to your home screen</p>
+          <p className="text-sm font-semibold">Add Claudia.C to your home screen</p>
           {isIos ? (
             <p className="text-xs text-white/60 mt-1">
               Tap the share button

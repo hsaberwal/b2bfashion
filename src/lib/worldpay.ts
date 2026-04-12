@@ -58,7 +58,7 @@ function buildOrderXml(params: WorldpayOrderParams): string {
     <order orderCode="${escapeXml(params.orderCode)}">
       <description>${escapeXml(params.description)}</description>
       <amount currencyCode="${escapeXml(currency)}" exponent="2" value="${amountInMinor}" />
-      <orderContent><![CDATA[Claudia B2B Wholesale Order]]></orderContent>
+      <orderContent><![CDATA[Claudia.C B2B Wholesale Order]]></orderContent>
       <paymentMethodMask>
         <include code="ALL" />
       </paymentMethodMask>
