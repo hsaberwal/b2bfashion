@@ -20,7 +20,7 @@ const createOrderSchema = z.object({
 
 function mapOrder(o: {
   _id: unknown;
-  items: { productId: unknown; sku: string; quantity: number; pricePerItem?: number; packSize?: number; size?: string }[];
+  items: { productId: unknown; sku: string; quantity: number; pricePerPack?: number; packSize?: number; size?: string }[];
   status: string;
   signedAt?: Date;
   createdAt: Date;
@@ -31,7 +31,7 @@ function mapOrder(o: {
       productId: String(i.productId),
       sku: i.sku,
       quantity: i.quantity,
-      pricePerItem: i.pricePerItem,
+      pricePerPack: i.pricePerPack,
       packSize: i.packSize,
       size: i.size,
     })),
@@ -62,14 +62,14 @@ export async function GET() {
 
     // Refresh prices on pending cart from current product data
     if (cart && pricingApproved) {
-      const items = (cart.items ?? []) as { productId: unknown; sku: string; quantity: number; pricePerItem?: number; packSize?: number; size?: string }[];
+      const items = (cart.items ?? []) as { productId: unknown; sku: string; quantity: number; pricePerPack?: number; packSize?: number; size?: string }[];
       const productIds = items.map((i) => i.productId);
-      const products = await Product.find({ _id: { $in: productIds } }).select("pricePerItem").lean();
-      const priceMap = new Map(products.map((p) => [String(p._id), (p as { pricePerItem?: number }).pricePerItem]));
+      const products = await Product.find({ _id: { $in: productIds } }).select("pricePerPack").lean();
+      const priceMap = new Map(products.map((p) => [String(p._id), (p as { pricePerPack?: number }).pricePerPack]));
       for (const item of items) {
         const currentPrice = priceMap.get(String(item.productId));
         if (currentPrice !== undefined) {
-          item.pricePerItem = currentPrice;
+          item.pricePerPack = currentPrice;
         }
       }
     }
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const { items } = parsed.data;
 
     // Resolve products and build new lines (validate pack size)
-    const newLines: { productId: string; sku: string; quantity: number; pricePerItem?: number; packSize: number }[] = [];
+    const newLines: { productId: string; sku: string; quantity: number; pricePerPack?: number; packSize: number }[] = [];
     for (const item of items) {
       const product = await Product.findById(item.productId);
       if (!product) {
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         productId: product._id.toString(),
         sku: product.sku,
         quantity: item.quantity,
-        pricePerItem: (user.role === "admin" || user.pricingApproved) ? product.pricePerItem : undefined,
+        pricePerPack: (user.role === "admin" || user.pricingApproved) ? product.pricePerPack : undefined,
         packSize: product.packSize,
       });
     }
@@ -153,8 +153,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Merge: add new lines into existing items (same productId => add quantity)
-    const existing = order.items as { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize?: number }[];
-    const byKey = new Map<string, { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerItem?: number; packSize: number }>();
+    const existing = order.items as { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerPack?: number; packSize?: number }[];
+    const byKey = new Map<string, { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerPack?: number; packSize: number }>();
     for (const line of existing) {
       const id = line.productId.toString();
       const packSize = line.packSize ?? (await Product.findById(line.productId))?.packSize ?? 1;
@@ -164,13 +164,13 @@ export async function POST(request: NextRequest) {
       const current = byKey.get(line.productId);
       if (current) {
         current.quantity += line.quantity;
-        current.pricePerItem = line.pricePerItem;
+        current.pricePerPack = line.pricePerPack;
       } else {
         byKey.set(line.productId, {
           productId: new mongoose.Types.ObjectId(line.productId),
           sku: line.sku,
           quantity: line.quantity,
-          pricePerItem: line.pricePerItem,
+          pricePerPack: line.pricePerPack,
           packSize: line.packSize,
         });
       }

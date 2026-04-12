@@ -10,7 +10,7 @@ export type GuestCartItem = {
   quantity: number;
   packSize: number;
   size?: string;
-  pricePerItem?: number;
+  pricePerPack?: number;
   image?: string;
 };
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type Order = {
   id: string;
-  items: { productId: string; sku: string; quantity: number; pricePerItem?: number; size?: string }[];
+  items: { productId: string; sku: string; quantity: number; pricePerPack?: number; packSize?: number; size?: string }[];
   status: string;
 };
 
@@ -117,7 +117,7 @@ export default function SignOrderPage() {
     setIsDrawing(false);
   }
 
-  const orderTotal = order?.items?.reduce((sum, i) => sum + (i.pricePerItem ?? 0) * i.quantity, 0) ?? 0;
+  const orderTotal = order?.items?.reduce((sum, i) => sum + (i.pricePerPack ?? 0) * (i.quantity / (i.packSize ?? 1)), 0) ?? 0;
   const depositAmount = Math.round(orderTotal * 0.1 * 100) / 100;
 
   function deliveryValid() {
@@ -321,9 +321,9 @@ export default function SignOrderPage() {
                 <span>
                   {item.sku}{item.size ? ` · ${item.size}` : ""} &times; {item.quantity}
                 </span>
-                {item.pricePerItem != null && (
+                {item.pricePerPack != null && (
                   <span className="screenshot-protected text-je-black font-medium">
-                    £{(item.pricePerItem * item.quantity).toFixed(2)}
+                    £{(item.pricePerPack * (item.quantity / (item.packSize ?? 1))).toFixed(2)}
                   </span>
                 )}
               </li>

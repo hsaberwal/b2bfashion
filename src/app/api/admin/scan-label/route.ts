@@ -58,7 +58,7 @@ Return the extracted information as JSON only (no markdown, no explanation):
   "careGuide": "all care instructions as a readable sentence, e.g. Machine wash at 30°C, Do not bleach, Iron on low heat, Do not tumble dry. Translate any care symbols you see.",
   "sizes": ["array of ALL sizes if visible on any label, e.g. S, M, L, XL"],
   "colour": "colour name if visible on any label, otherwise empty string",
-  "pricePerItem": "the price as a number (no currency symbol), e.g. 29.99. Use the original/retail price if multiple prices shown. Empty string if not visible."
+  "pricePerPack": "the price as a number (no currency symbol), e.g. 29.99. Use the original/retail price if multiple prices shown. Empty string if not visible."
 }
 
 If a field is not visible on any of the labels, use an empty string (or empty array for sizes).

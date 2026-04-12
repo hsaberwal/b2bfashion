@@ -78,8 +78,8 @@ export async function POST(
     if (paymentOption) order.paymentOption = paymentOption;
     // Always calculate deposit server-side — never trust client value
     const orderTotal = (order.items ?? []).reduce(
-      (sum: number, item: { pricePerItem?: number; quantity: number }) =>
-        sum + (item.pricePerItem ?? 0) * item.quantity,
+      (sum: number, item: { pricePerPack?: number; quantity: number; packSize?: number }) =>
+        sum + (item.pricePerPack ?? 0) * (item.quantity / (item.packSize ?? 1)),
       0
     );
     order.depositAmount = Math.round(orderTotal * 0.1 * 100) / 100;

@@ -27,8 +27,7 @@ type Product = {
   images: string[];
   packSize: number;
   minPacks?: number;
-  pricePerItem?: number;
-  compareAtPrice?: number;
+  pricePerPack?: number;
 };
 
 export default function ProductDetailPage() {
@@ -102,7 +101,7 @@ export default function ProductDetailPage() {
           name: product.name,
           quantity,
           packSize: product.packSize,
-          pricePerItem: product.pricePerItem,
+          pricePerPack: product.pricePerPack,
           image: product.images?.[0],
         });
       }
@@ -287,17 +286,12 @@ export default function ProductDetailPage() {
 
                 {/* Price */}
                 <div className="flex items-baseline gap-3 mb-6">
-                  {user?.pricingApproved && product.pricePerItem != null && (
+                  {user?.pricingApproved && product.pricePerPack != null && (
                     <>
-                      {product.compareAtPrice != null && product.compareAtPrice > product.pricePerItem && (
-                        <span className="text-je-muted line-through text-lg">
-                          £{product.compareAtPrice.toFixed(2)}
-                        </span>
-                      )}
                       <span className="text-xl font-medium text-je-black screenshot-protected relative">
-                        £{product.pricePerItem.toFixed(2)}
+                        £{product.pricePerPack.toFixed(2)}
                       </span>
-                      <span className="text-sm text-je-muted">per item</span>
+                      <span className="text-sm text-je-muted">per pack</span>
                     </>
                   )}
                 </div>
@@ -468,17 +462,12 @@ export default function ProductDetailPage() {
                 {product.name}
               </h1>
               <div className="flex items-baseline gap-3 mb-6">
-                {user?.pricingApproved && product.pricePerItem != null && (
+                {user?.pricingApproved && product.pricePerPack != null && (
                   <>
-                    {product.compareAtPrice != null && product.compareAtPrice > product.pricePerItem && (
-                      <span className="text-je-muted line-through text-lg">
-                        £{product.compareAtPrice.toFixed(2)}
-                      </span>
-                    )}
                     <span className="text-xl font-medium text-je-black screenshot-protected relative">
-                      £{product.pricePerItem.toFixed(2)}
+                      £{product.pricePerPack.toFixed(2)}
                     </span>
-                    <span className="text-sm text-je-muted">per item</span>
+                    <span className="text-sm text-je-muted">per pack</span>
                   </>
                 )}
               </div>

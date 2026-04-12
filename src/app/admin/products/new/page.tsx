@@ -23,8 +23,7 @@ export default function NewProductPage() {
       sizes: data.sizes?.length ? data.sizes : undefined,
       images: data.images?.length ? data.images : undefined,
       packSize: typeof data.packSize === "number" ? data.packSize : Number(data.packSize) || 1,
-      pricePerItem: data.pricePerItem,
-      compareAtPrice: data.compareAtPrice,
+      pricePerPack: data.pricePerPack,
     };
     const res = await fetch("/api/admin/products", {
       method: "POST",

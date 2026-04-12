@@ -55,8 +55,7 @@ export async function GET(
       images,
       packSize: product.packSize,
       minPacks: product.minPacks,
-      pricePerItem: pricingApproved ? product.pricePerItem : undefined,
-      compareAtPrice: pricingApproved ? product.compareAtPrice : undefined,
+      pricePerPack: pricingApproved ? product.pricePerPack : undefined,
     });
   } catch (e) {
     console.error(e);

@@ -28,8 +28,7 @@ type Product = {
   heroImageIndex?: number;
   minPacks?: number;
   packSize: number;
-  pricePerItem?: number;
-  compareAtPrice?: number;
+  pricePerPack?: number;
 };
 
 export default function EditProductPage() {
@@ -72,8 +71,7 @@ export default function EditProductPage() {
       heroImageIndex: data.heroImageIndex,
       minPacks: data.minPacks,
       packSize: data.packSize,
-      pricePerItem: data.pricePerItem,
-      compareAtPrice: data.compareAtPrice,
+      pricePerPack: data.pricePerPack,
     };
     const res = await fetch(`/api/admin/products/${id}`, {
       method: "PATCH",
@@ -110,8 +108,7 @@ export default function EditProductPage() {
     heroImageIndex: product.heroImageIndex ?? 0,
     minPacks: product.minPacks ?? 1,
     packSize: product.packSize,
-    pricePerItem: product.pricePerItem != null ? String(product.pricePerItem) : "",
-    compareAtPrice: product.compareAtPrice != null ? String(product.compareAtPrice) : "",
+    pricePerPack: product.pricePerPack != null ? String(product.pricePerPack) : "",
   };
 
   return (

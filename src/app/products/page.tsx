@@ -13,7 +13,7 @@ type Product = {
   colour: string;
   images: string[];
   packSize: number;
-  pricePerItem?: number;
+  pricePerPack?: number;
 };
 
 const STOCK_LABELS: Record<string, string> = {
@@ -242,9 +242,9 @@ export default function ProductsPage() {
                     <p className="text-sm text-je-muted mt-1">
                       Pack size: {p.packSize} · {STOCK_LABELS[p.stockCategory] ?? p.stockCategory}
                     </p>
-                    {user?.pricingApproved && p.pricePerItem != null && (
+                    {user?.pricingApproved && p.pricePerPack != null && (
                       <p className="mt-2 font-semibold text-je-black screenshot-protected relative">
-                        £{p.pricePerItem.toFixed(2)} per item
+                        £{p.pricePerPack.toFixed(2)} per pack
                       </p>
                     )}
                     <span className="mt-3 inline-block text-sm text-je-black font-medium underline">

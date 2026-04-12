@@ -29,8 +29,7 @@ export type ProductFormData = {
   heroImageIndex: number;
   minPacks: number;
   packSize: number;
-  pricePerItem: string;
-  compareAtPrice: string;
+  pricePerPack: string;
 };
 
 const defaultForm: ProductFormData = {
@@ -55,13 +54,11 @@ const defaultForm: ProductFormData = {
   heroImageIndex: 0,
   minPacks: 1,
   packSize: 6,
-  pricePerItem: "",
-  compareAtPrice: "",
+  pricePerPack: "",
 };
 
-export type ProductSubmitPayload = Omit<ProductFormData, "pricePerItem" | "compareAtPrice" | "colours" | "sizes" | "sizeRatio"> & {
-  pricePerItem?: number;
-  compareAtPrice?: number;
+export type ProductSubmitPayload = Omit<ProductFormData, "pricePerPack" | "colours" | "sizes" | "sizeRatio"> & {
+  pricePerPack?: number;
   colours?: string[];
   sizes?: string[];
   sizeRatio?: number[];
@@ -297,7 +294,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
         careGuide: data.careGuide || prev.careGuide,
         sizes: data.sizes?.length ? data.sizes : prev.sizes,
         colour: data.colour || prev.colour,
-        pricePerItem: data.pricePerItem || prev.pricePerItem,
+        pricePerPack: data.pricePerPack || prev.pricePerPack,
       }));
       // Clear the queue after successful scan
       labelPreviews.forEach((url) => URL.revokeObjectURL(url));
@@ -317,8 +314,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
     try {
       const payload: ProductSubmitPayload = {
         ...form,
-        pricePerItem: form.pricePerItem ? parseFloat(form.pricePerItem) : undefined,
-        compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : undefined,
+        pricePerPack: form.pricePerPack ? parseFloat(form.pricePerPack) : undefined,
         colours: form.colours.length ? form.colours : undefined,
         sizes: form.sizes.filter(Boolean).length ? form.sizes.filter(Boolean) : undefined,
         sizeRatio: form.sizeRatio.length ? form.sizeRatio : undefined,
@@ -1141,25 +1137,13 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Minimum order quantity in packs</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per item (£)</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per pack (£)</label>
           <input
             type="number"
             step="0.01"
             min={0}
-            value={form.pricePerItem}
-            onChange={(e) => update("pricePerItem", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Compare at price (£)</label>
-          <input
-            type="number"
-            step="0.01"
-            min={0}
-            value={form.compareAtPrice}
-            onChange={(e) => update("compareAtPrice", e.target.value)}
-            placeholder="Was £"
+            value={form.pricePerPack}
+            onChange={(e) => update("pricePerPack", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
         </div>

@@ -31,7 +31,7 @@ export interface ProductDoc {
   attributes: Record<string, string>;
   images: string[];
   packSize: number; // min order qty (e.g. 6 per pack)
-  pricePerItem?: number; // only shown if user has pricing access
+  pricePerPack?: number; // only shown if user has pricing access
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,7 +50,7 @@ export interface UserDoc {
 export interface OrderDoc {
   _id: string;
   userId: string;
-  items: { productId: string; sku: string; quantity: number; pricePerItem?: number }[];
+  items: { productId: string; sku: string; quantity: number; pricePerPack?: number }[];
   status: "pending" | "signed" | "confirmed" | "cancelled";
   signatureDataUrl?: string;
   signedAt?: Date;

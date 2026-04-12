@@ -25,8 +25,7 @@ function mapProduct(p: Record<string, unknown>) {
     attributes: p.attributes,
     images: p.images,
     packSize: p.packSize,
-    pricePerItem: p.pricePerItem,
-    compareAtPrice: p.compareAtPrice,
+    pricePerPack: p.pricePerPack,
   };
 }
 
@@ -48,8 +47,7 @@ const createProductSchema = z.object({
   attributes: z.record(z.string()).optional(),
   images: z.array(z.string().min(1)).optional(),
   packSize: z.number().int().min(1),
-  pricePerItem: z.number().optional(),
-  compareAtPrice: z.number().optional(),
+  pricePerPack: z.number().optional(),
 });
 
 export async function GET() {

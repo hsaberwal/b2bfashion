@@ -31,8 +31,7 @@ const updateProductSchema = z.object({
   latestLooks: z.boolean().optional(),
   packSize: z.number().int().min(1).optional(),
   minPacks: z.number().int().min(1).optional(),
-  pricePerItem: z.number().optional(),
-  compareAtPrice: z.number().optional(),
+  pricePerPack: z.number().optional(),
 });
 
 function mapProduct(p: Record<string, unknown>) {
@@ -62,8 +61,7 @@ function mapProduct(p: Record<string, unknown>) {
     latestLooks: p.latestLooks,
     packSize: p.packSize,
     minPacks: p.minPacks,
-    pricePerItem: p.pricePerItem,
-    compareAtPrice: p.compareAtPrice,
+    pricePerPack: p.pricePerPack,
   };
 }
 

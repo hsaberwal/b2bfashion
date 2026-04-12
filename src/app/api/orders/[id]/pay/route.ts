@@ -59,8 +59,8 @@ export async function POST(
 
     // Calculate order total
     const orderTotal = (order.items ?? []).reduce(
-      (sum: number, item: { pricePerItem?: number; quantity: number }) =>
-        sum + (item.pricePerItem ?? 0) * item.quantity,
+      (sum: number, item: { pricePerPack?: number; quantity: number; packSize?: number }) =>
+        sum + (item.pricePerPack ?? 0) * (item.quantity / (item.packSize ?? 1)),
       0
     );
 
