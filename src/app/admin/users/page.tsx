@@ -14,6 +14,7 @@ type UserRow = {
   canViewCurrentStock: boolean;
   canViewPreviousStock: boolean;
   applicationMessage?: string;
+  emailVerified?: boolean;
   createdAt?: string;
 };
 
@@ -158,6 +159,23 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function deleteUser(u: UserRow) {
+    if (u.id === user?.id || u.email === user?.email) return;
+    if (!confirm(`Delete user ${u.email}? This will remove their account and pending orders. Signed orders will be kept for records.`)) return;
+    setUpdating(u.id);
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "Delete failed");
+        return;
+      }
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+    } finally {
+      setUpdating(null);
+    }
+  }
+
   if (user === null || loading) {
     return (
       <main className="min-h-screen p-8">
@@ -218,7 +236,9 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View current</th>
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View previous</th>
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View forward</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Verified</th>
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Application</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -322,8 +342,25 @@ export default function AdminUsersPage() {
                       </button>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-medium ${u.emailVerified ? "text-green-700" : "text-amber-600"}`}>
+                      {u.emailVerified ? "Yes" : "No"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-[120px] truncate" title={u.applicationMessage ?? undefined}>
                     {u.applicationMessage ? u.applicationMessage.slice(0, 40) + (u.applicationMessage.length > 40 ? "…" : "") : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {(u.id !== user?.id && u.email !== user?.email) && (
+                      <button
+                        type="button"
+                        onClick={() => deleteUser(u)}
+                        disabled={updating === u.id}
+                        className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:opacity-90 disabled:opacity-50"
+                      >
+                        {updating === u.id ? "…" : "Delete"}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

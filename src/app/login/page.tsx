@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otpMode, setOtpMode] = useState(false);
@@ -11,6 +14,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [verifiedMessage, setVerifiedMessage] = useState("");
+
+  useEffect(() => {
+    const message = searchParams.get("message");
+    const verified = searchParams.get("verified");
+    if (message && verified) {
+      setVerifiedMessage(message);
+    }
+  }, [searchParams]);
 
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -84,8 +96,13 @@ export default function LoginPage() {
         <p className="text-je-muted text-sm mb-6">
           Claudia.C B2B — use password or email OTP
         </p>
+        {verifiedMessage && (
+          <div className="mb-4 p-3 rounded bg-green-50 border border-green-200 text-sm text-green-800">
+            {verifiedMessage}
+          </div>
+        )}
         <Link href="/" className="text-sm text-je-muted hover:underline mb-4 inline-block">
-          ← Back to home
+          &larr; Back to home
         </Link>
 
         {!otpMode ? (
@@ -203,5 +220,14 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen flex items-center justify-center bg-je-cream"><p className="text-je-muted">Loading...</p></main>}>
+      <LoginForm />
+    </Suspense>
   );
 }

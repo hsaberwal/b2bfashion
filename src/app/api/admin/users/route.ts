@@ -9,7 +9,7 @@ export async function GET() {
     await requireAdmin();
     await connectDB();
     const users = await User.find({})
-      .select("email name companyName role pricingApproved canViewForwardStock canViewCurrentStock canViewPreviousStock applicationMessage createdAt")
+      .select("email name companyName role pricingApproved canViewForwardStock canViewCurrentStock canViewPreviousStock applicationMessage emailVerified createdAt")
       .sort({ createdAt: -1 })
       .lean();
     return NextResponse.json({
@@ -24,6 +24,7 @@ export async function GET() {
         canViewCurrentStock: u.canViewCurrentStock ?? true,
         canViewPreviousStock: u.canViewPreviousStock ?? true,
         applicationMessage: u.applicationMessage ?? undefined,
+        emailVerified: u.emailVerified ?? false,
         createdAt: u.createdAt,
       })),
     });

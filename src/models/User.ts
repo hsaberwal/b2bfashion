@@ -20,6 +20,8 @@ const userSchema = new mongoose.Schema(
     canViewForwardStock: { type: Boolean, default: false },
     canViewCurrentStock: { type: Boolean, default: true },
     canViewPreviousStock: { type: Boolean, default: true },
+    emailVerified: { type: Boolean, default: false },
+    verificationToken: String,
     otpCode: String,
     otpExpires: Date,
     resetToken: String,

@@ -32,6 +32,10 @@ export async function POST(request: NextRequest) {
       await audit({ action: "login_failed", userEmail: email, ip, details: { reason: "invalid_credentials" } });
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
+    // Block unverified accounts
+    if (user.emailVerified === false) {
+      return NextResponse.json({ error: "Please verify your email before logging in. Check your inbox for the verification link." }, { status: 403 });
+    }
     await audit({ action: "login_success", userId: user._id.toString(), userEmail: email, ip });
     const token = createSessionToken();
     const expiresAt = new Date();

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import { Session } from "@/models/Session";
+import { Order } from "@/models/Order";
+import { audit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rateLimit";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -76,5 +80,52 @@ export async function PATCH(
     if (err.status === 403) return NextResponse.json({ error: "Forbidden: admin only" }, { status: 403 });
     console.error(e);
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
+  }
+}
+
+/** DELETE /api/admin/users/[id] — delete a user and their sessions/orders (admin only). */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const sessionUser = await requireAdmin();
+    const { id } = await params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
+    if (id === sessionUser.id) {
+      return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
+    }
+    await connectDB();
+    const user = await User.findById(id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Delete all sessions for this user
+    await Session.deleteMany({ userId: id });
+    // Delete all pending orders (keep signed/confirmed for records)
+    await Order.deleteMany({ userId: id, status: "pending" });
+    // Delete the user
+    await User.deleteOne({ _id: id });
+
+    await audit({
+      action: "admin_action",
+      userId: sessionUser.id,
+      userEmail: sessionUser.email,
+      targetType: "user",
+      targetId: id,
+      ip: getClientIp(request),
+      details: { action: "delete_user", deletedEmail: user.email },
+    });
+
+    return NextResponse.json({ ok: true, message: `User ${user.email} deleted` });
+  } catch (e) {
+    const err = e as Error & { status?: number };
+    if (err.status === 401) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (err.status === 403) return NextResponse.json({ error: "Forbidden: admin only" }, { status: 403 });
+    console.error(e);
+    return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
   }
 }

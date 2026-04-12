@@ -48,17 +48,26 @@ export default function RegisterPage() {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md border border-gray-200 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-900 dark:border-gray-800 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Account created
+            Check your email
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Your account is pending pricing approval. You can log in and browse products.
+            We&apos;ve sent a verification link to <strong>{email}</strong>. Click the link to activate your account.
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            The link expires in 24 hours. Check your spam folder if you don&apos;t see it.
           </p>
           <Link
             href="/login"
             className="inline-block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
           >
-            Log in
+            Go to Login
           </Link>
         </div>
       </main>
