@@ -35,7 +35,7 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   const [product, setProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(0);
+  const [packs, setPacks] = useState(1);
   // Size selection removed — packs contain a fixed ratio of sizes
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -71,13 +71,14 @@ export default function ProductDetailPage() {
       .then((d) => {
         if (d.error) setProduct(null);
         else setProduct(d);
-        if (d.packSize) setQuantity(d.packSize * (d.minPacks ?? 1));
+        if (d.minPacks) setPacks(d.minPacks);
       })
       .finally(() => setLoading(false));
   }, [id]);
 
   async function addToCart() {
-    if (!product || quantity < product.packSize || quantity % product.packSize !== 0) return;
+    if (!product || packs < (product.minPacks ?? 1)) return;
+    const quantity = packs * product.packSize;
     setAdding(true);
     setAddedMessage("");
     try {
@@ -105,7 +106,6 @@ export default function ProductDetailPage() {
           image: product.images?.[0],
         });
       }
-      const packs = quantity / product.packSize;
       setAddedMessage(`Added ${packs} pack${packs > 1 ? "s" : ""} of ${product.name} (${quantity} items) to your order`);
       setTimeout(() => setAddedMessage(""), 4000);
     } finally {
@@ -149,9 +149,8 @@ export default function ProductDetailPage() {
   }
 
   const minPacks = product.minPacks ?? 1;
-  const minQty = product.packSize * minPacks;
-  const step = product.packSize;
-  const validQty = quantity >= minQty && quantity % step === 0;
+  const validQty = packs >= minPacks;
+  const totalItems = packs * product.packSize;
   const hasSizes = product.sizes && product.sizes.length > 0;
   const sizeRatio = product.sizeRatio ?? [];
   const images = product.images?.length ? product.images : [];
@@ -325,35 +324,38 @@ export default function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* Quantity & Add to order */}
+                {/* Number of packs & Add to order */}
                 <div className="mb-6">
                   <p className="text-[11px] uppercase tracking-widest text-je-muted mb-3">
-                    Quantity (packs of {step})
+                    Number of Packs
                   </p>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-2">
                     <button
                       type="button"
-                      onClick={() => setQuantity(Math.max(minQty, quantity - step))}
+                      onClick={() => setPacks(Math.max(minPacks, packs - 1))}
                       className="w-10 h-10 border border-je-border flex items-center justify-center text-je-black hover:border-je-black transition-colors"
                     >
                       &minus;
                     </button>
                     <input
                       type="number"
-                      min={minQty}
-                      step={step}
-                      value={quantity}
-                      onChange={(e) => setQuantity(Number(e.target.value) || minQty)}
+                      min={minPacks}
+                      step={1}
+                      value={packs}
+                      onChange={(e) => setPacks(Math.max(minPacks, Number(e.target.value) || minPacks))}
                       className="w-20 h-10 text-center border border-je-border text-je-black"
                     />
                     <button
                       type="button"
-                      onClick={() => setQuantity(quantity + step)}
+                      onClick={() => setPacks(packs + 1)}
                       className="w-10 h-10 border border-je-border flex items-center justify-center text-je-black hover:border-je-black transition-colors"
                     >
                       +
                     </button>
                   </div>
+                  <p className="text-xs text-je-muted mb-4">
+                    {packs} pack{packs > 1 ? "s" : ""} = {totalItems} item{totalItems > 1 ? "s" : ""} total
+                  </p>
 
                   <button
                     onClick={addToCart}
@@ -364,9 +366,9 @@ export default function ProductDetailPage() {
                     {adding ? "Adding..." : "Add to Order"}
                   </button>
 
-                  {!validQty && quantity > 0 && (
+                  {!validQty && (
                     <p className="mt-2 text-xs text-je-sale">
-                      Minimum {minPacks} pack{minPacks > 1 ? "s" : ""} ({minQty} items), in multiples of {product.packSize}
+                      Minimum {minPacks} pack{minPacks > 1 ? "s" : ""} per order
                     </p>
                   )}
                   {addedMessage && (
@@ -489,32 +491,35 @@ export default function ProductDetailPage() {
               )}
               <div className="mb-6">
                 <p className="text-[11px] uppercase tracking-widest text-je-muted mb-3">
-                  Quantity (packs of {step})
+                  Number of Packs
                 </p>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-2">
                   <button
                     type="button"
-                    onClick={() => setQuantity(Math.max(minQty, quantity - step))}
+                    onClick={() => setPacks(Math.max(minPacks, packs - 1))}
                     className="w-10 h-10 border border-je-border flex items-center justify-center text-je-black hover:border-je-black transition-colors"
                   >
                     &minus;
                   </button>
                   <input
                     type="number"
-                    min={minQty}
-                    step={step}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value) || minQty)}
+                    min={minPacks}
+                    step={1}
+                    value={packs}
+                    onChange={(e) => setPacks(Math.max(minPacks, Number(e.target.value) || minPacks))}
                     className="w-20 h-10 text-center border border-je-border text-je-black"
                   />
                   <button
                     type="button"
-                    onClick={() => setQuantity(quantity + step)}
+                    onClick={() => setPacks(packs + 1)}
                     className="w-10 h-10 border border-je-border flex items-center justify-center text-je-black hover:border-je-black transition-colors"
                   >
                     +
                   </button>
                 </div>
+                <p className="text-xs text-je-muted mb-4">
+                  {packs} pack{packs > 1 ? "s" : ""} = {totalItems} item{totalItems > 1 ? "s" : ""} total
+                </p>
                 <button
                   onClick={addToCart}
                   disabled={!validQty || adding}
