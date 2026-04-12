@@ -52,10 +52,28 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const user = await User.findById(session.userId).select("pricingApproved");
+    const pricingApproved = user?.pricingApproved ?? false;
+
     const all = await Order.find({ userId: session.userId })
       .sort({ createdAt: -1 })
       .lean();
     const cart = all.find((o) => o.status === "pending") ?? null;
+
+    // Refresh prices on pending cart from current product data
+    if (cart && pricingApproved) {
+      const items = (cart.items ?? []) as { productId: unknown; sku: string; quantity: number; pricePerItem?: number; packSize?: number; size?: string }[];
+      const productIds = items.map((i) => i.productId);
+      const products = await Product.find({ _id: { $in: productIds } }).select("pricePerItem").lean();
+      const priceMap = new Map(products.map((p) => [String(p._id), (p as { pricePerItem?: number }).pricePerItem]));
+      for (const item of items) {
+        const currentPrice = priceMap.get(String(item.productId));
+        if (currentPrice !== undefined) {
+          item.pricePerItem = currentPrice;
+        }
+      }
+    }
+
     const orders = all.map((o) => mapOrder(o as unknown as Parameters<typeof mapOrder>[0]));
     return NextResponse.json({
       cart: cart ? mapOrder(cart as unknown as Parameters<typeof mapOrder>[0]) : null,
@@ -151,6 +169,8 @@ export async function POST(request: NextRequest) {
       const current = byKey.get(key);
       if (current) {
         current.quantity += line.quantity;
+        // Always update to latest price
+        current.pricePerItem = line.pricePerItem;
       } else {
         byKey.set(key, {
           productId: new mongoose.Types.ObjectId(line.productId),
