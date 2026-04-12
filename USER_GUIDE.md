@@ -161,9 +161,11 @@ Check any or all three boxes:
 - **Our Latest Looks** — rotating image gallery
 
 When **Front Page** is checked, a settings panel appears:
-- Select which specific image to use on the hero
+- Select which specific image to use as the primary hero
+- **Exclude images** using the checkbox in the top-right of each thumbnail (great for hiding label shots, back views, or anything that doesn't look right as a wide banner)
 - **Click on the wide preview** to set the focal point (where the image centers when cropped)
 - Red dot shows the focal point position
+- Counter at the bottom: "N of M images will appear on the hero"
 
 ### Generating AI Model Photos
 

@@ -83,9 +83,11 @@ Packs contain a **pre-defined ratio of sizes** rather than letting customers pic
   - Featured Styles — product grid section
   - Our Latest Looks — rotating image gallery
 - **Hero settings panel** — appears when Front Page is checked:
-  - Select which specific image to use
+  - Select which specific image to use as the primary hero image
+  - **Exclude individual images** with checkboxes (e.g. label/back shots that don't work as wide banners)
   - Click the wide preview to set the focal point
   - Red dot indicator shows where the image centers when cropped
+  - Status: "N of M images will appear on the hero"
 - **All product fields**: SKU, name, descriptions, materials, care guide, category, stock section, colour, colour variants, sizes, size ratio, pack size (auto), min packs, price per pack
 
 ### Product Categories
