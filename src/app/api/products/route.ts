@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
         attributes: p.attributes,
         images,
         packSize: p.packSize,
+        minPacks: p.minPacks,
         pricePerItem: pricingApproved ? p.pricePerItem : undefined,
       };
     });

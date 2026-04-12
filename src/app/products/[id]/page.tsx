@@ -26,6 +26,7 @@ type Product = {
   sizeRatio?: number[];
   images: string[];
   packSize: number;
+  minPacks?: number;
   pricePerItem?: number;
   compareAtPrice?: number;
 };
@@ -71,7 +72,7 @@ export default function ProductDetailPage() {
       .then((d) => {
         if (d.error) setProduct(null);
         else setProduct(d);
-        if (d.packSize) setQuantity(d.packSize);
+        if (d.packSize) setQuantity(d.packSize * (d.minPacks ?? 1));
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -148,7 +149,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  const minQty = product.packSize;
+  const minPacks = product.minPacks ?? 1;
+  const minQty = product.packSize * minPacks;
   const step = product.packSize;
   const validQty = quantity >= minQty && quantity % step === 0;
   const hasSizes = product.sizes && product.sizes.length > 0;
@@ -324,7 +326,7 @@ export default function ProductDetailPage() {
                       ))}
                     </div>
                     <p className="text-xs text-je-muted mt-2">
-                      {product.packSize} items per pack
+                      {product.packSize} items per pack{minPacks > 1 ? ` · Minimum ${minPacks} packs per order` : ""}
                     </p>
                   </div>
                 )}
@@ -370,7 +372,7 @@ export default function ProductDetailPage() {
 
                   {!validQty && quantity > 0 && (
                     <p className="mt-2 text-xs text-je-sale">
-                      Quantity must be a multiple of {product.packSize}
+                      Minimum {minPacks} pack{minPacks > 1 ? "s" : ""} ({minQty} items), in multiples of {product.packSize}
                     </p>
                   )}
                   {addedMessage && (

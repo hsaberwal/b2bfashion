@@ -27,6 +27,7 @@ export type ProductFormData = {
   latestLooks: boolean;
   heroFocalPoint: string;
   heroImageIndex: number;
+  minPacks: number;
   packSize: number;
   pricePerItem: string;
   compareAtPrice: string;
@@ -52,6 +53,7 @@ const defaultForm: ProductFormData = {
   latestLooks: false,
   heroFocalPoint: "50% 50%",
   heroImageIndex: 0,
+  minPacks: 1,
   packSize: 6,
   pricePerItem: "",
   compareAtPrice: "",
@@ -1114,7 +1116,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pack size</label>
           <input
@@ -1124,6 +1126,19 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
             readOnly
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-white cursor-not-allowed"
           />
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Items per pack</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min packs *</label>
+          <input
+            type="number"
+            min={1}
+            value={form.minPacks}
+            onChange={(e) => update("minPacks", Math.max(1, parseInt(e.target.value, 10) || 1))}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          />
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Minimum order quantity in packs</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per item (£)</label>

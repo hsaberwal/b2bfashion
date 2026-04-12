@@ -121,6 +121,14 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      const minPacks = product.minPacks ?? 1;
+      const minQty = product.packSize * minPacks;
+      if (item.quantity < minQty) {
+        return NextResponse.json(
+          { error: `Minimum order for ${product.sku} is ${minPacks} pack${minPacks > 1 ? "s" : ""} (${minQty} items)` },
+          { status: 400 }
+        );
+      }
       newLines.push({
         productId: product._id.toString(),
         sku: product.sku,

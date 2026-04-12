@@ -30,6 +30,7 @@ const productSchema = new mongoose.Schema(
     showOnHero: { type: Boolean, default: false },
     latestLooks: { type: Boolean, default: false },
     packSize: { type: Number, required: true, min: 1 },
+    minPacks: { type: Number, default: 1, min: 1 },
     pricePerItem: Number,
     compareAtPrice: Number,
     createdAt: Date,

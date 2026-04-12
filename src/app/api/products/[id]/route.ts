@@ -54,6 +54,7 @@ export async function GET(
       attributes: product.attributes,
       images,
       packSize: product.packSize,
+      minPacks: product.minPacks,
       pricePerItem: pricingApproved ? product.pricePerItem : undefined,
       compareAtPrice: pricingApproved ? product.compareAtPrice : undefined,
     });
