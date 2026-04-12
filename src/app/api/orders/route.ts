@@ -52,8 +52,8 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const user = await User.findById(session.userId).select("pricingApproved");
-    const pricingApproved = user?.pricingApproved ?? false;
+    const user = await User.findById(session.userId).select("pricingApproved role");
+    const pricingApproved = user?.role === "admin" || (user?.pricingApproved ?? false);
 
     const all = await Order.find({ userId: session.userId })
       .sort({ createdAt: -1 })
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         productId: product._id.toString(),
         sku: product.sku,
         quantity: item.quantity,
-        pricePerItem: user.pricingApproved ? product.pricePerItem : undefined,
+        pricePerItem: (user.role === "admin" || user.pricingApproved) ? product.pricePerItem : undefined,
         packSize: product.packSize,
       });
     }

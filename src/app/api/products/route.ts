@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
       if (session) {
         const user = await User.findById(session.userId).select("pricingApproved role canViewForwardStock canViewCurrentStock canViewPreviousStock");
-        pricingApproved = user?.pricingApproved ?? false;
+        pricingApproved = user?.role === "admin" || (user?.pricingApproved ?? false);
         canViewForward = user?.role === "admin" || user?.canViewForwardStock === true;
         canViewCurrent = user?.role === "admin" || (user?.canViewCurrentStock ?? true);
         canViewPrevious = user?.role === "admin" || (user?.canViewPreviousStock ?? true);

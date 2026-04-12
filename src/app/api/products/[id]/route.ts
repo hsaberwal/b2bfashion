@@ -29,8 +29,8 @@ export async function GET(
     if (token) {
       const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
       if (session) {
-        const user = await User.findById(session.userId).select("pricingApproved");
-        pricingApproved = user?.pricingApproved ?? false;
+        const user = await User.findById(session.userId).select("pricingApproved role");
+        pricingApproved = user?.role === "admin" || (user?.pricingApproved ?? false);
       }
     }
 
