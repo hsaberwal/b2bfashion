@@ -201,7 +201,7 @@ export default function ProductsPage() {
         </aside>
 
         <div className="flex-1">
-          {!user?.pricingApproved && (
+          {!(user?.pricingApproved || user?.role === "admin") && (
             <p className="mb-4 text-sm text-je-charcoal bg-je-offwhite border border-je-border px-3 py-2">
               Pricing is hidden until your account is approved. You can still browse and add to cart.
             </p>
@@ -242,7 +242,7 @@ export default function ProductsPage() {
                     <p className="text-sm text-je-muted mt-1">
                       Pack size: {p.packSize} · {STOCK_LABELS[p.stockCategory] ?? p.stockCategory}
                     </p>
-                    {user?.pricingApproved && p.pricePerPack != null && (
+                    {(user?.pricingApproved || user?.role === "admin") && p.pricePerPack != null && (
                       <p className="mt-2 font-semibold text-je-black screenshot-protected relative">
                         £{p.pricePerPack.toFixed(2)} per pack
                       </p>

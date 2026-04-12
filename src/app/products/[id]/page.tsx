@@ -40,7 +40,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addedMessage, setAddedMessage] = useState("");
-  const [user, setUser] = useState<{ pricingApproved?: boolean } | null>(null);
+  const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [zoomLens, setZoomLens] = useState<{
@@ -285,7 +285,7 @@ export default function ProductDetailPage() {
 
                 {/* Price */}
                 <div className="flex items-baseline gap-3 mb-6">
-                  {user?.pricingApproved && product.pricePerPack != null && (
+                  {(user?.pricingApproved || user?.role === "admin") && product.pricePerPack != null && (
                     <>
                       <span className="text-xl font-medium text-je-black screenshot-protected relative">
                         £{product.pricePerPack.toFixed(2)}
@@ -464,7 +464,7 @@ export default function ProductDetailPage() {
                 {product.name}
               </h1>
               <div className="flex items-baseline gap-3 mb-6">
-                {user?.pricingApproved && product.pricePerPack != null && (
+                {(user?.pricingApproved || user?.role === "admin") && product.pricePerPack != null && (
                   <>
                     <span className="text-xl font-medium text-je-black screenshot-protected relative">
                       £{product.pricePerPack.toFixed(2)}
