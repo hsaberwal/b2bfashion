@@ -6,7 +6,7 @@ export async function GET() {
   try {
     await connectDB();
     const products = await Product.find({ showOnHero: true })
-      .select("name category colour images")
+      .select("name category colour images heroFocalPoint heroImageIndex")
       .sort({ updatedAt: -1 })
       .limit(20)
       .lean();
@@ -17,6 +17,8 @@ export async function GET() {
       category: p.category,
       colour: p.colour,
       images: p.images ?? [],
+      heroFocalPoint: p.heroFocalPoint ?? "50% 50%",
+      heroImageIndex: p.heroImageIndex ?? 0,
     }));
 
     return NextResponse.json({ products: list });

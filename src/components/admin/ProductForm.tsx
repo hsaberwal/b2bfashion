@@ -25,6 +25,8 @@ export type ProductFormData = {
   featured: boolean;
   showOnHero: boolean;
   latestLooks: boolean;
+  heroFocalPoint: string;
+  heroImageIndex: number;
   packSize: number;
   pricePerItem: string;
   compareAtPrice: string;
@@ -48,6 +50,8 @@ const defaultForm: ProductFormData = {
   featured: false,
   showOnHero: false,
   latestLooks: false,
+  heroFocalPoint: "50% 50%",
+  heroImageIndex: 0,
   packSize: 6,
   pricePerItem: "",
   compareAtPrice: "",
@@ -62,6 +66,8 @@ export type ProductSubmitPayload = Omit<ProductFormData, "pricePerItem" | "compa
   featured?: boolean;
   showOnHero?: boolean;
   latestLooks?: boolean;
+  heroFocalPoint?: string;
+  heroImageIndex?: number;
 };
 
 function imageDisplaySrc(url: string): string {
@@ -865,6 +871,69 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
             </label>
           </div>
         </div>
+
+        {/* Hero image & focal point selector — shown when Front Page is checked */}
+        {form.showOnHero && form.images.length > 0 && (
+          <div className="mt-3 p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Front Page Image Settings</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Select which image to use on the hero banner and click on it to set the focal point (where the image centers when cropped).
+            </p>
+
+            {/* Image selector */}
+            <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+              {form.images.map((url, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => update("heroImageIndex", i)}
+                  className={`w-16 h-20 shrink-0 border-2 overflow-hidden rounded transition-all ${
+                    form.heroImageIndex === i
+                      ? "border-blue-600 ring-1 ring-blue-400"
+                      : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+                  }`}
+                >
+                  <img src={imageDisplaySrc(url)} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+
+            {/* Focal point preview — click to set */}
+            <div className="relative">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Click on the image to set the focal point (the red dot shows where the image will center):
+              </p>
+              <div
+                className="relative w-full overflow-hidden rounded border border-gray-300 cursor-crosshair"
+                style={{ aspectRatio: "1920/800" }}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                  const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+                  update("heroFocalPoint", `${x}% ${y}%`);
+                }}
+              >
+                <img
+                  src={imageDisplaySrc(form.images[form.heroImageIndex] ?? form.images[0])}
+                  alt="Hero preview"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ objectPosition: form.heroFocalPoint }}
+                />
+                {/* Focal point indicator */}
+                <div
+                  className="absolute w-4 h-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-red-500 shadow-lg pointer-events-none"
+                  style={{
+                    left: form.heroFocalPoint.split(" ")[0],
+                    top: form.heroFocalPoint.split(" ")[1],
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">
+                Focal point: {form.heroFocalPoint} &mdash; Image {(form.heroImageIndex ?? 0) + 1} of {form.images.length}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div>

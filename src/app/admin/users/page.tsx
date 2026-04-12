@@ -16,6 +16,15 @@ type UserRow = {
   applicationMessage?: string;
   emailVerified?: boolean;
   createdAt?: string;
+  // Extended fields loaded on expand
+  deliveryAddress?: {
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    postcode?: string;
+    country?: string;
+  };
+  vatNumber?: string;
 };
 
 export default function AdminUsersPage() {
@@ -23,6 +32,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [bulkForwarding, setBulkForwarding] = useState(false);
 
   useEffect(() => {
@@ -39,92 +49,13 @@ export default function AdminUsersPage() {
       .finally(() => setLoading(false));
   }, [user?.role]);
 
-  async function togglePricing(u: UserRow) {
+  async function toggleField(u: UserRow, field: string, value: boolean) {
     setUpdating(u.id);
     try {
       const res = await fetch(`/api/admin/users/${u.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pricingApproved: !u.pricingApproved }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error ?? "Update failed");
-        return;
-      }
-      const updated = await res.json();
-      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ...updated } : x)));
-    } finally {
-      setUpdating(null);
-    }
-  }
-
-  async function toggleForwardStock(u: UserRow) {
-    setUpdating(u.id);
-    try {
-      const res = await fetch(`/api/admin/users/${u.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canViewForwardStock: Boolean(!u.canViewForwardStock) }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error ?? "Update failed");
-        return;
-      }
-      const updated = await res.json();
-      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ...updated } : x)));
-    } finally {
-      setUpdating(null);
-    }
-  }
-
-  async function enableForwardStockForAll() {
-    if (!confirm("Enable “view forward stock” for all customers? This will update every non-admin user.")) return;
-    setBulkForwarding(true);
-    try {
-      const res = await fetch("/api/admin/users/bulk-enable-forward", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error ?? "Failed");
-        return;
-      }
-      alert(`Done. Updated ${data.modifiedCount ?? 0} customer(s).`);
-      fetch("/api/admin/users")
-        .then((r) => r.json())
-        .then((d) => setUsers(d.users ?? []));
-    } finally {
-      setBulkForwarding(false);
-    }
-  }
-
-  async function toggleCurrentStock(u: UserRow) {
-    setUpdating(u.id);
-    try {
-      const res = await fetch(`/api/admin/users/${u.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canViewCurrentStock: !u.canViewCurrentStock }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error ?? "Update failed");
-        return;
-      }
-      const updated = await res.json();
-      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ...updated } : x)));
-    } finally {
-      setUpdating(null);
-    }
-  }
-
-  async function togglePreviousStock(u: UserRow) {
-    setUpdating(u.id);
-    try {
-      const res = await fetch(`/api/admin/users/${u.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canViewPreviousStock: !u.canViewPreviousStock }),
+        body: JSON.stringify({ [field]: value }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -139,7 +70,7 @@ export default function AdminUsersPage() {
   }
 
   async function setRole(u: UserRow, role: "customer" | "admin") {
-    if (u.id === user?.id || u.email === user?.email) return;
+    if (u.id === user?.id) return;
     setUpdating(u.id);
     try {
       const res = await fetch(`/api/admin/users/${u.id}`, {
@@ -160,8 +91,8 @@ export default function AdminUsersPage() {
   }
 
   async function deleteUser(u: UserRow) {
-    if (u.id === user?.id || u.email === user?.email) return;
-    if (!confirm(`Delete user ${u.email}? This will remove their account and pending orders. Signed orders will be kept for records.`)) return;
+    if (u.id === user?.id) return;
+    if (!confirm(`Delete user ${u.email}? This removes their account and pending orders.`)) return;
     setUpdating(u.id);
     try {
       const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
@@ -176,205 +107,244 @@ export default function AdminUsersPage() {
     }
   }
 
-  if (user === null || loading) {
+  async function enableForwardStockForAll() {
+    if (!confirm("Enable forward stock for all customers?")) return;
+    setBulkForwarding(true);
+    try {
+      const res = await fetch("/api/admin/users/bulk-enable-forward", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error ?? "Failed"); return; }
+      alert(`Updated ${data.modifiedCount ?? 0} customer(s).`);
+      const refresh = await fetch("/api/admin/users").then((r) => r.json());
+      setUsers(refresh.users ?? []);
+    } finally {
+      setBulkForwarding(false);
+    }
+  }
+
+  function Toggle({ checked, onChange, disabled, label }: { checked: boolean; onChange: () => void; disabled?: boolean; label: string }) {
     return (
-      <main className="min-h-screen p-8">
-        <p className="text-gray-500">Loading…</p>
-      </main>
+      <button
+        type="button"
+        onClick={onChange}
+        disabled={disabled}
+        className={`px-2.5 py-1 text-xs rounded-full font-medium transition-colors ${
+          checked
+            ? "bg-green-100 text-green-800"
+            : "bg-gray-100 text-gray-500"
+        } disabled:opacity-50`}
+      >
+        {disabled ? "..." : checked ? `${label}: Yes` : `${label}: No`}
+      </button>
     );
   }
 
+  if (user === null || loading) {
+    return <main className="min-h-screen p-8"><p className="text-je-muted">Loading...</p></main>;
+  }
   if (user?.role !== "admin") {
     return (
       <main className="min-h-screen p-8">
         <div className="max-w-md mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Admin only</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            You need an admin account to access this page.
-          </p>
-          <Link href="/" className="text-blue-600 hover:underline">← Back to home</Link>
+          <h1 className="font-serif text-3xl text-je-black mb-4">Admin Only</h1>
+          <Link href="/" className="btn-outline">&larr; Back to Home</Link>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen p-8">
+    <main className="min-h-screen p-4 md:p-8 bg-white">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Manage users
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
-          Allow pricing, forward stock visibility, and promote users to admin.
-        </p>
-        <p className="text-gray-500 dark:text-gray-500 text-sm mb-4">
-          To make someone an admin: find their row and click <strong>Make admin</strong> in the Role column. You cannot change your own role.
-        </p>
-        <Link href="/admin" className="text-sm text-gray-500 hover:underline mb-4 inline-block">
-          ← Back to Admin
-        </Link>
-
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={enableForwardStockForAll}
-            disabled={bulkForwarding}
-            className="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-          >
-            {bulkForwarding ? "Updating…" : "Enable forward stock for all customers"}
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="font-serif text-3xl text-je-black">Manage Users</h1>
+            <p className="text-je-muted text-sm mt-1">{users.length} registered user{users.length !== 1 ? "s" : ""}</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/admin" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium">
+              &larr; Admin
+            </Link>
+            <button
+              onClick={enableForwardStockForAll}
+              disabled={bulkForwarding}
+              className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium disabled:opacity-50"
+            >
+              {bulkForwarding ? "Updating..." : "Enable forward stock for all"}
+            </button>
+          </div>
         </div>
 
-        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white dark:bg-gray-900 dark:border-gray-800">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Email</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Name / Company</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Role / Make admin</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Allow pricing</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View current</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View previous</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View forward</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Verified</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Application</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {users.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                    <div className="flex items-center gap-2">
-                      <span>{u.email}</span>
-                      {(u.id !== user?.id && u.email !== user?.email) && (
-                        <button
-                          type="button"
-                          onClick={() => deleteUser(u)}
-                          disabled={updating === u.id}
-                          className="px-1.5 py-0.5 text-[10px] rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 shrink-0"
-                          title={`Delete ${u.email}`}
-                        >
-                          Delete
-                        </button>
+        {/* User cards */}
+        <div className="space-y-3">
+          {users.map((u) => {
+            const isExpanded = expandedId === u.id;
+            const isSelf = u.id === user?.id || u.email === user?.email;
+            return (
+              <div key={u.id} className="border border-je-border rounded-lg overflow-hidden bg-je-offwhite">
+                {/* Summary row — always visible */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isExpanded ? null : u.id)}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-je-cream transition-colors"
+                >
+                  {/* Avatar */}
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    u.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-600"
+                  }`}>
+                    {(u.name?.[0] ?? u.email[0]).toUpperCase()}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-je-black truncate">{u.email}</span>
+                      {u.role === "admin" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">Admin</span>
+                      )}
+                      {!u.emailVerified && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Unverified</span>
+                      )}
+                      {isSelf && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 font-medium">You</span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                    {u.name ?? "—"} {u.companyName ? `· ${u.companyName}` : ""}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                    <span className="mr-2">{u.role}</span>
-                    {(u.id !== user?.id && u.email !== user?.email) ? (
-                      u.role === "admin" ? (
+                    <p className="text-xs text-je-muted truncate">
+                      {u.name ?? "No name"}{u.companyName ? ` — ${u.companyName}` : ""}
+                      {u.createdAt ? ` — Joined ${new Date(u.createdAt).toLocaleDateString()}` : ""}
+                    </p>
+                  </div>
+
+                  {/* Chevron */}
+                  <svg
+                    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    className={`text-je-muted transition-transform shrink-0 ${isExpanded ? "rotate-180" : ""}`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {/* Expanded details */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t border-je-border bg-white">
+                    {/* User info grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Email</p>
+                        <p className="text-sm text-je-black">{u.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Name</p>
+                        <p className="text-sm text-je-black">{u.name || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Company</p>
+                        <p className="text-sm text-je-black">{u.companyName || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">VAT Number</p>
+                        <p className="text-sm text-je-black">{u.vatNumber || "—"}</p>
+                      </div>
+                      {u.deliveryAddress && (
+                        <div className="md:col-span-2">
+                          <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Delivery Address</p>
+                          <p className="text-sm text-je-black">
+                            {[
+                              u.deliveryAddress.addressLine1,
+                              u.deliveryAddress.addressLine2,
+                              u.deliveryAddress.city,
+                              u.deliveryAddress.postcode,
+                              u.deliveryAddress.country,
+                            ].filter(Boolean).join(", ") || "—"}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Email Verified</p>
+                        <p className={`text-sm font-medium ${u.emailVerified ? "text-green-700" : "text-amber-600"}`}>
+                          {u.emailVerified ? "Yes" : "No"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Joined</p>
+                        <p className="text-sm text-je-black">
+                          {u.createdAt ? new Date(u.createdAt).toLocaleString() : "—"}
+                        </p>
+                      </div>
+                      {u.applicationMessage && (
+                        <div className="md:col-span-2">
+                          <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Application Message</p>
+                          <p className="text-sm text-je-black whitespace-pre-wrap">{u.applicationMessage}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Permissions */}
+                    <div className="border-t border-je-border pt-3">
+                      <p className="text-[10px] uppercase tracking-widest text-je-muted mb-2">Permissions</p>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {u.role === "admin" ? (
+                          <span className="text-xs text-je-muted">Admin has full access</span>
+                        ) : (
+                          <>
+                            <Toggle
+                              checked={u.pricingApproved}
+                              onChange={() => toggleField(u, "pricingApproved", !u.pricingApproved)}
+                              disabled={updating === u.id}
+                              label="Pricing"
+                            />
+                            <Toggle
+                              checked={u.canViewForwardStock}
+                              onChange={() => toggleField(u, "canViewForwardStock", !u.canViewForwardStock)}
+                              disabled={updating === u.id}
+                              label="Forward Stock"
+                            />
+                            <Toggle
+                              checked={u.canViewCurrentStock}
+                              onChange={() => toggleField(u, "canViewCurrentStock", !u.canViewCurrentStock)}
+                              disabled={updating === u.id}
+                              label="Current Stock"
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    {!isSelf && (
+                      <div className="border-t border-je-border pt-3 flex flex-wrap gap-2">
+                        {u.role === "admin" ? (
+                          <button
+                            onClick={() => setRole(u, "customer")}
+                            disabled={updating === u.id}
+                            className="px-3 py-1.5 text-xs rounded bg-amber-100 text-amber-800 hover:bg-amber-200 disabled:opacity-50"
+                          >
+                            Remove Admin
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setRole(u, "admin")}
+                            disabled={updating === u.id}
+                            className="px-3 py-1.5 text-xs rounded bg-blue-100 text-blue-800 hover:bg-blue-200 disabled:opacity-50"
+                          >
+                            Make Admin
+                          </button>
+                        )}
                         <button
-                          type="button"
-                          onClick={() => setRole(u, "customer")}
+                          onClick={() => deleteUser(u)}
                           disabled={updating === u.id}
-                          className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 hover:opacity-90 disabled:opacity-50"
+                          className="px-3 py-1.5 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 disabled:opacity-50"
                         >
-                          {updating === u.id ? "…" : "Remove admin"}
+                          Delete User
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setRole(u, "admin")}
-                          disabled={updating === u.id}
-                          className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:opacity-90 disabled:opacity-50"
-                        >
-                          {updating === u.id ? "…" : "Make admin"}
-                        </button>
-                      )
-                    ) : (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">(you)</span>
+                      </div>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => togglePricing(u)}
-                      disabled={updating === u.id}
-                      className={`px-2 py-1 text-xs rounded ${
-                        u.pricingApproved
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                      } disabled:opacity-50`}
-                    >
-                      {updating === u.id ? "…" : u.pricingApproved ? "Yes" : "No"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.role === "admin" ? (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Yes (admin)</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => toggleCurrentStock(u)}
-                        disabled={updating === u.id}
-                        className={`px-2 py-1 text-xs rounded ${
-                          u.canViewCurrentStock
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                        } disabled:opacity-50`}
-                      >
-                        {updating === u.id ? "…" : u.canViewCurrentStock ? "Yes" : "No"}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.role === "admin" ? (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Yes (admin)</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => togglePreviousStock(u)}
-                        disabled={updating === u.id}
-                        className={`px-2 py-1 text-xs rounded ${
-                          u.canViewPreviousStock
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                        } disabled:opacity-50`}
-                      >
-                        {updating === u.id ? "…" : u.canViewPreviousStock ? "Yes" : "No"}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.role === "admin" ? (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Yes (admin)</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => toggleForwardStock(u)}
-                        disabled={updating === u.id}
-                        className={`px-2 py-1 text-xs rounded ${
-                          u.canViewForwardStock
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                        } disabled:opacity-50`}
-                      >
-                        {updating === u.id ? "…" : u.canViewForwardStock ? "Yes" : "No"}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-medium ${u.emailVerified ? "text-green-700" : "text-amber-600"}`}>
-                      {u.emailVerified ? "Yes" : "No"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-[120px] truncate" title={u.applicationMessage ?? undefined}>
-                    {u.applicationMessage ? u.applicationMessage.slice(0, 40) + (u.applicationMessage.length > 40 ? "…" : "") : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {users.length === 0 && (
-            <p className="px-4 py-6 text-sm text-gray-500 text-center">No users yet.</p>
-          )}
-          {users.length > 0 && users.every((u) => u.id === user?.id || u.email === user?.email) && (
-            <p className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              You’re the only user. When others register or log in, they’ll appear here. Click <strong>Make admin</strong> next to a customer to grant them admin access.
-            </p>
+            <p className="text-center text-je-muted py-8">No users yet.</p>
           )}
         </div>
       </div>

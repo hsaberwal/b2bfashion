@@ -10,6 +10,8 @@ type FeaturedProduct = {
   category: string;
   colour: string;
   images: string[];
+  heroFocalPoint?: string;
+  heroImageIndex?: number;
 };
 
 /**
@@ -26,7 +28,7 @@ export function HeroSection() {
   const [loaded, setLoaded] = useState(false);
 
   // Flat list of all hero images with their product info
-  const [slides, setSlides] = useState<{ image: string; product: FeaturedProduct }[]>([]);
+  const [slides, setSlides] = useState<{ image: string; product: FeaturedProduct; focalPoint: string }[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -36,11 +38,20 @@ export function HeroSection() {
         const prods = (d.products ?? []) as FeaturedProduct[];
         setProducts(prods);
 
-        // Build flat list of all images across all products
-        const allSlides: { image: string; product: FeaturedProduct }[] = [];
+        // Build flat list of hero images — use heroImageIndex if set, otherwise all images
+        const allSlides: { image: string; product: FeaturedProduct; focalPoint: string }[] = [];
         for (const p of prods) {
-          for (const img of p.images) {
-            allSlides.push({ image: img, product: p });
+          if (p.images.length === 0) continue;
+          const idx = p.heroImageIndex ?? 0;
+          if (idx < p.images.length) {
+            // Use the specifically selected hero image
+            allSlides.push({ image: p.images[idx], product: p, focalPoint: p.heroFocalPoint ?? "50% 50%" });
+          }
+          // Also include other images for variety
+          for (let i = 0; i < p.images.length; i++) {
+            if (i !== idx) {
+              allSlides.push({ image: p.images[i], product: p, focalPoint: "50% 50%" });
+            }
           }
         }
         setSlides(allSlides);
@@ -86,6 +97,7 @@ export function HeroSection() {
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
               i === currentSlide ? "opacity-100" : "opacity-0"
             }`}
+            style={{ objectPosition: slide.focalPoint }}
           />
         ))}
 
