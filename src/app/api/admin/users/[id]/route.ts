@@ -15,6 +15,7 @@ const updateSchema = z.object({
   canViewCurrentStock: z.boolean().optional(),
   canViewPreviousStock: z.boolean().optional(),
   role: z.enum(["customer", "admin"]).optional(),
+  emailVerified: z.boolean().optional(),
 });
 
 /** PATCH /api/admin/users/[id] — update user permissions (admin only). */
@@ -62,6 +63,12 @@ export async function PATCH(
       }
       user.role = parsed.data.role;
     }
+    if (parsed.data.emailVerified !== undefined) {
+      user.emailVerified = parsed.data.emailVerified;
+      if (parsed.data.emailVerified) {
+        user.verificationToken = undefined;
+      }
+    }
     await user.save();
     return NextResponse.json({
       id: user._id.toString(),
@@ -73,6 +80,7 @@ export async function PATCH(
       canViewForwardStock: user.canViewForwardStock ?? user.role === "admin",
       canViewCurrentStock: user.canViewCurrentStock ?? true,
       canViewPreviousStock: user.canViewPreviousStock ?? true,
+      emailVerified: user.emailVerified ?? false,
     });
   } catch (e) {
     const err = e as Error & { status?: number };

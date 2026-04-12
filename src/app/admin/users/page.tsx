@@ -260,9 +260,21 @@ export default function AdminUsersPage() {
                       )}
                       <div>
                         <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Email Verified</p>
-                        <p className={`text-sm font-medium ${u.emailVerified ? "text-green-700" : "text-amber-600"}`}>
-                          {u.emailVerified ? "Yes" : "No"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-medium ${u.emailVerified ? "text-green-700" : "text-amber-600"}`}>
+                            {u.emailVerified ? "Yes" : "No"}
+                          </p>
+                          {!u.emailVerified && (
+                            <button
+                              type="button"
+                              onClick={() => toggleField(u, "emailVerified", true)}
+                              disabled={updating === u.id}
+                              className="px-2 py-0.5 text-[10px] rounded bg-green-100 text-green-800 hover:bg-green-200 disabled:opacity-50 font-medium"
+                            >
+                              {updating === u.id ? "..." : "Verify Now"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-widest text-je-muted mb-1">Joined</p>
