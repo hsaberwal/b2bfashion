@@ -8,7 +8,7 @@ export async function GET() {
     const products = await Product.find({ showOnHero: true })
       .select("name category colour images")
       .sort({ updatedAt: -1 })
-      .limit(3)
+      .limit(20)
       .lean();
 
     const list = products.map((p) => ({
