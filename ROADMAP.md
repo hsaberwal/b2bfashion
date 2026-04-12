@@ -1,218 +1,149 @@
 # Claudia.C B2B — Roadmap
 
-Upcoming features planned for the Claudia.C B2B platform once the core site is stable.
-
----
-
-## Admin Reporting & Operations
-
-A comprehensive reporting and fulfilment dashboard for admins.
-
-### Orders Dashboard
-
-A central view of all orders with filtering, sorting, and bulk actions.
-
-**Filters:**
-
-- Date range (today, this week, this month, custom)
-- Status (pending, signed, confirmed, shipped, delivered, cancelled)
-- Payment status (none, pending, paid, failed, refunded)
-- Payment option (pay now, pay deposit, invoice)
-- Customer (by email, name, or company)
-
-**Columns:**
-
-- Order number, Date, Customer, Company
-- Items count, Pack count, Total (£)
-- Payment status, Amount paid, Amount outstanding
-- Delivery address (city/country)
-- Fulfilment status (ready to ship, shipped, delivered)
-
-**Row actions:**
-
-- View order details (full itemised list, signature, delivery snapshot)
-- Mark as shipped / delivered
-- Generate shipping label
-- Generate packing slip / invoice
-- Refund / cancel
-- Resend confirmation email
-
-### Financial Reports
-
-- **Revenue**: Total sales by day/week/month/year
-- **Outstanding balances**: Invoice customers with unpaid orders
-- **Deposit tracking**: Customers who paid deposits with remaining balance due
-- **Payment method breakdown**: Pay-in-full vs deposit vs invoice
-- **Per-customer totals**: Sales grouped by customer/company
-- **Category breakdown**: Revenue by product category
-
-### Shipping & Fulfilment
-
-- **Shipping labels** — Auto-generate printable labels with customer address, order number, and pack count
-  - Integration with UK carriers (Royal Mail, DPD, Parcelforce, or chosen provider)
-  - Batch printing for multiple orders
-- **Packing slips / pick lists** — Printable document showing:
-  - Order number, customer, ship-to address
-  - Each SKU with pack size and quantity
-  - Total items to pick
-  - Barcode for scanning
-- **Commercial invoices** — For orders requiring customs documentation
-- **Order tracking** — Status updates visible to customer in their account
-
-### Customer Reports
-
-- New registrations by day/week
-- Approval queue (users waiting for pricing approval)
-- Top customers by order value
-- Customer lifetime value
-- Dormant accounts (no recent activity)
-
-### Product Reports
-
-- Best sellers (most-ordered SKUs)
-- Slow movers (products with low order counts)
-- Stock category distribution
-- Low performers (no sales in N days)
-
-### Inventory Management (Future)
-
-- Stock levels per SKU
-- Low stock alerts
-- Auto-decrement on order confirmation
-- Stock intake/receiving workflows
-- Warehouse location tracking
-
-### Audit Log Viewer
-
-Admin UI for browsing the existing `AuditLog` collection:
-
-- Security events (logins, failed attempts, password resets)
-- Admin actions (role changes, user deletions, product changes)
-- Payment events
-- Filter by action type, user, date range
-
----
-
-## Customer Features
-
-### Reorder Previous Orders
-
-Quick "Reorder" button on past orders to add the same items to cart instantly.
-
-### Order Tracking Page
-
-Customer-facing order status page with:
-
-- Current status (received, processing, shipped, delivered)
-- Shipping tracking number and link
-- Estimated delivery date
-- Invoice / packing slip download
-
-### Wishlist / Favourites
-
-Save products for later without adding to cart.
-
-### Size Recommendations
-
-AI-powered suggestions based on customer's previous orders and stated preferences.
-
-### Email Notifications
-
-- Order confirmation
-- Payment receipt
-- Shipping notification with tracking
-- Delivery confirmation
-- Review request after delivery
-
----
-
-## Platform Improvements
-
-- **Multi-language support** — i18n for European markets
-- **Multi-currency** — Display prices in GBP, EUR, USD based on customer location
-- **Bulk product import** — CSV upload for adding many products at once
-- **Product variants** — Different colourways of the same style linked as variants
-- **Stock intake scanner** — Mobile tool to scan barcodes on arriving stock
-- **Two-factor authentication** — TOTP for admin accounts
-- **Advanced search** — Full-text search with relevance ranking
-- **Product recommendations** — "You might also like" on product detail pages
-
----
-
-## Integrations
-
-### Accounting
-
-- Xero / QuickBooks export for orders and payments
-- Automated invoice generation
-
-### Marketing
-
-- Mailchimp / Klaviyo newsletter integration
-- Abandoned cart recovery emails
-- Customer segmentation for targeted promotions
-
-### Shipping
-
-- EasyPost / ShipStation / Shippo for multi-carrier rate shopping
-- Label printing with thermal printer support
-- Returns / RMA workflow
-
-### Analytics
-
-- Google Analytics 4 integration
-- Conversion funnel tracking
-- Heatmap integration (Hotjar / Microsoft Clarity)
-
----
-
-## Mobile App (Native)
-
-Beyond the PWA, a native iOS and Android app with:
-
-- Push notifications for order updates
-- Offline catalogue browsing
-- Camera-first product scanning for quick reorders
-- Biometric login (Face ID / fingerprint)
+Living document tracking upcoming features. Items move between phases as priorities shift.
 
 ---
 
 ## Priority Order
 
-**Phase 1 (In progress):**
+### Phase 1: Foundation — Make the site discoverable, legal, and stocked
 
-- ✅ SEO foundation (sitemap, robots, structured data, metadata, breadcrumbs)
-- Legal pages (Privacy, Terms, Cookie consent)
-- Footer with company details
-- Newsletter signup
+- ✅ **SEO foundation** — sitemap, robots, JSON-LD, per-page metadata, breadcrumbs, OG/Twitter tags
+- 🔜 **Bulk product import (CSV/Excel)** — *Client will provide an export from their existing system with SKU, name, short description, long description, price. Admin needs to upload this file and have all products created in one go. After import, admin can edit each SKU to add photos, care instructions, sizes, and pack ratios.*
+- 🔜 **Legal pages** — Privacy Policy, Terms & Conditions, Returns Policy, Shipping Policy, Wholesale Terms
+- 🔜 **Cookie consent banner** (GDPR / PECR compliance)
+- 🔜 **Footer with company details** — registered office, company number, VAT number, social links
+- 🔜 **Newsletter signup** — for marketing
+- 🔜 **Trust badges** — Worldpay logo, SSL, "Made in UK", etc.
 
-**Phase 2:**
+### Phase 2: B2B Sales Essentials
 
-1. Orders dashboard with filtering
-2. Shipping label generation
-3. Packing slip / pick list generation
-4. Financial reports (revenue, outstanding)
-5. Audit log viewer
+- **Volume discounts** — "Order 10+ packs, get 5% off"
+- **Saved order templates / reorder** — quick "Reorder" button on past orders
+- **Bulk add to cart by SKU** — paste a list of SKUs and quantities
+- **Minimum order value (£)** — floor for all orders
+- **Quote requests** — for very large orders
+- **Customer-specific pricing tiers** — different pricing for VIP customers
+- **Net 30/60 payment terms** — beyond the existing 10% deposit / invoice options
 
-**Phase 2:**
+### Phase 3: Operations — Reporting & Fulfilment
 
-1. Customer reorder button
-2. Email notifications (order confirmation, shipping)
-3. Inventory management
-4. Bulk product import
+- **Orders dashboard** with filtering (date, status, payment, customer)
+- **Financial reports** — revenue, outstanding balances, deposit tracking
+- **Shipping labels** — auto-generate with carrier integration (Royal Mail, DPD, Parcelforce)
+- **Packing slips / pick lists** — printable with barcodes
+- **Commercial invoices** — for customs documentation
+- **Customer reports** — registrations, approval queue, top customers, lifetime value
+- **Product reports** — best sellers, slow movers
+- **Inventory management** — stock levels per SKU, low stock alerts, auto-decrement
+- **Audit log viewer** — admin UI to browse the existing AuditLog collection
 
-**Phase 3:**
+### Phase 4: Analytics & Marketing
 
-1. Multi-currency / multi-language
-2. Accounting integrations
-3. Marketing integrations
-4. Advanced search
+- **Google Analytics 4** integration
+- **Google Search Console** verification + sitemap submission
+- **Microsoft Clarity** for heatmaps and session recordings (free, GDPR-friendly)
+- **Email marketing integration** (Mailchimp / Klaviyo)
+- **Abandoned cart recovery emails**
+- **Customer segmentation** for targeted promotions
 
-**Phase 4:**
+### Phase 5: Customer Experience Polish
 
-1. Native mobile app
-2. Product variants
-3. Returns / RMA workflow
+- **Order tracking page** with shipping carrier integration
+- **Email notifications** — order confirmation, payment receipt, shipping, delivery, review request
+- **Wishlist / Favourites** — save products for later
+- **Recently viewed products**
+- **Product recommendations** — "You might also like"
+- **Reviews / testimonials** — social proof
+- **Lookbook** — seasonal visual catalog (PDF download)
+- **Catalogue PDF download** for offline sharing
+
+### Phase 6: International & Integrations
+
+- **Multi-currency** — GBP, EUR, USD based on customer location
+- **Multi-language** — i18n for European markets
+- **Accounting integration** — Xero / QuickBooks export for orders and payments
+- **EDI integration** — for larger retailers
+- **Tax/VAT calculation** — UK + EU compliance
+
+### Phase 7: Advanced
+
+- **Product variants** — different colourways linked as variants
+- **Backorders / pre-orders** — "Out of stock — back in 2 weeks, reserve now"
+- **Multi-user accounts** — companies with multiple buyers, order approval workflows
+- **Trade references / credit checks** — for invoice payment customers
+- **Account managers** — assign customers to sales reps
+- **Custom catalogs** — different customers see different products
+- **Two-factor authentication** for admin accounts
+- **Advanced search** — full-text search with relevance ranking
+- **Stock intake scanner** — mobile tool to scan barcodes on arriving stock
+
+### Phase 8: Native Mobile App
+
+- Push notifications for order updates
+- Offline catalogue browsing
+- Camera-first product scanning
+- Biometric login (Face ID / fingerprint)
+
+---
+
+## Detailed Specs
+
+### Bulk Product Import (Phase 1)
+
+**Source data**: Client will provide a CSV or Excel export from their existing system containing:
+
+- SKU (unique identifier)
+- Product name
+- Short description
+- Long description
+- Price per pack (or pack price information)
+
+**Workflow**:
+
+1. Admin goes to **Garments > Bulk Import**
+2. Uploads CSV or `.xlsx` file
+3. System shows a preview: column mapping (which CSV column → which product field), row count, validation warnings (duplicates, missing required fields)
+4. Admin confirms mapping and clicks Import
+5. System creates products one at a time:
+   - Skips SKUs that already exist (or offers an "update existing" option)
+   - Reports success/failure per row
+6. After import, admin edits each SKU individually to add:
+   - Photos (upload + AI model photo generation)
+   - Care instructions (label scanner)
+   - Materials
+   - Pack size ratios (UK/EU/US sizing)
+   - Min packs
+   - Stock category and homepage flags
+
+**Technical notes**:
+
+- Support both `.csv` and `.xlsx` (use `xlsx` library)
+- Validate all rows before importing — show errors first
+- Atomic per-row (one bad row doesn't break the others)
+- Audit log entry per import with row counts
+- Allow re-running the same file safely (idempotent on SKU)
+
+### Orders Dashboard (Phase 3)
+
+A central view of all orders with filtering, sorting, and bulk actions.
+
+**Filters**: Date range, status, payment status, payment option, customer
+**Columns**: Order number, date, customer, company, items count, pack count, total, payment status, amount paid, amount outstanding, delivery address, fulfilment status
+**Row actions**: View details, mark shipped, generate label, generate packing slip, refund, cancel, resend confirmation
+
+### Shipping Labels (Phase 3)
+
+- Auto-generate printable labels with customer address, order number, pack count
+- Integration with UK carriers (Royal Mail, DPD, Parcelforce)
+- Batch printing for multiple orders
+
+### Packing Slips (Phase 3)
+
+- Order number, customer, ship-to address
+- Each SKU with pack size and quantity
+- Total items to pick
+- Barcode for scanning
 
 ---
 
