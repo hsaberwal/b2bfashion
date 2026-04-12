@@ -77,6 +77,13 @@ function imageDisplaySrc(url: string): string {
   return `/api/admin/images/signed?key=${encodeURIComponent(u)}`;
 }
 
+const SIZING_OPTIONS: Record<string, string[]> = {
+  UK: ["6", "8", "10", "12", "14", "16", "18", "20", "22", "24"],
+  EU: ["34", "36", "38", "40", "42", "44", "46", "48", "50", "52"],
+  US: ["0", "2", "4", "6", "8", "10", "12", "14", "16"],
+  Generic: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+};
+
 const EXAMPLE_PROMPTS = [
   { label: "Studio, heels, minimal", prompt: "Studio background, neutral heels and minimal jewellery." },
   { label: "Autumn, boots", prompt: "Chilly autumn scene, wearing boots and a light scarf." },
@@ -107,6 +114,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
   const [generateNumImages, setGenerateNumImages] = useState(1);
   const [generateFromIndex, setGenerateFromIndex] = useState<number | null>(null);
   const [generateView, setGenerateView] = useState<"front" | "back">("front");
+  const [sizeSystem, setSizeSystem] = useState<"UK" | "EU" | "US" | "Generic">("UK");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -963,15 +971,61 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           Pack Size Ratio
         </label>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Define the sizes in each pack and how many of each. Pack size is calculated automatically.
+          Select a sizing system, then add sizes. Pack size is calculated automatically.
         </p>
 
-        {/* Add size button */}
+        {/* Sizing system selector */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {(["UK", "EU", "US", "Generic"] as const).map((sys) => (
+            <button
+              key={sys}
+              type="button"
+              onClick={() => setSizeSystem(sys)}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium border transition-colors ${
+                sizeSystem === sys
+                  ? "bg-je-black text-white border-je-black"
+                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-500"
+              }`}
+            >
+              {sys === "Generic" ? "Letter Sizes" : `${sys} Sizing`}
+            </button>
+          ))}
+        </div>
+
+        {/* Quick add sizes based on selected system */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {SIZING_OPTIONS[sizeSystem].map((s) => {
+            const label = sizeSystem === "Generic" ? s : `${sizeSystem}-${s}`;
+            const exists = form.sizes.includes(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  if (!exists) {
+                    update("sizes", [...form.sizes, label]);
+                    update("sizeRatio", [...form.sizeRatio, 1]);
+                  }
+                }}
+                disabled={exists}
+                className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+                  exists
+                    ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 cursor-not-allowed"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Custom size input */}
         <div className="flex gap-2 mb-3">
           <input
             type="text"
             id="newSizeInput"
-            placeholder="Add a size (e.g. S, M, L, XL, 10, 12...)"
+            placeholder={`Add custom size (e.g. ${sizeSystem === "Generic" ? "XXXL" : `${sizeSystem}-22`})`}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -1001,30 +1055,6 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           >
             Add
           </button>
-        </div>
-
-        {/* Quick add common sizes */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {["XS", "S", "M", "L", "XL", "XXL", "8", "10", "12", "14", "16", "18", "20"].map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => {
-                if (!form.sizes.includes(s)) {
-                  update("sizes", [...form.sizes, s]);
-                  update("sizeRatio", [...form.sizeRatio, 1]);
-                }
-              }}
-              disabled={form.sizes.includes(s)}
-              className={`px-2 py-1 text-xs rounded border transition-colors ${
-                form.sizes.includes(s)
-                  ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 cursor-not-allowed"
-                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
         </div>
 
         {/* Size ratio table */}
