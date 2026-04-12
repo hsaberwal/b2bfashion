@@ -238,13 +238,27 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">View forward</th>
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Verified</th>
                 <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Application</th>
-                <th className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{u.email}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                    <div className="flex items-center gap-2">
+                      <span>{u.email}</span>
+                      {(u.id !== user?.id && u.email !== user?.email) && (
+                        <button
+                          type="button"
+                          onClick={() => deleteUser(u)}
+                          disabled={updating === u.id}
+                          className="px-1.5 py-0.5 text-[10px] rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 shrink-0"
+                          title={`Delete ${u.email}`}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                     {u.name ?? "—"} {u.companyName ? `· ${u.companyName}` : ""}
                   </td>
@@ -349,18 +363,6 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-[120px] truncate" title={u.applicationMessage ?? undefined}>
                     {u.applicationMessage ? u.applicationMessage.slice(0, 40) + (u.applicationMessage.length > 40 ? "…" : "") : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(u.id !== user?.id && u.email !== user?.email) && (
-                      <button
-                        type="button"
-                        onClick={() => deleteUser(u)}
-                        disabled={updating === u.id}
-                        className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:opacity-90 disabled:opacity-50"
-                      >
-                        {updating === u.id ? "…" : "Delete"}
-                      </button>
-                    )}
                   </td>
                 </tr>
               ))}
