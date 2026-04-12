@@ -27,6 +27,15 @@ export async function GET(request: NextRequest) {
       return redirectWithMessage("Your email is already verified. Please log in.", "info");
     }
 
+    // Check if token has expired (24 hours from account creation)
+    const createdAt = user.createdAt ? new Date(user.createdAt).getTime() : 0;
+    const hoursOld = (Date.now() - createdAt) / (1000 * 60 * 60);
+    if (hoursOld > 24) {
+      // Delete the expired unverified account
+      await User.deleteOne({ _id: user._id });
+      return redirectWithMessage("This verification link has expired. Please register again.", "error");
+    }
+
     user.emailVerified = true;
     user.verificationToken = undefined;
     await user.save();

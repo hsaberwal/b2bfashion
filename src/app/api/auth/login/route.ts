@@ -27,6 +27,15 @@ export async function POST(request: NextRequest) {
     }
     const { email, password } = parsed.data;
     await connectDB();
+
+    // Background cleanup: delete unverified accounts older than 24 hours
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    User.deleteMany({
+      emailVerified: false,
+      verificationToken: { $exists: true, $ne: null },
+      createdAt: { $lt: cutoff },
+    }).catch(() => {}); // fire-and-forget
+
     const user = await User.findOne({ email });
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       await audit({ action: "login_failed", userEmail: email, ip, details: { reason: "invalid_credentials" } });
