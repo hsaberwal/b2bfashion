@@ -1,104 +1,212 @@
-# Claudia B2B — Pending requirements
+# Claudia.C B2B — Roadmap
 
-Single ordered list to work through. Tick when done.
-
----
-
-## 1. Forward / upcoming stock access
-
-- [x] **#2 — Forward stock “password protected”**  
-  Implemented: already gated by login + “view forward stock” permission. Products page shows note "Forward stock is sign-in and permission protected" for users who have the option.
+Upcoming features planned for the Claudia.C B2B platform once the core site is stable.
 
 ---
 
-## 2. Product listing & filters
+## Admin Reporting & Operations
 
-- [x] **#4 — Product listing for all products**  
-  Implemented: "All stock" option in the stock dropdown shows previous + current + forward (forward only if user has permission).
+A comprehensive reporting and fulfilment dashboard for admins.
 
-- [x] **#10 — More filters**  
-  Currently “only colours showing”. Add filters (e.g. category, size, SKU, or other attributes) so all relevant filters are available.
+### Orders Dashboard
+
+A central view of all orders with filtering, sorting, and bulk actions.
+
+**Filters:**
+
+- Date range (today, this week, this month, custom)
+- Status (pending, signed, confirmed, shipped, delivered, cancelled)
+- Payment status (none, pending, paid, failed, refunded)
+- Payment option (pay now, pay deposit, invoice)
+- Customer (by email, name, or company)
+
+**Columns:**
+
+- Order number, Date, Customer, Company
+- Items count, Pack count, Total (£)
+- Payment status, Amount paid, Amount outstanding
+- Delivery address (city/country)
+- Fulfilment status (ready to ship, shipped, delivered)
+
+**Row actions:**
+
+- View order details (full itemised list, signature, delivery snapshot)
+- Mark as shipped / delivered
+- Generate shipping label
+- Generate packing slip / invoice
+- Refund / cancel
+- Resend confirmation email
+
+### Financial Reports
+
+- **Revenue**: Total sales by day/week/month/year
+- **Outstanding balances**: Invoice customers with unpaid orders
+- **Deposit tracking**: Customers who paid deposits with remaining balance due
+- **Payment method breakdown**: Pay-in-full vs deposit vs invoice
+- **Per-customer totals**: Sales grouped by customer/company
+- **Category breakdown**: Revenue by product category
+
+### Shipping & Fulfilment
+
+- **Shipping labels** — Auto-generate printable labels with customer address, order number, and pack count
+  - Integration with UK carriers (Royal Mail, DPD, Parcelforce, or chosen provider)
+  - Batch printing for multiple orders
+- **Packing slips / pick lists** — Printable document showing:
+  - Order number, customer, ship-to address
+  - Each SKU with pack size and quantity
+  - Total items to pick
+  - Barcode for scanning
+- **Commercial invoices** — For orders requiring customs documentation
+- **Order tracking** — Status updates visible to customer in their account
+
+### Customer Reports
+
+- New registrations by day/week
+- Approval queue (users waiting for pricing approval)
+- Top customers by order value
+- Customer lifetime value
+- Dormant accounts (no recent activity)
+
+### Product Reports
+
+- Best sellers (most-ordered SKUs)
+- Slow movers (products with low order counts)
+- Stock category distribution
+- Low performers (no sales in N days)
+
+### Inventory Management (Future)
+
+- Stock levels per SKU
+- Low stock alerts
+- Auto-decrement on order confirmation
+- Stock intake/receiving workflows
+- Warehouse location tracking
+
+### Audit Log Viewer
+
+Admin UI for browsing the existing `AuditLog` collection:
+
+- Security events (logins, failed attempts, password resets)
+- Admin actions (role changes, user deletions, product changes)
+- Payment events
+- Filter by action type, user, date range
 
 ---
 
-## 3. Ordering & checkout
+## Customer Features
 
-- [x] **#8 — Complete ordering system**  
-  Cart and orders exist; delivery before sign, 10% deposit and pay now/later added. WorldPay not integrated yet (placeholder).
+### Reorder Previous Orders
 
-- [x] **Checkout: delivery before signing**  
-  Sign page requires delivery details (address, city, postcode, country, optional company/VAT) before submitting signature. Snapshot saved on order and to user profile.
+Quick "Reorder" button on past orders to add the same items to cart instantly.
 
-- [x] **Payment: 10% upfront / WorldPay**  
-  Pay now or pay later with 10% deposit (computed and stored on order). WorldPay integration still to do when you have credentials.
+### Order Tracking Page
 
----
+Customer-facing order status page with:
 
-## 4. Customer account & mandatory details
+- Current status (received, processing, shipped, delivered)
+- Shipping tracking number and link
+- Estimated delivery date
+- Invoice / packing slip download
 
-- [x] **Account: mandatory fields**  
-  Account page at /account: name, company name, delivery address (line 1, line 2, city, postcode, country), VAT number. Required for checkout; saved to profile and copied to order at sign.
+### Wishlist / Favourites
 
----
+Save products for later without adding to cart.
 
-## 5. Stock visibility control
+### Size Recommendations
 
-- [x] **Bulk “view forward” for all customers**  
-  Implemented: Admin → Manage users → button "Enable forward stock for all customers" (POST /api/admin/users/bulk-enable-forward).
+AI-powered suggestions based on customer's previous orders and stated preferences.
 
-- [x] **Control who sees current / previous / forward**  
-  Implemented: Admin → Manage users has toggles for View current, View previous, View forward. User model: canViewCurrentStock, canViewPreviousStock (default true). Products API and UI respect these.
+### Email Notifications
 
-- [x] **Previous stock — everyone can see**  
-  Verified: previous-year stock has no permission check; everyone can see it.
-
----
-
-## 6. Screenshot & security
-
-- [x] **#15 — Screenshot privacy protection**  
-  Implemented: user-select/touch-callout/drag none on .screenshot-protected; right-click disabled on those elements (ScreenshotProtection component).
-
-- [x] **#16 — Strong website security**  
-  Implemented: Security headers in next.config (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy). SECURITY.md documents auth, validation, and recommended next steps (rate limiting, CSRF).
+- Order confirmation
+- Payment receipt
+- Shipping notification with tracking
+- Delivery confirmation
+- Review request after delivery
 
 ---
 
-## 7. Content & discovery
+## Platform Improvements
 
-- [x] **Front page — ~12 photos**  
-  Implemented: Homepage has “What we do” section with 12 image slots. Edit src/data/homepageImages.ts or add images to public/images/home/ (1.jpg–12.jpg). Change as needed every few months.
-
-- [x] **Customer application form + approval**  
-  Implemented: /apply page is the customer application form (name, company, email, password, optional message). Submits to register; admin approves via Manage users (Allow pricing). Application message shown in admin user list.
-
----
-
-## 8. Bulk ordering clarification
-
-- [x] **#11 — Bulk only, pricing per item**  
-  Documented: Bulk ordering only (pack sizes); pricing is per single item. Shown in README and product/cart UI (e.g. “£X.XX per item”, “Pack size: N”). No UX change needed.
+- **Multi-language support** — i18n for European markets
+- **Multi-currency** — Display prices in GBP, EUR, USD based on customer location
+- **Bulk product import** — CSV upload for adding many products at once
+- **Product variants** — Different colourways of the same style linked as variants
+- **Stock intake scanner** — Mobile tool to scan barcodes on arriving stock
+- **Two-factor authentication** — TOTP for admin accounts
+- **Advanced search** — Full-text search with relevance ranking
+- **Product recommendations** — "You might also like" on product detail pages
 
 ---
 
-## 9. AI & extras
+## Integrations
 
-- [ ] **AI chatbox**  
-  Add an AI chat widget (e.g. for support or product help). Not started — needs provider/API choice.
+### Accounting
+
+- Xero / QuickBooks export for orders and payments
+- Automated invoice generation
+
+### Marketing
+
+- Mailchimp / Klaviyo newsletter integration
+- Abandoned cart recovery emails
+- Customer segmentation for targeted promotions
+
+### Shipping
+
+- EasyPost / ShipStation / Shippo for multi-carrier rate shopping
+- Label printing with thermal printer support
+- Returns / RMA workflow
+
+### Analytics
+
+- Google Analytics 4 integration
+- Conversion funnel tracking
+- Heatmap integration (Hotjar / Microsoft Clarity)
 
 ---
 
-## Done (for reference)
+## Mobile App (Native)
 
-- Separate sections: Previous year, Current, Forward/upcoming stock  
-- Password reset  
-- MongoDB, unique SKU, product categories  
-- Digital signature for order acceptance  
-- Email OTP verification  
-- Pricing only after approval  
-- 4+ images per product  
-- Admin can promote users to admin; forward stock on by default for admins  
+Beyond the PWA, a native iOS and Android app with:
+
+- Push notifications for order updates
+- Offline catalogue browsing
+- Camera-first product scanning for quick reorders
+- Biometric login (Face ID / fingerprint)
 
 ---
 
-*Last updated: from client feedback. Work through list in order or pick by dependency.*
+## Priority Order
+
+**Phase 1 (Next up):**
+
+1. Orders dashboard with filtering
+2. Shipping label generation
+3. Packing slip / pick list generation
+4. Financial reports (revenue, outstanding)
+5. Audit log viewer
+
+**Phase 2:**
+
+1. Customer reorder button
+2. Email notifications (order confirmation, shipping)
+3. Inventory management
+4. Bulk product import
+
+**Phase 3:**
+
+1. Multi-currency / multi-language
+2. Accounting integrations
+3. Marketing integrations
+4. Advanced search
+
+**Phase 4:**
+
+1. Native mobile app
+2. Product variants
+3. Returns / RMA workflow
+
+---
+
+*This roadmap is a living document and will be updated as priorities shift based on business needs and customer feedback.*

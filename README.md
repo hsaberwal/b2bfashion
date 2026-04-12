@@ -1,6 +1,6 @@
-# Claudia B2B — Wholesale Fashion Platform
+# Claudia.C B2B — Wholesale Fashion Platform
 
-A modern, AI-powered B2B wholesale platform for **Claudia** ladies fashion. Built with Next.js 15, MongoDB, and deployed on Railway.
+A modern, AI-powered B2B wholesale platform for **Claudia.C** ladies fashion. Built with Next.js 15, MongoDB, and deployed on Railway.
 
 **Live:** [claudia-c.com](https://claudia-c.com)
 
@@ -14,94 +14,150 @@ A modern, AI-powered B2B wholesale platform for **Claudia** ladies fashion. Buil
 | **Backend** | Next.js API Routes (Node.js) |
 | **Database** | MongoDB with Mongoose ODM |
 | **Auth** | Custom session-based auth (bcrypt, crypto-secure tokens) |
-| **Payments** | Worldpay (FIS/Global Payments) — hosted payment page |
-| **AI** | Claude API (Anthropic) — chatbot, label scanning |
-| **Image AI** | FASHN API — AI model photo generation |
+| **Email** | Resend (verification, password reset, OTP) |
+| **Payments** | Worldpay (FIS/Global Payments) — hosted payment page + webhook |
+| **AI Chat & Vision** | Claude API (Anthropic) — chatbot, label scanning |
+| **AI Images** | FASHN API — model photo generation |
 | **Image Storage** | Railway Image Service (or Cloudinary fallback) |
 | **Hosting** | Railway with custom domain |
 | **PWA** | Installable on mobile with app icons and service worker |
 
 ## Key Features
 
-See [FEATURES.md](FEATURES.md) for the full feature showcase with details on every capability.
+See [FEATURES.md](FEATURES.md) for the full feature showcase.
+See [USER_GUIDE.md](USER_GUIDE.md) for end user documentation.
+See [ROADMAP.md](ROADMAP.md) for upcoming features.
 
 **Highlights:**
-- AI-powered chatbot that knows the entire catalogue
+- AI chatbot that knows the entire catalogue
 - AI label scanner — photograph garment labels to auto-fill product data
-- AI model photo generation (FASHN) with demographic targeting
+- AI model photo generation with demographic targeting and front/back view
+- Pack-based ordering with size ratios (UK/EU/US/Letter) and min pack quantities
+- Per-pack pricing visible only to approved wholesale customers
 - Guest cart — browse and add to cart without registering
 - 3 payment options: pay in full, 10% deposit, or invoice
-- Drag-to-reorder product images
-- 3 independent homepage sections (Front Page, Featured Styles, Our Latest Looks)
-- Comprehensive security hardening (CSP, HSTS, rate limiting, encryption)
+- Email verification with 24-hour auto-cleanup
+- Cycling hero banner with focal-point image selector
+- Editable About page CMS
+- 3 independent homepage curation sections
+- Comprehensive security hardening (CSP, HSTS, CSRF middleware, rate limiting, encryption)
 
 ## Project Structure
 
 ```
 src/
+  middleware.ts           # CSRF validation middleware
   app/                    # Next.js App Router
     api/                  # API Routes
       admin/              # Admin-only endpoints
         claim/            # One-time admin claim
+        cleanup-unverified/  # Delete expired unverified accounts
         generate-model-photos/  # FASHN AI integration
         images/           # Signed image URLs (admin)
         products/         # Product CRUD
         scan-label/       # AI label scanning (Claude Vision)
-        upload/           # Image upload
-        users/            # User management
+        site-content/     # Editable site content (About page)
+        upload/           # Image upload with magic bytes validation
+        users/            # User management + deletion
       auth/               # Authentication
         login/            # Email/password login
-        register/         # Account registration
+        register/         # Account registration + verification email
+        verify-email/     # Email verification link handler
         session/          # Session + CSRF token
+        logout/           # Logout
         otp/              # OTP send/verify
         password-reset/   # Password reset flow
       chat/               # AI chatbot endpoint
-      orders/             # Order management + payment
+      orders/             # Order management + payment + sign
       products/           # Public product listing + detail
         featured/         # Featured products API
         hero/             # Hero section products API
         latest-looks/     # Latest looks products API
+      site-content/       # Public site content reader
+      webhooks/
+        worldpay/         # Worldpay server-to-server webhook
       images/             # Public signed image proxy
-    about/                # About Us page
+    about/                # Editable About Us page
     account/              # User account management
     admin/                # Admin dashboard + product management
     apply/                # Wholesale application form
     cart/                 # Cart + checkout
     checkout/             # Payment result page
-    login/                # Login page
+    login/                # Login page with verification banner
     products/             # Product listing + detail pages
     register/             # Registration page
   components/             # React components
     admin/                # Admin components (ProductForm)
     Chatbot.tsx           # AI chatbot widget
+    CsrfProvider.tsx      # Auto-injects CSRF token into fetch
     FeaturedProducts.tsx  # Featured products grid
-    HeroSection.tsx       # Dynamic hero from DB
+    HeroSection.tsx       # Cycling hero from DB with focal point
     InstallPrompt.tsx     # PWA install banner (mobile only)
     LatestLooks.tsx       # Rotating image gallery
-    Navbar.tsx            # Sticky nav with cart badge
+    Navbar.tsx            # Sticky nav with cart badge + logout
   lib/                    # Shared utilities
     audit.ts              # Security audit logging
     auth.ts               # Password hashing, sessions, cookies
-    csrf.ts               # CSRF protection (double-submit cookie)
-    encrypt.ts            # AES-256-GCM encryption for signatures
+    csrf.ts               # CSRF tokens (double-submit cookie)
+    encrypt.ts            # AES-256-GCM for signature data
     fashn.ts              # FASHN AI API client
-    guestCart.ts           # localStorage guest cart
+    fetchWithCsrf.ts      # CSRF-aware fetch helper
+    guestCart.ts          # localStorage guest cart
     imageDisplayUrl.ts    # Image URL resolver
     imageService.ts       # Railway Image Service client
     mongodb.ts            # MongoDB connection
     rateLimit.ts          # In-memory rate limiter
     requireAdmin.ts       # Admin authorization
     types.ts              # Shared TypeScript types
-    worldpay.ts           # Worldpay XML API client
+    worldpay.ts           # Worldpay XML API client + MAC verification
   models/                 # Mongoose models
     AuditLog.ts           # Security audit trail
     Order.ts              # Orders with payment fields
-    Product.ts            # Products with featured/latestLooks flags
+    Product.ts            # Products with size ratios, min packs, hero settings
     Session.ts            # Auth sessions
-    User.ts               # Users with permissions
+    SiteContent.ts        # Editable page content
+    User.ts               # Users with email verification
   data/
-    homepageImages.ts     # Static image references (legacy)
+    homepageImages.ts     # Static image references (legacy fallback)
 ```
+
+## Data Model Highlights
+
+### Product
+| Field | Type | Description |
+|---|---|---|
+| `sku` | string | Unique stock keeping unit |
+| `name` | string | Garment name |
+| `sizes` | string[] | e.g. `["UK-8", "UK-10", "UK-12"]` |
+| `sizeRatio` | number[] | e.g. `[1, 2, 2]` — items per size in each pack |
+| `packSize` | number | Auto-calculated sum of sizeRatio |
+| `minPacks` | number | Minimum packs per order |
+| `pricePerPack` | number | Wholesale price per pack (GBP) |
+| `heroFocalPoint` | string | CSS `object-position` for hero crop |
+| `heroImageIndex` | number | Which image to use on Front Page |
+| `showOnHero` | boolean | Front Page visibility |
+| `featured` | boolean | Featured Styles section |
+| `latestLooks` | boolean | Our Latest Looks section |
+
+### User
+| Field | Description |
+|---|---|
+| `email` / `passwordHash` | Credentials (bcrypt) |
+| `emailVerified` / `verificationToken` | Email verification state |
+| `role` | `customer` or `admin` |
+| `pricingApproved` | Whether user sees prices |
+| `canViewForwardStock` | Access to upcoming collection |
+| `deliveryAddress`, `vatNumber`, `companyName` | Trade details |
+
+### Order
+| Field | Description |
+|---|---|
+| `status` | `pending` / `signed` / `confirmed` / `cancelled` |
+| `items[]` | `productId`, `sku`, `quantity`, `pricePerPack`, `packSize` |
+| `signatureDataUrl` | AES-256-GCM encrypted signature |
+| `paymentOption` | `pay_now` / `pay_deposit` / `pay_later` |
+| `paymentStatus` | `none` / `pending` / `paid` / `failed` / `refunded` |
+| `worldpayOrderCode` | Unique code for Worldpay transaction |
 
 ## Environment Variables
 
@@ -115,7 +171,7 @@ cp .env.example .env
 | Variable | Description |
 |----------|-------------|
 | `MONGODB_URI` | MongoDB connection string (or `MONGO_URL` / `MONGO_PUBLIC_URL` on Railway) |
-| `JWT_SECRET` | Random string for session signing (`openssl rand -base64 32`) |
+| `JWT_SECRET` | Random string for session signing |
 | `NEXTAUTH_URL` | App URL (e.g. `https://claudia-c.com`) |
 
 ### Optional — Features
@@ -123,11 +179,12 @@ cp .env.example .env
 |----------|-------------|
 | `ANTHROPIC_API_KEY` | Claude API key — enables chatbot + label scanning |
 | `FASHN_API_KEY` | FASHN API key — enables AI model photo generation |
-| `EMAIL_API_KEY` | Resend API key — enables OTP and password reset emails |
+| `EMAIL_API_KEY` | Resend API key — enables verification and password reset emails |
 | `EMAIL_FROM` | Sender email address |
 | `IMAGE_SERVICE_URL` | Railway Image Service URL |
 | `IMAGE_SERVICE_SECRET_KEY` | Image Service auth key |
-| `ENCRYPTION_KEY` | 64-char hex — encrypts signatures at rest (generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) |
+| `ENCRYPTION_KEY` | 64-char hex — encrypts signatures at rest |
+| `CLAIM_ADMIN_SECRET` | One-time secret for claiming admin access |
 
 ### Optional — Payments
 | Variable | Description |
@@ -135,94 +192,56 @@ cp .env.example .env
 | `WORLDPAY_MERCHANT_CODE` | Worldpay merchant code |
 | `WORLDPAY_XML_PASSWORD` | Worldpay XML password |
 | `WORLDPAY_ENV` | `test` or `live` |
+| `WORLDPAY_MAC_SECRET` | Webhook MAC verification secret |
 
 ## Local Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Start MongoDB (Docker)
 docker run -d -p 27017:27017 --name mongo mongo:latest
-
-# Copy env and configure
 cp .env.example .env
-
-# Start dev server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
 ### First-time setup
-1. Register at `/register`
-2. Set yourself as admin: either set `CLAIM_ADMIN_SECRET` env var and visit `/claim-admin`, or update MongoDB directly:
+1. Register at `/register` (verification email is logged in dev mode, not sent)
+2. Click the link in the terminal to verify
+3. Set yourself as admin: either set `CLAIM_ADMIN_SECRET` and visit `/claim-admin`, or update MongoDB:
    ```javascript
    db.users.updateOne({ email: "you@email.com" }, { $set: { role: "admin" } })
    ```
-3. Go to `/admin/products` to add garments
+4. Go to `/admin` to see the three section cards (Garments, Users, About Page)
 
 ## Deploy to Railway
 
-1. Push to GitHub, connect repo in [Railway](https://railway.app)
+1. Push to GitHub, connect repo in Railway
 2. Add MongoDB service (Railway plugin or Atlas)
-3. Set environment variables (see table above)
+3. Set environment variables
 4. Deploy — Railway runs `npm run build` && `npm run start`
 
 ## Security
 
-The application has been through two comprehensive security audits. See the codebase for implementations:
+The application has been through **4 comprehensive security audits** with all findings fixed:
 
-- **Authentication**: bcrypt password hashing, crypto-secure OTP, timing-safe comparisons
-- **Rate limiting**: All auth endpoints rate-limited (login, OTP, register, password reset)
-- **CSRF**: Double-submit cookie pattern with timing-safe validation
+- **Authentication**: bcrypt, crypto.randomInt OTP, timing-safe comparisons, email verification with 24hr expiry
+- **CSRF**: Next.js middleware enforces double-submit cookie on all POST/PATCH/DELETE
+- **Rate limiting**: Auth (10/15min), OTP (5/15min), register (5/hr), password reset (5/hr), claim-admin (5/hr), chat (20/5min)
 - **Headers**: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
 - **Encryption**: AES-256-GCM for signature data at rest
-- **Input validation**: Zod schemas on all endpoints, field max lengths, password complexity
+- **Input validation**: Zod schemas, field max lengths, password complexity (upper+lower+number)
 - **Upload security**: Magic bytes verification (JPEG, PNG, WebP, GIF)
-- **Audit logging**: Security events logged to MongoDB (login, orders, payments, admin actions)
-- **Path traversal**: Image key validation prevents directory traversal
-- **Price protection**: Prices hidden until wholesale account approved
+- **Audit logging**: Security events stored in MongoDB
+- **Path traversal**: Regex validation on image keys
+- **Price protection**: Prices hidden until wholesale account approved (admins always see prices)
 - **No enumeration**: Auth endpoints return identical responses for existing/non-existing accounts
-
-## API Overview
-
-### Public
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products` | List products (prices hidden for unapproved) |
-| GET | `/api/products/[id]` | Product detail |
-| GET | `/api/products/featured` | Featured products for homepage |
-| GET | `/api/products/hero` | Hero section products |
-| GET | `/api/products/latest-looks` | Latest looks products |
-| POST | `/api/chat` | AI chatbot |
-| GET | `/api/auth/session` | Current session + CSRF token |
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/register` | Register |
-
-### Authenticated
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/orders` | List user's orders + cart |
-| POST | `/api/orders` | Add to cart |
-| PATCH | `/api/orders/[id]` | Update cart |
-| POST | `/api/orders/[id]/sign` | Sign order |
-| POST | `/api/orders/[id]/pay` | Initiate payment |
-| GET | `/api/orders/[id]/payment-status` | Check payment status |
-
-### Admin
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/admin/products` | Create product |
-| PATCH | `/api/admin/products/[id]` | Update product |
-| DELETE | `/api/admin/products/[id]` | Delete product |
-| POST | `/api/admin/upload` | Upload image |
-| POST | `/api/admin/generate-model-photos` | Generate AI model photos |
-| POST | `/api/admin/scan-label` | Scan garment label with AI |
+- **Payment security**: Worldpay webhook with MAC verification, domain validation, double-payment prevention
+- **Auto cleanup**: Unverified accounts deleted after 24 hours
 
 ## Documentation
 
 - [FEATURES.md](FEATURES.md) — Full feature showcase
 - [USER_GUIDE.md](USER_GUIDE.md) — User documentation
-- [SECURITY.md](SECURITY.md) — Security documentation (if present)
+- [ROADMAP.md](ROADMAP.md) — Upcoming features
 - [.env.example](.env.example) — Environment variable reference

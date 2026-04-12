@@ -1,6 +1,6 @@
-# Claudia B2B — Feature Showcase
+# Claudia.C B2B — Feature Showcase
 
-A comprehensive overview of every feature in the Claudia B2B wholesale fashion platform.
+A comprehensive overview of every feature in the Claudia.C B2B wholesale fashion platform.
 
 ---
 
@@ -9,128 +9,138 @@ A comprehensive overview of every feature in the Claudia B2B wholesale fashion p
 ### AI Fashion Chatbot
 A floating chat widget available on every page, powered by **Claude (Anthropic)**.
 
-- **Full catalogue awareness** — fetches up to 100 products from the database including names, colours, sizes, materials, care guides, and prices
-- **Website navigation** — knows every page and can guide customers to the right place
-- **B2B context** — understands wholesale pricing visibility rules, pack ordering, payment options, and the approval process
-- **Fashion advice** — suggests complementary pieces, outfit combinations, and styling ideas
-- **Payment guidance** — explains the 10% deposit, pay-in-full, and invoice options
+- **Full catalogue awareness** — fetches up to 100 products with names, colours, sizes, materials, care guides, pack sizes, and per-pack prices
+- **Website navigation** — knows every page, payment options, and how the B2B approval process works
+- **Fashion advice** — suggests complementary pieces, outfit combinations, styling ideas
 - **Rate limited** — 20 messages per 5 minutes per IP, 2000 character message limit
-- **Implementation**: Claude Sonnet via `@anthropic-ai/sdk`, system prompt with full business context
+- **Client**: Claude Sonnet via `@anthropic-ai/sdk`
 
 ### AI Label Scanner
 Photograph garment care labels to automatically extract product data using **Claude Vision**.
 
-- **Multi-photo capture** — take multiple label photos from your phone camera, then scan all at once
-- **Camera integration** — "Take Photo" button opens the rear camera directly on mobile (`capture="environment"`)
+- **Multi-photo capture** — take multiple label photos from your phone camera, scan all at once
+- **Camera integration** — "Take Photo" button opens the rear camera directly on mobile
 - **Gallery upload** — pick existing photos from your gallery (supports multiple selection)
 - **Extracts everything visible**:
-  - Materials/fabric composition (e.g. "95% Polyester, 5% Elastane")
-  - Care instructions — translates care symbols (washing, ironing, bleaching icons) into readable English
-  - Sizes
-  - Colour
-  - SKU / stock code / article number
-  - Product code / style number
-  - Product name
-  - Retail price
-- **Auto-fills the form** — all extracted data populates the product form without overwriting existing values
-- **Preview thumbnails** — see all queued label photos before scanning, with remove buttons
-- **Implementation**: Claude Vision API, multiple images sent in a single request
+  - Materials/fabric composition
+  - Care instructions — translates care symbols into readable English
+  - Sizes, Colour, SKU, Product code, Name, Price
+- **Auto-fills the form** — populates without overwriting existing values
+- **Preview thumbnails** — see all queued labels before scanning
 
 ### AI Model Photo Generation
 Generate professional model photos from garment images using **FASHN AI**.
 
-- **Demographic targeting** — every request automatically includes "Woman aged 35-55, diverse ethnicity and race"
-- **Front/Back selector** — toggle buttons tell the AI which side of the garment the photo shows
-- **Per-image generation** — hover any product image and click "AI Generate" to create model photos from that specific image
-- **Custom prompts** — describe the background, styling, accessories. Quick-select example prompts: Studio, Autumn, Outdoor, Elegant, City Street
+- **Demographic targeting** — every request includes "Woman aged 35-55, diverse ethnicity and race"
+- **Front/Back selector** — tells the AI which side of the garment the photo shows
+- **Per-image generation** — hover any product image and click "AI Generate"
+- **Custom prompts** — describe background and styling, with quick-select examples
 - **Generate 1-4 photos** per run
-- **Auto-save** — generated photos automatically added to the product and saved to the database
-- **Saves images first** — uploads are saved to DB before sending to FASHN so the API can access them
-- **Status tracking** — real-time status messages ("Saving images...", "Generating... this may take 1-2 minutes")
-- **Implementation**: FASHN API (`product-to-model` model), polling with 2-second intervals, up to 2 minutes timeout
+- **Auto-save** — generated photos saved to the product immediately
+- **Status tracking** — real-time progress messages
+
+---
+
+## Pack Ordering System
+
+Packs contain a **pre-defined ratio of sizes** rather than letting customers pick sizes individually.
+
+### Size Ratio Builder
+- **Sizing systems**: UK, EU, US, or Letter sizes (XS-3XL)
+- **Quick-add buttons** for common sizes in each system:
+  - UK: UK-6, UK-8, UK-10, UK-12, UK-14, UK-16, UK-18, UK-20, UK-22, UK-24
+  - EU: EU-34, EU-36, EU-38, EU-40, EU-42, EU-44, EU-46, EU-48, EU-50, EU-52
+  - US: US-0, US-2, US-4, US-6, US-8, US-10, US-12, US-14, US-16
+  - Letter: XS, S, M, L, XL, XXL, 3XL
+- **Quantity per size** — set how many of each size go into one pack (e.g. 1 UK-10, 2 UK-12, 2 UK-14, 1 UK-16)
+- **Auto-calculated pack size** — reads as "6 items per pack"
+- **Custom sizes** — type any size manually
+- **Minimum packs** — separate field for the minimum order quantity in packs (e.g. 2 packs minimum)
+
+### Customer View
+- Shows **"Each Pack Contains: 1×UK-10, 2×UK-12, 2×UK-14, 1×UK-16"**
+- Shows **"6 items per pack · Minimum 2 packs per order"**
+- **No size selection** — customers just pick number of packs
+- Quantity defaults to minimum order
+
+### Per-Pack Pricing
+- Prices stored as **pricePerPack** (not per item)
+- Product detail shows: **"£65.00 per pack"**
+- Cart totals calculate: `pricePerPack × (quantity / packSize)`
+- Order totals = price per pack × number of packs
 
 ---
 
 ## Product Management
 
 ### Product Form
-A comprehensive admin form for creating and editing garments.
-
-- **Quick actions at the top** — label scanner and photo upload are the first things you see
+- **Quick actions at the top**: label scanner and photo upload
 - **Multi-file upload** — upload multiple garment photos at once
-- **Drag-to-reorder images** — drag and drop to change image order; first image is the main photo used everywhere
-- **Position badges** — numbered badges (1, 2, 3...) on each image
-- **Arrow buttons** — hover to see left/right move buttons for mobile/touch reordering
+- **Drag-to-reorder images** — first image is the main photo
+- **Position badges** (1, 2, 3...) with move buttons
 - **Three homepage checkboxes**:
-  - "Front Page" — big hero banner + two-column feature
-  - "Featured Styles" — product grid section
-  - "Our Latest Looks" — rotating image gallery
-- **All product fields**: SKU, product code, name, short/long description, materials, care guide, category, stock section, colour, colour options, sizes, pack size, price, compare-at price
+  - Front Page — hero banner + two-column feature
+  - Featured Styles — product grid section
+  - Our Latest Looks — rotating image gallery
+- **Hero settings panel** — appears when Front Page is checked:
+  - Select which specific image to use
+  - Click the wide preview to set the focal point
+  - Red dot indicator shows where the image centers when cropped
+- **All product fields**: SKU, name, descriptions, materials, care guide, category, stock section, colour, colour variants, sizes, size ratio, pack size (auto), min packs, price per pack
 
 ### Product Categories
 Tops, Blouses, T-shirts, Knitwear, Cardigans, Jumpers, Trousers, Dresses, Skirts, Jackets, Sale, Other
 
 ### Stock Sections
-- **Current** — current season stock
-- **Previous** — previous year (often discounted)
+- **Current** — current season stock (default)
 - **Forward** — upcoming stock (permission-controlled visibility)
+- **Previous** — previous year stock (admin only; hidden from customer view)
 
 ---
 
 ## Homepage — Dynamic & Curated
 
-The homepage is fully dynamic, pulling content from the database. No static placeholder images.
-
 ### Hero Section
-- Full-width hero banner using the first "Front Page" product's image
-- Two-column feature below with the 2nd and 3rd Front Page products
-- Each links to the product detail page
-- Clean dark background fallback when no products are featured
-- Hover zoom effect on the two-column images
+- **Cycles through all Front Page products and all their images**
+- Crossfade transitions every 5 seconds (1-second fade)
+- Uses selected hero image and focal point per product
+- Clickable dot indicators to jump between slides
+- "Shop Now" button links to the current product
+- Slide indicator dots
+- Two-column feature below shows other Front Page products
 
 ### Featured Styles
 - 4-column product grid (up to 8 products)
-- **Hover image swap** — shows the second product image on hover
+- Hover image swap (shows second image on hover)
 - Product name, category, and colour below each image
-- Links to product detail pages
 
 ### Our Latest Looks
-- **Rotating image gallery** — each product card automatically cycles through all its photos
-- Crossfade transitions (1 second fade, 3-4 second intervals)
-- Cards rotate at slightly different timing so they're not in sync
+- Rotating image gallery — each card cycles through all product photos
+- Crossfade transitions at slightly offset timing (3-4 seconds)
 - Shows product name, category, colour, and photo count
-- Links to product detail pages
-
-### Brand Statement
-Centered serif heading with description text — the Bonobos/BR Factory aesthetic.
-
-### CTA Section
-"Start Ordering Today" with Apply for Access and Log In buttons.
 
 ---
 
-## Product Detail Page — Banana Republic Style
+## Product Detail Page
 
 ### Image Gallery
-- **Thumbnail strip** on the left — hover or click to switch the main image
-- **Main image** with zoom-on-hover lens (2.2x magnification, 180px lens)
-- **Mobile thumbnails** — horizontal scrollable row below the main image
-- **"All Views" grid** at the bottom — every product image in a 3-column grid, click to scroll to top
+- **Thumbnail strip** on the left
+- **Main image** with zoom-on-hover lens (2.2x magnification)
+- **Mobile thumbnails** — horizontal scroll below the main image
+- **"All Views" grid** at the bottom showing every image
 
 ### Product Info (Sticky)
-- Category label, product code, product name in serif font
-- Price (only shown for approved wholesale accounts)
-- Compare-at price with strikethrough
-- Colour display
-- **Size selector** — button group with active state
-- **Quantity controls** — +/- buttons with pack size enforcement
+- Category label, product code, name in serif font
+- **Price per pack** (only shown for approved wholesale accounts)
+- **Pack contents**: "Each Pack Contains: 1×UK-10, 2×UK-12..."
+- **Items per pack · Minimum packs**
+- **Quantity controls** — +/- buttons in pack multiples
 - **Full-width "Add to Order"** button
-- **Expandable accordions** — "Product Details" and "Care Instructions" with chevron toggles
-- SKU at the bottom
+- **Expandable accordions** — Product Details, Care Instructions
 
 ### Guest Cart Integration
-- "Add to Order" works without logging in — saves to localStorage
-- Green success message: "Added 6 x Product Name to your order" with "View Cart" link
+- "Add to Order" works without logging in
+- Success message with "View Cart" link
 - No "Unauthorized" errors ever shown to customers
 
 ---
@@ -138,39 +148,33 @@ Centered serif heading with description text — the Bonobos/BR Factory aestheti
 ## Cart & Checkout
 
 ### Guest Cart
-- **No login required** — browse and add to cart freely
-- Items stored in `localStorage` with product thumbnails
+- **No login required** — items stored in localStorage with thumbnails
 - Edit quantities, remove items
 - "Ready to order?" prompt with Log In and Create Account buttons
-- **Auto-merge on login** — guest cart items transfer to server cart automatically
+- **Auto-merge on login** — guest cart items transfer to server cart
 
-### Server Cart (Logged In)
-- Full cart management — edit quantities, remove items
-- Pack size enforcement on all quantity changes
-- "Proceed to Checkout" button
+### Server Cart
+- Full cart management with real-time price refresh from current product data
+- Pack size enforcement on quantity changes
+- Proceed to Checkout button
 
 ### Checkout Flow
-1. **Delivery address** — address, city, postcode, country, company name, VAT number
-2. **Order summary** — itemized list with totals
+1. **Delivery address** — address, city, postcode, country, company, VAT
+2. **Order summary** — itemized with per-pack totals
 3. **Three payment options**:
-   - **Pay in full** — full amount via Worldpay
-   - **Pay 10% deposit** — deposit via Worldpay, 90% on delivery
-   - **Invoice (pay later)** — confirms immediately, payment on delivery
-4. **Digital signature** — draw with mouse or touch to confirm
-5. **Submit** — signs order, initiates payment, redirects to Worldpay or confirmation
+   - **Pay in full** — redirects to Worldpay for the full amount
+   - **Pay 10% deposit** — redirects to Worldpay for deposit only
+   - **Invoice (pay later)** — confirms immediately
+4. **Digital signature** — draw with mouse or touch
+5. **Submit** — signs, initiates payment, redirects to Worldpay or confirmation
 
 ### Payment Integration (Worldpay)
-- **Worldpay hosted payment page** — customer is redirected to Worldpay's secure page
+- **Hosted payment page** — customer redirected to Worldpay's secure page
 - Card details never touch our servers
-- Redirect back to `/checkout/result` with success/failure/pending status
-- Friendly error message if Worldpay is unavailable: "Please contact the office"
-- Deposit amount always calculated server-side (never trust client value)
-
-### Payment Result Page
-- Success: green checkmark with amount paid
-- Failed: red X with retry suggestion
-- Pending: yellow clock with processing message
-- "View Orders" and "Continue Shopping" buttons
+- **Server-to-server webhook** with MAC verification for authoritative payment status
+- Friendly error message if Worldpay is unavailable
+- **Deposit amount always calculated server-side** (never trust client)
+- Double payment prevention (409 if already pending/paid)
 
 ---
 
@@ -178,71 +182,105 @@ Centered serif heading with description text — the Bonobos/BR Factory aestheti
 
 ### Registration
 - Email, password (requires uppercase + lowercase + number, min 8 chars)
-- Optional: name, company name, application message
-- No account enumeration — same response for existing/new emails
+- **Email verification required** — link sent via Resend
+- **24-hour expiry** — links expire and accounts auto-delete
+- "Check your email" confirmation screen with email icon
+- No account enumeration
 
 ### Login
 - Email/password authentication
 - OTP (one-time password) via email as alternative
 - Rate limited: 10 attempts per 15 minutes
+- **Email verification check** — blocks login if not verified (new accounts only)
+- **Background cleanup** — every login fires a cleanup of expired unverified accounts
+
+### Email Verification
+- Token sent via Resend email with a styled template
+- Link expires after 24 hours
+- Account deleted if not verified in time
+- **Manual verify button** in admin panel to verify a user without the email link
+- Login page shows green banner when redirected from verification link
 
 ### Password Reset
 - Email-based reset link (1 hour expiry)
 - **Invalidates all sessions** on password change
-- Same password complexity requirements as registration
+- Password complexity requirements apply
+- Rate limited
 
 ### User Permissions (Admin-Controlled)
-- **Pricing approved** — toggles price visibility
+- **Pricing approved** — toggles price visibility (admins always see prices)
 - **View forward stock** — access to upcoming collection
-- **View current/previous stock** — granular stock access
+- Admin deletion with session/order cleanup
 
 ---
 
 ## Navigation & UX
 
 ### Sticky Navigation Bar
-- **Claudia** logo (serif font, links to homepage)
+- **Claudia.C** logo (serif font)
 - **Garments** link (product listing)
-- **About** link
+- **About** link (editable page)
 - **Admin** link (admin users only)
-- **Cart icon** with real-time item count badge
-- **User name/icon** when logged in (person icon + name or email)
-- **"Log in"** when not logged in
+- **Cart icon** with real-time item count badge (guest or server cart)
+- **User name/icon** when logged in
+- **Logout button** (desktop text, mobile icon)
 
 ### PWA Install Prompt
 - **Mobile only** — never shows on desktop
-- Android: "Install" button triggers native Chrome install dialog
-- iOS: Shows share icon with "Add to Home Screen" instruction
-- Dismissible with 7-day cooldown
-- Auto-hides if app is already installed
-- Proper PNG icons (192x192, 512x512) for all platforms
+- Android: native install prompt
+- iOS: share button instruction
+- 7-day dismissal cooldown
+- Proper PNG icons (192x192, 512x512, 180x180 Apple)
+
+### Admin Dashboard
+- **Three card buttons**: Manage Garments, Manage Users, Manage About Page
+- **Navigation links** at top for quick access
+- **Quick Reference** section with workflow tips
+
+### Admin Users
+- **Expandable card layout** — no table overflow issues
+- Summary row: avatar, email, badges (Admin/Unverified/You)
+- Click to expand: full details (name, company, VAT, address, application message, join date)
+- Inline permission toggles
+- **Manual verify button** for unverified users
+- **Delete user button** (with confirmation)
+- **Make admin / Remove admin** buttons
+- Bulk forward stock toggle
+
+### Editable About Page CMS
+- Admin sees **"Edit Page"** button at the top of the About page
+- All text fields become inline inputs/textareas
+- Save/Cancel buttons
+- Content stored in MongoDB `SiteContent` collection
 
 ### Design System
-- **Fonts**: DM Sans (body) + DM Serif Display (headings) via Google Fonts
-- **Colours**: White, cream (#f7f6f3), offwhite (#f2f1ee), muted (#767676), charcoal (#2d2d2d), black (#1a1a1a)
-- **Buttons**: 3 variants — `btn-primary` (solid black), `btn-outline` (border), `btn-white` (for overlays)
-- **Typography**: Uppercase letter-spaced section labels, serif display headings
-- **Transitions**: 300ms ease-in-out on all interactive elements
+- **Fonts**: DM Sans (body) + DM Serif Display (headings)
+- **Colours**: White, cream, offwhite, muted, charcoal, black
+- **Buttons**: btn-primary (solid black), btn-outline (border), btn-white (overlays)
 - **Inspired by**: Bonobos and Banana Republic Factory
 
 ---
 
 ## Security
 
+### 4 Comprehensive Security Audits
+All findings from 4 rounds of security auditing have been fixed.
+
 ### Authentication Security
-- bcrypt password hashing (cost factor 12)
-- Cryptographically secure OTP (`crypto.randomInt`)
-- Timing-safe comparisons on all secret/token checks
+- bcrypt password hashing (cost 12)
+- `crypto.randomInt()` OTP generation
+- Timing-safe comparisons (`crypto.timingSafeEqual`)
+- Email verification with 24hr expiry and auto-cleanup
 - Session invalidation on password reset
-- nanoid(32) session tokens
+- Password complexity: upper + lower + number, min 8 chars
 
 ### Rate Limiting
 | Endpoint | Limit |
 |----------|-------|
 | Login | 10 per 15 min |
+| Register | 5 per hour |
 | OTP send | 5 per 15 min |
 | OTP verify | 10 per 15 min |
-| Register | 5 per hour |
 | Password reset request | 5 per hour |
 | Password reset confirm | 10 per 15 min |
 | Claim admin | 5 per hour |
@@ -250,42 +288,46 @@ Centered serif heading with description text — the Bonobos/BR Factory aestheti
 | Payment status | 60 per min |
 
 ### Data Protection
-- **CSRF**: Double-submit cookie pattern with timing-safe validation
-- **CSP**: Content Security Policy header (script, style, img, font, connect, frame sources)
-- **HSTS**: Strict-Transport-Security with 1-year max-age
-- **Encryption**: AES-256-GCM for digital signature data at rest
-- **Price hiding**: Wholesale prices only visible to approved accounts
+- **CSRF middleware**: Next.js middleware enforces double-submit cookie on all POST/PATCH/DELETE
+- **CsrfProvider**: Auto-injects token into fetch requests client-side
+- **CSP + HSTS**: Full security headers
+- **Encryption**: AES-256-GCM for signature data at rest
+- **Price hiding**: Per-pack prices only visible to approved wholesale accounts (admins always see)
 - **No enumeration**: Auth endpoints return identical responses for existing/non-existing accounts
-- **Upload validation**: File magic bytes verification (JPEG, PNG, WebP, GIF)
-- **Path traversal**: Image key regex validation
-- **Audit logging**: Security events stored in MongoDB (AuditLog model)
+- **Magic bytes upload validation**: JPEG, PNG, WebP, GIF verified against declared type
+- **Path traversal protection**: Regex validation on image keys
+- **Audit logging**: Login, orders, payments, admin actions, role changes
 
-### Security Headers
-- X-Frame-Options: DENY
-- X-Content-Type-Options: nosniff
-- Referrer-Policy: strict-origin-when-cross-origin
-- Permissions-Policy: camera=(self), microphone=(), geolocation=()
-- X-Powered-By: removed
+### Payment Security
+- Worldpay hosted page — card details never reach our servers
+- Domain validation (redirect must be `.worldpay.com`)
+- **Server-to-server webhook** with MAC verification
+- Double payment prevention (409 if already pending/paid)
+- Server-side deposit calculation (never trust client)
 
 ---
 
-## About Us Page
+## Documentation & Legal
 
-Professional page at `/about` with:
-- Hero banner with tagline
-- "Our Story" — brand narrative
-- "How It Works" — 3-step visual guide (Browse, Register, Order)
-- "Why Retailers Choose Us" — curated collections, pricing, flexible payment, pack ordering
-- "Get in Touch" — CTA with Apply and Browse Garments buttons
+### About Us Page
+Editable by admins via inline CMS, with sections:
+- Hero banner
+- Our Story
+- How It Works (3-step visual guide)
+- Why Retailers Choose Us
+- Get in Touch CTA
+
+### API Overview
+See [README.md](README.md) for the full API reference.
 
 ---
 
 ## Technical Highlights
 
 - **Zero static image dependency** — homepage is fully dynamic from the database
-- **Server-side price calculation** — deposit amounts never trusted from client
-- **Graceful degradation** — features work without optional API keys (chatbot, FASHN, payments)
+- **Server-side calculations** — deposits, totals, and prices never trusted from client
+- **Graceful degradation** — features work without optional API keys
 - **Mobile-first** — camera integration, touch signature, responsive design
 - **PWA** — installable as native app on all platforms
 - **Type-safe** — full TypeScript with Zod validation on all API inputs
-- **Lazy initialization** — Resend, Anthropic, and other clients initialized on first use (not at module level) to prevent build failures
+- **Lazy initialization** — Resend, Anthropic, Worldpay clients initialized lazily to prevent build failures
