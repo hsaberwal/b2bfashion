@@ -91,38 +91,86 @@ Living document tracking upcoming features. Items move between phases as priorit
 
 ### Bulk Product Import (Phase 1)
 
-**Source data**: Client will provide a CSV or Excel export from their existing system containing:
+**Source data**: Client provides an Excel export from their existing system. Sample file reviewed: `STOCK SHEET FOR CL WEB SS26.xlsx` with ~128 products.
 
-- SKU (unique identifier)
-- Product name
-- Short description
-- Long description
-- Price per pack (or pack price information)
+**Exact columns in the sheet**:
+
+| Column | Product field | Notes |
+|---|---|---|
+| Brand Code | `brandCode` | e.g. "CL" |
+| Brand | `brand` | e.g. "CLAUDIA-C" |
+| Category | `category` | TROUSER, TOP, BLOUSE, DRESS, SKIRT, CARDIGAN, JUMPER, T-SHIRT, TUNIC, GILET, SHRUG |
+| SPC | `sku` | e.g. "COL12789" — unique stock code |
+| Description | `name` | e.g. "27 Inch Embroidery Detail Pocket Trouser" |
+| Colour | `colour` | e.g. "NAVY", "WHITE", "BLACK" |
+| Size Scale | `sizes` + `sizeRatio` | e.g. "10-18 (1-2-2-2-1)" — parsed into UK-10, UK-12, UK-14, UK-16, UK-18 with ratio [1,2,2,2,1] |
+| Pieces Per Pack | `packSize` | e.g. 8 — auto-verified against size ratio sum |
+| Season (Ref 1) | `season` | e.g. "SS26" |
+| FabComp (Ref 4) | `materials` | e.g. "68% COTTON 29% NYLON 3% SPANDEX" |
+| Wholesale (GBP) (Exc Vat) (User 4) | `pricePerPack` | e.g. 11.95 |
+| Packs In Stock | `packsInStock` | e.g. 6 — inventory level |
+
+**Size Scale parser**: The "Size Scale" column contains both the sizes and the ratio in one string.
+
+Examples from the actual data:
+
+- `"10-18 (1-2-2-2-1)"` → sizes: `["UK-10", "UK-12", "UK-14", "UK-16", "UK-18"]`, ratio: `[1, 2, 2, 2, 1]`, packSize: 8
+- `"10-20 (1-2-2-2-1-1)"` → sizes: `["UK-10", ..., "UK-20"]`, ratio: `[1, 2, 2, 2, 1, 1]`, packSize: 9
+- `"12-20 (1-2-2-2-1)"` → sizes: `["UK-12", "UK-14", "UK-16", "UK-18", "UK-20"]`, ratio: `[1, 2, 2, 2, 1]`, packSize: 8
+- `"S-XL  (1-2-2-1)"` → sizes: `["S", "M", "L", "XL"]`, ratio: `[1, 2, 2, 1]`, packSize: 6
+
+**Important**: The same SPC (SKU) can appear multiple times in the sheet with different colours. These should be treated as separate products, or linked as colour variants of the same style. Decision needed — current plan: each row becomes its own product with SKU appended with colour suffix (e.g. `COL13276-NAVY`) OR keep SKU unique and use the colours array.
+
+**New Product fields needed**:
+
+- `brandCode` (e.g. "CL")
+- `brand` (e.g. "CLAUDIA-C")
+- `season` (e.g. "SS26")
+- `packsInStock` (inventory level — number of whole packs available)
+
+**Remove from Product** (not in the sheet, not needed):
+
+- `productCode` — we use SPC as the SKU directly
+- `styleNumber` — same as above
+- `barcode` — not provided
+- `careGuide` — added manually via label scanner after import
+- `longDescription` — not in the sheet, added manually
+- `colours` (array) — each row is its own colour
+- `compareAtPrice` — already removed
 
 **Workflow**:
 
 1. Admin goes to **Garments > Bulk Import**
-2. Uploads CSV or `.xlsx` file
-3. System shows a preview: column mapping (which CSV column → which product field), row count, validation warnings (duplicates, missing required fields)
-4. Admin confirms mapping and clicks Import
+2. Uploads `.xlsx` file (Sheet1, headers on row 4)
+3. System shows a preview:
+   - Total rows to import
+   - Column mapping (auto-detected from headers)
+   - Size scale validation (can we parse each row?)
+   - Duplicate SKU+colour warnings
+   - Category mapping (uppercase → title case, e.g. TROUSER → Trouser)
+4. Admin confirms and clicks Import
 5. System creates products one at a time:
-   - Skips SKUs that already exist (or offers an "update existing" option)
+   - Skips existing (SKU + colour) pairs OR updates them (admin choice)
    - Reports success/failure per row
-6. After import, admin edits each SKU individually to add:
+6. After import, admin edits each product to add:
    - Photos (upload + AI model photo generation)
-   - Care instructions (label scanner)
-   - Materials
-   - Pack size ratios (UK/EU/US sizing)
-   - Min packs
-   - Stock category and homepage flags
+   - Long description
+   - Care instructions (label scanner can extract these)
+   - Min packs (defaults to 1 from sheet, admin can increase)
+   - Stock category (defaults to "current", admin can change to "forward")
+   - Homepage flags (Front Page / Featured / Latest Looks)
+   - Hero focal point if featured
 
 **Technical notes**:
 
-- Support both `.csv` and `.xlsx` (use `xlsx` library)
+- Use `xlsx` library (already installed)
+- Header row is row 4 (index 3), not row 1
+- Skip rows where Brand Code is empty (summary/total rows)
+- Auto-set `stockCategory` to "current" for all imports (SS26 season)
 - Validate all rows before importing — show errors first
 - Atomic per-row (one bad row doesn't break the others)
-- Audit log entry per import with row counts
-- Allow re-running the same file safely (idempotent on SKU)
+- Audit log entry per import with row counts and skipped SKUs
+- Idempotent on (SKU + colour) composite key
 
 ### Orders Dashboard (Phase 3)
 

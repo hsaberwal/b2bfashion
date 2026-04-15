@@ -1,20 +1,19 @@
 /** Stock category: when the product is available */
 export type StockCategory = "previous" | "current" | "forward";
 
-/** Product category — aligned with Claudia.C */
+/** Product category — aligned with the Claudia.C stock sheet */
 export const PRODUCT_CATEGORIES = [
-  "Tops",
-  "Blouses",
-  "T-shirts",
-  "Knitwear",
-  "Cardigans",
-  "Jumpers",
-  "Trousers",
-  "Dresses",
-  "Skirts",
-  "Jackets",
-  "Sale",
-  "Other",
+  "Blouse",
+  "Cardigan",
+  "Dress",
+  "Gilet",
+  "Jumper",
+  "Shrug",
+  "Skirt",
+  "T-shirt",
+  "Top",
+  "Trouser",
+  "Tunic",
 ] as const;
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
