@@ -14,6 +14,7 @@ type Product = {
   images: string[];
   packSize: number;
   pricePerPack?: number;
+  available?: number;
 };
 
 const STOCK_LABELS: Record<string, string> = {

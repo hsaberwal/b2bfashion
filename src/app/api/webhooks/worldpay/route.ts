@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { Product } from "@/models/Product";
 import { verifyWorldpayMac } from "@/lib/worldpay";
 import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
@@ -94,6 +95,32 @@ export async function POST(request: NextRequest) {
     // SENT_FOR_AUTHORISATION, SHOPPER_REDIRECTED etc. — leave as pending
 
     await order.save();
+
+    // Stock adjustment based on new status
+    const items = (order.items ?? []) as { productId: unknown; quantity: number; packSize?: number }[];
+    if (normalizedStatus === "AUTHORISED" || normalizedStatus === "CAPTURED") {
+      // Consume reserved stock (decrement both)
+      for (const item of items) {
+        const packs = Math.floor(item.quantity / (item.packSize ?? 1));
+        if (packs > 0) {
+          await Product.updateOne(
+            { _id: item.productId },
+            { $inc: { packsInStock: -packs, packsReserved: -packs } }
+          ).catch(() => {});
+        }
+      }
+    } else if (normalizedStatus === "REFUSED" || normalizedStatus === "ERROR") {
+      // Release reservation
+      for (const item of items) {
+        const packs = Math.floor(item.quantity / (item.packSize ?? 1));
+        if (packs > 0) {
+          await Product.updateOne(
+            { _id: item.productId },
+            { $inc: { packsReserved: -packs } }
+          ).catch(() => {});
+        }
+      }
+    }
 
     await audit({
       action: normalizedStatus === "AUTHORISED" || normalizedStatus === "CAPTURED" ? "payment_completed" : "payment_failed",

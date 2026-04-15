@@ -27,6 +27,7 @@ type Product = {
   packSize: number;
   minPacks?: number;
   pricePerPack?: number;
+  available?: number;
 };
 
 export default function ProductDetailPage() {
@@ -148,7 +149,10 @@ export default function ProductDetailPage() {
   }
 
   const minPacks = product.minPacks ?? 1;
-  const validQty = packs >= minPacks;
+  const available = product.available;
+  const inStock = available === undefined || available > 0;
+  const lowStock = available !== undefined && available > 0 && available < 5;
+  const validQty = packs >= minPacks && (available === undefined || packs <= available);
   const totalItems = packs * product.packSize;
   const hasSizes = product.sizes && product.sizes.length > 0;
   const sizeRatio = product.sizeRatio ?? [];
@@ -282,7 +286,7 @@ export default function ProductDetailPage() {
                 </h1>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-3 mb-6">
+                <div className="flex items-baseline gap-3 mb-3">
                   {(user?.pricingApproved || user?.role === "admin") && product.pricePerPack != null && (
                     <>
                       <span className="text-xl font-medium text-je-black screenshot-protected relative">
@@ -291,6 +295,23 @@ export default function ProductDetailPage() {
                       <span className="text-sm text-je-muted">per pack</span>
                     </>
                   )}
+                </div>
+
+                {/* Stock status */}
+                <div className="mb-6">
+                  {!inStock ? (
+                    <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-widest font-semibold bg-red-100 text-red-800 rounded">
+                      Out of Stock
+                    </span>
+                  ) : lowStock ? (
+                    <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-widest font-semibold bg-amber-100 text-amber-800 rounded">
+                      Low Stock &mdash; Only {available} pack{available !== 1 ? "s" : ""} left
+                    </span>
+                  ) : available !== undefined ? (
+                    <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-widest font-semibold bg-green-100 text-green-800 rounded">
+                      In Stock
+                    </span>
+                  ) : null}
                 </div>
 
                 {/* Colour */}
@@ -357,16 +378,21 @@ export default function ProductDetailPage() {
 
                   <button
                     onClick={addToCart}
-                    disabled={!validQty || adding}
+                    disabled={!validQty || adding || !inStock}
                     className="w-full py-4 bg-je-black text-white text-[11px] uppercase tracking-widest font-semibold
                                hover:bg-je-charcoal disabled:opacity-40 transition-all duration-300"
                   >
-                    {adding ? "Adding..." : "Add to Order"}
+                    {!inStock ? "Out of Stock" : adding ? "Adding..." : "Add to Order"}
                   </button>
 
-                  {!validQty && (
+                  {packs < minPacks && (
                     <p className="mt-2 text-xs text-je-sale">
                       Minimum {minPacks} pack{minPacks > 1 ? "s" : ""} per order
+                    </p>
+                  )}
+                  {available !== undefined && packs > available && (
+                    <p className="mt-2 text-xs text-je-sale">
+                      Only {available} pack{available !== 1 ? "s" : ""} available
                     </p>
                   )}
                   {addedMessage && (

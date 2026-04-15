@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { Product } from "@/models/Product";
 import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
@@ -66,6 +67,54 @@ export async function POST(
       return NextResponse.json({ error: "Order already signed or cancelled" }, { status: 400 });
     }
 
+    // === STOCK RESERVATION ===
+    // Atomically reserve stock for each line item. If any fails, roll back.
+    const items = (order.items ?? []) as { productId: mongoose.Types.ObjectId; sku: string; quantity: number; packSize?: number }[];
+    const reservedLines: { productId: mongoose.Types.ObjectId; packs: number }[] = [];
+
+    async function rollback() {
+      for (const r of reservedLines) {
+        await Product.updateOne(
+          { _id: r.productId },
+          { $inc: { packsReserved: -r.packs } }
+        ).catch(() => {});
+      }
+    }
+
+    for (const item of items) {
+      const packs = Math.floor(item.quantity / (item.packSize ?? 1));
+      if (packs <= 0) continue;
+
+      // Atomic conditional update: only succeeds if enough stock is available
+      const result = await Product.updateOne(
+        {
+          _id: item.productId,
+          $expr: {
+            $gte: [
+              { $subtract: [{ $ifNull: ["$packsInStock", 0] }, { $ifNull: ["$packsReserved", 0] }] },
+              packs,
+            ],
+          },
+        },
+        { $inc: { packsReserved: packs } }
+      );
+
+      if (result.matchedCount === 0) {
+        // Not enough stock — roll back any previously reserved lines and fail
+        await rollback();
+        const product = await Product.findById(item.productId).select("name packsInStock packsReserved");
+        const available = Math.max(0, ((product?.packsInStock as number) ?? 0) - ((product?.packsReserved as number) ?? 0));
+        return NextResponse.json(
+          {
+            error: `Not enough stock for ${item.sku}${product?.name ? ` (${product.name})` : ""}. Only ${available} pack${available !== 1 ? "s" : ""} available.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      reservedLines.push({ productId: item.productId, packs });
+    }
+
     order.deliverySnapshot = {
       addressLine1: deliverySnapshot.addressLine1,
       addressLine2: deliverySnapshot.addressLine2 ?? "",
@@ -86,7 +135,13 @@ export async function POST(
     order.signatureDataUrl = encrypt(signatureDataUrl);
     order.signedAt = new Date();
     order.status = "signed";
-    await order.save();
+    try {
+      await order.save();
+    } catch (saveErr) {
+      // Save failed after reserving stock — roll back reservations
+      await rollback();
+      throw saveErr;
+    }
 
     await audit({
       action: "order_signed",

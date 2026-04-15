@@ -1,11 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { Product } from "@/models/Product";
 import { getSessionToken } from "@/lib/auth";
 import { Session } from "@/models/Session";
 import { audit } from "@/lib/audit";
 import { isRateLimited, getClientIp } from "@/lib/rateLimit";
 import mongoose from "mongoose";
+
+/**
+ * Consume reserved stock — when an order is paid/confirmed.
+ * Decrements both packsInStock and packsReserved by the same amount.
+ */
+async function consumeStockForOrder(order: { items?: { productId: unknown; quantity: number; packSize?: number }[] }): Promise<void> {
+  for (const item of order.items ?? []) {
+    const packs = Math.floor(item.quantity / (item.packSize ?? 1));
+    if (packs <= 0) continue;
+    await Product.updateOne(
+      { _id: item.productId },
+      { $inc: { packsInStock: -packs, packsReserved: -packs } }
+    ).catch(() => {});
+  }
+}
+
+/**
+ * Release reserved stock — when an order is cancelled or payment fails.
+ * Decrements only packsReserved (returns the packs to available pool).
+ */
+async function releaseReservedStock(order: { items?: { productId: unknown; quantity: number; packSize?: number }[] }): Promise<void> {
+  for (const item of order.items ?? []) {
+    const packs = Math.floor(item.quantity / (item.packSize ?? 1));
+    if (packs <= 0) continue;
+    await Product.updateOne(
+      { _id: item.productId },
+      { $inc: { packsReserved: -packs } }
+    ).catch(() => {});
+  }
+}
 
 /**
  * GET /api/orders/[id]/payment-status
@@ -62,6 +93,8 @@ export async function GET(
             order.depositPaid = true;
           }
           await order.save();
+          // Consume reserved stock (move from reserved to sold)
+          await consumeStockForOrder(order);
           await audit({
             action: "payment_completed",
             userId: session.userId.toString(),
@@ -74,6 +107,8 @@ export async function GET(
         case "failure":
           order.paymentStatus = "failed";
           await order.save();
+          // Release reservations since payment failed
+          await releaseReservedStock(order);
           await audit({
             action: "payment_failed",
             userId: session.userId.toString(),
@@ -85,8 +120,10 @@ export async function GET(
         case "cancelled":
           order.paymentStatus = "none";
           await order.save();
+          // Release reservations
+          await releaseReservedStock(order);
           break;
-        // "pending" — leave as-is
+        // "pending" — leave as-is, stock still reserved
       }
     }
 

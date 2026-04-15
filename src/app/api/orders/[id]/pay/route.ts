@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { Product } from "@/models/Product";
 import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
@@ -77,6 +78,18 @@ export async function POST(
       order.depositAmount = depositAmount;
       order.status = "confirmed";
       await order.save();
+
+      // Consume reserved stock (invoice is a commitment)
+      for (const item of (order.items ?? []) as { productId: unknown; quantity: number; packSize?: number }[]) {
+        const packs = Math.floor(item.quantity / (item.packSize ?? 1));
+        if (packs > 0) {
+          await Product.updateOne(
+            { _id: item.productId },
+            { $inc: { packsInStock: -packs, packsReserved: -packs } }
+          ).catch(() => {});
+        }
+      }
+
       return NextResponse.json({
         id: order._id.toString(),
         status: "confirmed",
