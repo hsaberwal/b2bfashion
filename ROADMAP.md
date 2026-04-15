@@ -9,7 +9,8 @@ Living document tracking upcoming features. Items move between phases as priorit
 ### Phase 1: Foundation — Make the site discoverable, legal, and stocked
 
 - ✅ **SEO foundation** — sitemap, robots, JSON-LD, per-page metadata, breadcrumbs, OG/Twitter tags
-- 🔜 **Bulk product import (CSV/Excel)** — *Client will provide an export from their existing system with SKU, name, short description, long description, price. Admin needs to upload this file and have all products created in one go. After import, admin can edit each SKU to add photos, care instructions, sizes, and pack ratios.*
+- 🔜 **Bulk product import (Excel)** — import client stock sheet with all core fields
+- 🔜 **Stock tracking & reservation** — track packs in stock, reserve on order sign, release on cancel/failure
 - 🔜 **Legal pages** — Privacy Policy, Terms & Conditions, Returns Policy, Shipping Policy, Wholesale Terms
 - 🔜 **Cookie consent banner** (GDPR / PECR compliance)
 - 🔜 **Footer with company details** — registered office, company number, VAT number, social links
@@ -119,14 +120,16 @@ Examples from the actual data:
 - `"12-20 (1-2-2-2-1)"` → sizes: `["UK-12", "UK-14", "UK-16", "UK-18", "UK-20"]`, ratio: `[1, 2, 2, 2, 1]`, packSize: 8
 - `"S-XL  (1-2-2-1)"` → sizes: `["S", "M", "L", "XL"]`, ratio: `[1, 2, 2, 1]`, packSize: 6
 
-**Important**: The same SPC (SKU) can appear multiple times in the sheet with different colours. These should be treated as separate products, or linked as colour variants of the same style. Decision needed — current plan: each row becomes its own product with SKU appended with colour suffix (e.g. `COL13276-NAVY`) OR keep SKU unique and use the colours array.
+**Decision (confirmed)**: Each SPC + colour combination becomes its own product. The stored SKU is `{SPC}-{COLOUR}` (e.g. `COL13276-BLACK`, `COL13276-NAVY`). This keeps stock tracking simple — each colour has its own inventory. Customers see them as separate products in the listing.
 
 **New Product fields needed**:
 
 - `brandCode` (e.g. "CL")
 - `brand` (e.g. "CLAUDIA-C")
 - `season` (e.g. "SS26")
-- `packsInStock` (inventory level — number of whole packs available)
+- `packsInStock` (total physical inventory in packs)
+- `packsReserved` (packs held by signed-but-not-yet-fulfilled orders)
+- `available` (computed: `packsInStock - packsReserved`)
 
 **Remove from Product** (not in the sheet, not needed):
 
@@ -171,6 +174,98 @@ Examples from the actual data:
 - Atomic per-row (one bad row doesn't break the others)
 - Audit log entry per import with row counts and skipped SKUs
 - Idempotent on (SKU + colour) composite key
+
+### Stock Tracking & Reservation (Phase 1)
+
+Stock must always be accurate. When a customer signs an order, the packs they've ordered need to be "reserved" so nobody else can over-order. Stock is only physically decremented when the order is paid (or invoice confirmed).
+
+**Fields on the Product model**:
+
+- `packsInStock` (number) — physical inventory (the number from the stock sheet)
+- `packsReserved` (number, default 0) — packs held by signed orders awaiting fulfilment
+- Derived: `available = packsInStock - packsReserved`
+
+**Stock lifecycle**:
+
+```text
+Import → packsInStock = N, packsReserved = 0, available = N
+
+Customer adds 3 packs to cart
+  → Nothing changes (cart is not a reservation)
+
+Customer signs order (3 packs)
+  → Atomic check: available >= 3?
+  → If yes: packsReserved += 3
+  → If no: reject with "Only X packs available"
+
+Order paid (Worldpay success)
+  → packsInStock -= 3
+  → packsReserved -= 3
+  → Net available stays the same, but physical stock is now lower
+
+Order paid as invoice (pay_later)
+  → Treated like paid: decrement both
+
+Order cancelled / payment fails
+  → packsReserved -= 3 (release the reservation)
+  → available goes back up
+
+Admin manually adjusts stock (e.g. stock intake)
+  → packsInStock += N
+```
+
+**Why reserve on sign, not on add-to-cart**:
+
+- Carts can be abandoned for days — reserving on add-to-cart locks stock that may never be sold
+- Signing is a deliberate action — customer has committed to buying
+- Simpler: no TTL cleanup of abandoned cart reservations
+- B2B customers expect firm stock once they sign
+
+**Atomic reservation (prevents race conditions)**:
+
+When two customers try to sign for the last pack simultaneously, MongoDB's conditional update ensures only one succeeds:
+
+```javascript
+db.products.updateOne(
+  {
+    _id: productId,
+    $expr: { $gte: [{ $subtract: ["$packsInStock", "$packsReserved"] }, packsToReserve] }
+  },
+  { $inc: { packsReserved: packsToReserve } }
+)
+```
+
+If the update returns `matchedCount: 0`, stock ran out between the check and the update — reject the order.
+
+**Customer-facing display**:
+
+- Product detail page shows "In Stock" if `available > 0`
+- Shows "Low Stock — only X packs left" if `available < 5` (urgency)
+- Shows "Out of Stock" if `available === 0` and hides "Add to Order" button
+- Quantity selector clamps to `max = available`
+- Cart page re-validates stock on load (in case availability changed)
+
+**Admin-facing display**:
+
+- Product list shows `packsInStock / packsReserved / available` columns
+- Low stock alerts on the admin dashboard (available < 5)
+- Ability to manually adjust `packsInStock` when new stock arrives
+- "Stock History" log (extension of audit log) showing every inc/dec with reason
+
+**Integration points**:
+
+- `POST /api/orders/[id]/sign` — reserves stock atomically, fails order sign if insufficient
+- `POST /api/orders/[id]/pay` (success) + webhook — decrements `packsInStock` and `packsReserved`
+- `POST /api/orders/[id]/cancel` — releases reservation
+- `POST /api/admin/products/[id]/restock` — admin adjustment, audit logged
+- Bulk import — sets `packsInStock` from the sheet, never touches `packsReserved`
+- Re-import updates `packsInStock` (with delta warning if there are reserved packs)
+
+**Edge cases**:
+
+- Order expires after N days unpaid → auto-cancel and release reservation (TTL on signed+unpaid orders)
+- Admin deletes a product with reservations → warn and either force-release or refuse
+- Bulk re-import that reduces stock below current reservations → warning, don't break existing orders
 
 ### Orders Dashboard (Phase 3)
 
