@@ -8,9 +8,9 @@ import { z } from "zod";
 
 const updateProductSchema = z.object({
   sku: z.string().min(1).trim().optional(),
-  productCode: z.string().optional(),
-  barcode: z.string().optional(),
-  styleNumber: z.string().optional(),
+  brandCode: z.string().optional(),
+  brand: z.string().optional(),
+  season: z.string().optional(),
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   longDescription: z.string().optional(),
@@ -19,7 +19,6 @@ const updateProductSchema = z.object({
   category: z.enum([...PRODUCT_CATEGORIES] as [string, ...string[]]).optional(),
   stockCategory: z.enum(["previous", "current", "forward"]).optional(),
   colour: z.string().min(1).optional(),
-  colours: z.array(z.string()).optional(),
   sizes: z.array(z.string()).optional(),
   sizeRatio: z.array(z.number().int().min(0)).optional(),
   attributes: z.record(z.string()).optional(),
@@ -33,15 +32,16 @@ const updateProductSchema = z.object({
   packSize: z.number().int().min(1).optional(),
   minPacks: z.number().int().min(1).optional(),
   pricePerPack: z.number().optional(),
+  packsInStock: z.number().int().min(0).optional(),
 });
 
 function mapProduct(p: Record<string, unknown>) {
   return {
     id: String(p._id),
     sku: p.sku,
-    productCode: p.productCode,
-    barcode: p.barcode,
-    styleNumber: p.styleNumber,
+    brandCode: p.brandCode,
+    brand: p.brand,
+    season: p.season,
     name: p.name,
     description: p.description,
     longDescription: p.longDescription,
@@ -50,7 +50,6 @@ function mapProduct(p: Record<string, unknown>) {
     category: p.category,
     stockCategory: p.stockCategory,
     colour: p.colour,
-    colours: p.colours,
     sizes: p.sizes,
     sizeRatio: p.sizeRatio,
     attributes: p.attributes,
@@ -64,6 +63,8 @@ function mapProduct(p: Record<string, unknown>) {
     packSize: p.packSize,
     minPacks: p.minPacks,
     pricePerPack: p.pricePerPack,
+    packsInStock: p.packsInStock,
+    packsReserved: p.packsReserved,
   };
 }
 

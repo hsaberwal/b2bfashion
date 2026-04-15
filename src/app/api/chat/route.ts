@@ -82,7 +82,7 @@ async function getProductContext(): Promise<string> {
   try {
     await connectDB();
     const products = await Product.find({ stockCategory: { $in: ["current", "previous"] } })
-      .select("name category colour colours sizes packSize description longDescription materials careGuide stockCategory sku pricePerPack")
+      .select("name category colour sizes packSize description longDescription materials careGuide stockCategory sku pricePerPack")
       .sort({ stockCategory: 1, category: 1 })
       .limit(100)
       .lean();
@@ -93,7 +93,7 @@ async function getProductContext(): Promise<string> {
       const parts = [
         `**${p.name}** (SKU: ${p.sku})`,
         `Category: ${p.category}`,
-        `Colour: ${p.colour}${(p.colours as string[] | undefined)?.length ? ` (also: ${(p.colours as string[]).join(", ")})` : ""}`,
+        `Colour: ${p.colour}`,
       ];
       if ((p.sizes as string[] | undefined)?.length) parts.push(`Sizes: ${(p.sizes as string[]).join(", ")}`);
       parts.push(`Pack size: ${p.packSize}`);

@@ -8,7 +8,9 @@ import { ProductForm, type ProductFormData, type ProductSubmitPayload } from "@/
 type Product = {
   id: string;
   sku: string;
-  productCode?: string;
+  brandCode?: string;
+  brand?: string;
+  season?: string;
   name: string;
   description?: string;
   longDescription?: string;
@@ -17,7 +19,6 @@ type Product = {
   category: string;
   stockCategory: string;
   colour: string;
-  colours?: string[];
   sizes?: string[];
   sizeRatio?: number[];
   images?: string[];
@@ -30,6 +31,8 @@ type Product = {
   minPacks?: number;
   packSize: number;
   pricePerPack?: number;
+  packsInStock?: number;
+  packsReserved?: number;
 };
 
 export default function EditProductPage() {
@@ -52,7 +55,9 @@ export default function EditProductPage() {
   async function handleSubmit(data: ProductSubmitPayload) {
     const payload = {
       sku: data.sku,
-      productCode: data.productCode || undefined,
+      brandCode: data.brandCode || undefined,
+      brand: data.brand || undefined,
+      season: data.season || undefined,
       name: data.name,
       description: data.description || undefined,
       longDescription: data.longDescription || undefined,
@@ -61,7 +66,6 @@ export default function EditProductPage() {
       category: data.category,
       stockCategory: data.stockCategory,
       colour: data.colour,
-      colours: data.colours?.length ? data.colours : undefined,
       sizes: data.sizes?.length ? data.sizes : undefined,
       sizeRatio: data.sizeRatio?.length ? data.sizeRatio : undefined,
       images: data.images?.length ? data.images : undefined,
@@ -74,6 +78,7 @@ export default function EditProductPage() {
       minPacks: data.minPacks,
       packSize: data.packSize,
       pricePerPack: data.pricePerPack,
+      packsInStock: data.packsInStock,
     };
     const res = await fetch(`/api/admin/products/${id}`, {
       method: "PATCH",
@@ -90,7 +95,9 @@ export default function EditProductPage() {
 
   const initial: Partial<ProductFormData> = {
     sku: product.sku,
-    productCode: product.productCode ?? "",
+    brandCode: product.brandCode ?? "CL",
+    brand: product.brand ?? "CLAUDIA-C",
+    season: product.season ?? "SS26",
     name: product.name,
     description: product.description ?? "",
     longDescription: product.longDescription ?? "",
@@ -99,7 +106,6 @@ export default function EditProductPage() {
     category: product.category,
     stockCategory: product.stockCategory,
     colour: product.colour,
-    colours: product.colours ?? [],
     sizes: product.sizes ?? [],
     sizeRatio: product.sizeRatio ?? [],
     images: product.images ?? [],
@@ -112,6 +118,7 @@ export default function EditProductPage() {
     minPacks: product.minPacks ?? 1,
     packSize: product.packSize,
     pricePerPack: product.pricePerPack != null ? String(product.pricePerPack) : "",
+    packsInStock: product.packsInStock ?? 0,
   };
 
   return (

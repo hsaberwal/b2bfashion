@@ -10,7 +10,9 @@ export default function NewProductPage() {
   async function handleSubmit(data: ProductSubmitPayload) {
     const payload = {
       sku: data.sku,
-      productCode: data.productCode || undefined,
+      brandCode: data.brandCode || undefined,
+      brand: data.brand || undefined,
+      season: data.season || undefined,
       name: data.name,
       description: data.description || undefined,
       longDescription: data.longDescription || undefined,
@@ -19,11 +21,13 @@ export default function NewProductPage() {
       category: data.category,
       stockCategory: data.stockCategory,
       colour: data.colour,
-      colours: data.colours?.length ? data.colours : undefined,
       sizes: data.sizes?.length ? data.sizes : undefined,
+      sizeRatio: data.sizeRatio?.length ? data.sizeRatio : undefined,
       images: data.images?.length ? data.images : undefined,
       packSize: typeof data.packSize === "number" ? data.packSize : Number(data.packSize) || 1,
+      minPacks: data.minPacks,
       pricePerPack: data.pricePerPack,
+      packsInStock: data.packsInStock,
     };
     const res = await fetch("/api/admin/products", {
       method: "POST",

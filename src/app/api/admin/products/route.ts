@@ -9,9 +9,9 @@ function mapProduct(p: Record<string, unknown>) {
   return {
     id: String(p._id),
     sku: p.sku,
-    productCode: p.productCode,
-    barcode: p.barcode,
-    styleNumber: p.styleNumber,
+    brandCode: p.brandCode,
+    brand: p.brand,
+    season: p.season,
     name: p.name,
     description: p.description,
     longDescription: p.longDescription,
@@ -20,34 +20,39 @@ function mapProduct(p: Record<string, unknown>) {
     category: p.category,
     stockCategory: p.stockCategory,
     colour: p.colour,
-    colours: p.colours,
     sizes: p.sizes,
+    sizeRatio: p.sizeRatio,
     attributes: p.attributes,
     images: p.images,
     packSize: p.packSize,
+    minPacks: p.minPacks,
     pricePerPack: p.pricePerPack,
+    packsInStock: p.packsInStock,
+    packsReserved: p.packsReserved,
   };
 }
 
 const createProductSchema = z.object({
   sku: z.string().min(1).trim(),
-  productCode: z.string().optional(),
-  barcode: z.string().optional(),
-  styleNumber: z.string().optional(),
+  brandCode: z.string().optional(),
+  brand: z.string().optional(),
+  season: z.string().optional(),
   name: z.string().min(1),
   description: z.string().optional(),
   longDescription: z.string().optional(),
   materials: z.string().optional(),
   careGuide: z.string().optional(),
   category: z.enum([...PRODUCT_CATEGORIES] as [string, ...string[]]),
-  stockCategory: z.enum(["previous", "current", "forward"]),
+  stockCategory: z.enum(["previous", "current", "forward"]).optional(),
   colour: z.string().min(1),
-  colours: z.array(z.string()).optional(),
   sizes: z.array(z.string()).optional(),
+  sizeRatio: z.array(z.number().int().min(0)).optional(),
   attributes: z.record(z.string()).optional(),
   images: z.array(z.string().min(1)).optional(),
   packSize: z.number().int().min(1),
+  minPacks: z.number().int().min(1).optional(),
   pricePerPack: z.number().optional(),
+  packsInStock: z.number().int().min(0).optional(),
 });
 
 export async function GET() {
@@ -85,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
     const product = await Product.create({
       ...parsed.data,
-      colours: parsed.data.colours?.length ? parsed.data.colours : undefined,
+      stockCategory: parsed.data.stockCategory ?? "current",
       sizes: parsed.data.sizes?.length ? parsed.data.sizes : undefined,
     });
     return NextResponse.json({

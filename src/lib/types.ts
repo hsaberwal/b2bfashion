@@ -20,8 +20,9 @@ export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 export interface ProductDoc {
   _id: string;
   sku: string;
-  barcode?: string;
-  styleNumber?: string;
+  brandCode?: string;
+  brand?: string;
+  season?: string;
   name: string;
   description?: string;
   category: ProductCategory;
@@ -29,8 +30,11 @@ export interface ProductDoc {
   colour: string;
   attributes: Record<string, string>;
   images: string[];
-  packSize: number; // min order qty (e.g. 6 per pack)
-  pricePerPack?: number; // only shown if user has pricing access
+  packSize: number;
+  minPacks?: number;
+  pricePerPack?: number;
+  packsInStock?: number;
+  packsReserved?: number;
   createdAt: Date;
   updatedAt: Date;
 }

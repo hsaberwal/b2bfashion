@@ -3,10 +3,13 @@ import { PRODUCT_CATEGORIES } from "@/lib/types";
 
 const productSchema = new mongoose.Schema(
   {
-    sku: { type: String, required: true, unique: true, trim: true },
-    productCode: String,
-    barcode: String,
-    styleNumber: String,
+    // Identity (from stock sheet: SPC + colour)
+    sku: { type: String, required: true, unique: true, trim: true }, // e.g. "COL13276-BLACK"
+    brandCode: String,  // e.g. "CL"
+    brand: String,      // e.g. "CLAUDIA-C"
+    season: String,     // e.g. "SS26"
+
+    // Descriptive
     name: { type: String, required: true },
     description: String,
     longDescription: String,
@@ -17,22 +20,35 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ["previous", "current", "forward"],
+      default: "current",
     },
     colour: { type: String, required: true },
-    colours: [String],
-    sizes: [String],            // e.g. ["XS", "S", "M", "L"]
-    sizeRatio: [Number],        // e.g. [1, 1, 2, 2] — matches sizes array order
+
+    // Sizing & packs
+    sizes: [String],         // e.g. ["UK-10", "UK-12", "UK-14", "UK-16", "UK-18"]
+    sizeRatio: [Number],     // e.g. [1, 2, 2, 2, 1] — matches sizes array order
+    packSize: { type: Number, required: true, min: 1 },  // total items per pack
+    minPacks: { type: Number, default: 1, min: 1 },       // minimum packs per order
+
+    // Pricing
+    pricePerPack: Number,
+
+    // Stock tracking
+    packsInStock: { type: Number, default: 0, min: 0 },       // physical inventory
+    packsReserved: { type: Number, default: 0, min: 0 },       // held by signed orders
+
+    // Media
     attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
     images: { type: [String], default: [] },
-    heroFocalPoint: { type: String, default: "50% 50%" }, // CSS object-position, e.g. "50% 30%"
-    heroImageIndex: { type: Number, default: 0 }, // Primary image for Front Page
-    heroExcludedIndexes: { type: [Number], default: [] }, // Image indexes excluded from hero cycling
+
+    // Hero / homepage
+    heroFocalPoint: { type: String, default: "50% 50%" },
+    heroImageIndex: { type: Number, default: 0 },
+    heroExcludedIndexes: { type: [Number], default: [] },
     featured: { type: Boolean, default: false },
     showOnHero: { type: Boolean, default: false },
     latestLooks: { type: Boolean, default: false },
-    packSize: { type: Number, required: true, min: 1 },
-    minPacks: { type: Number, default: 1, min: 1 },
-    pricePerPack: Number,
+
     createdAt: Date,
     updatedAt: Date,
   },
@@ -42,5 +58,6 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ stockCategory: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ colour: 1 });
+productSchema.index({ season: 1 });
 
 export const Product = mongoose.models.Product ?? mongoose.model("Product", productSchema);

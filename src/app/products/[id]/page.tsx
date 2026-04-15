@@ -13,7 +13,6 @@ const LENS_SIZE = 180;
 type Product = {
   id: string;
   sku: string;
-  productCode?: string;
   name: string;
   description?: string;
   longDescription?: string;
@@ -22,7 +21,6 @@ type Product = {
   category: string;
   stockCategory: string;
   colour: string;
-  colours?: string[];
   sizes?: string[];
   sizeRatio?: number[];
   images: string[];
@@ -155,7 +153,7 @@ export default function ProductDetailPage() {
   const hasSizes = product.sizes && product.sizes.length > 0;
   const sizeRatio = product.sizeRatio ?? [];
   const images = product.images?.length ? product.images : [];
-  const displayColours = product.colours?.length ? product.colours : [product.colour];
+  const displayColours = [product.colour];
 
   return (
     <main className="min-h-screen bg-white">
@@ -276,9 +274,6 @@ export default function ProductDetailPage() {
                   <p className="text-[11px] uppercase tracking-widest text-je-muted">
                     {product.category}
                   </p>
-                  {product.productCode && (
-                    <p className="text-[11px] text-je-muted mt-1">Product code: {product.productCode}</p>
-                  )}
                 </div>
 
                 {/* Product Name */}

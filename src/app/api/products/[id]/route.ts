@@ -37,9 +37,9 @@ export async function GET(
     return NextResponse.json({
       id: String(product._id),
       sku: product.sku,
-      productCode: product.productCode,
-      barcode: product.barcode,
-      styleNumber: product.styleNumber,
+      brandCode: product.brandCode,
+      brand: product.brand,
+      season: product.season,
       name: product.name,
       description: product.description,
       longDescription: product.longDescription,
@@ -48,7 +48,6 @@ export async function GET(
       category: product.category,
       stockCategory: product.stockCategory,
       colour: product.colour,
-      colours: product.colours,
       sizes: product.sizes,
       sizeRatio: product.sizeRatio,
       attributes: product.attributes,
@@ -56,6 +55,7 @@ export async function GET(
       packSize: product.packSize,
       minPacks: product.minPacks,
       pricePerPack: pricingApproved ? product.pricePerPack : undefined,
+      available: Math.max(0, ((product.packsInStock as number) ?? 0) - ((product.packsReserved as number) ?? 0)),
     });
   } catch (e) {
     console.error(e);

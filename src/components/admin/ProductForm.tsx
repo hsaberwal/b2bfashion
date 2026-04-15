@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-
-const PRODUCT_CATEGORIES = [
-  "Tops", "Blouses", "T-shirts", "Knitwear", "Cardigans", "Jumpers",
-  "Trousers", "Dresses", "Skirts", "Jackets", "Sale", "Other",
-];
+import { PRODUCT_CATEGORIES } from "@/lib/types";
 
 export type ProductFormData = {
   sku: string;
-  productCode: string;
+  brandCode: string;
+  brand: string;
+  season: string;
   name: string;
   description: string;
   longDescription: string;
@@ -18,7 +16,6 @@ export type ProductFormData = {
   category: string;
   stockCategory: string;
   colour: string;
-  colours: string[];
   sizes: string[];
   sizeRatio: number[];
   images: string[];
@@ -31,20 +28,22 @@ export type ProductFormData = {
   minPacks: number;
   packSize: number;
   pricePerPack: string;
+  packsInStock: number;
 };
 
 const defaultForm: ProductFormData = {
   sku: "",
-  productCode: "",
+  brandCode: "CL",
+  brand: "CLAUDIA-C",
+  season: "SS26",
   name: "",
   description: "",
   longDescription: "",
   materials: "",
   careGuide: "",
-  category: "Tops",
+  category: "Top",
   stockCategory: "current",
   colour: "",
-  colours: [],
   sizes: [],
   sizeRatio: [],
   images: [],
@@ -57,11 +56,11 @@ const defaultForm: ProductFormData = {
   minPacks: 1,
   packSize: 6,
   pricePerPack: "",
+  packsInStock: 0,
 };
 
-export type ProductSubmitPayload = Omit<ProductFormData, "pricePerPack" | "colours" | "sizes" | "sizeRatio"> & {
+export type ProductSubmitPayload = Omit<ProductFormData, "pricePerPack" | "sizes" | "sizeRatio"> & {
   pricePerPack?: number;
-  colours?: string[];
   sizes?: string[];
   sizeRatio?: number[];
   featured?: boolean;
@@ -291,7 +290,6 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
       setForm((prev) => ({
         ...prev,
         sku: data.sku || prev.sku,
-        productCode: data.productCode || prev.productCode,
         name: data.name || prev.name,
         materials: data.materials || prev.materials,
         careGuide: data.careGuide || prev.careGuide,
@@ -318,7 +316,6 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
       const payload: ProductSubmitPayload = {
         ...form,
         pricePerPack: form.pricePerPack ? parseFloat(form.pricePerPack) : undefined,
-        colours: form.colours.length ? form.colours : undefined,
         sizes: form.sizes.filter(Boolean).length ? form.sizes.filter(Boolean) : undefined,
         sizeRatio: form.sizeRatio.length ? form.sizeRatio : undefined,
         packSize: form.sizeRatio.length
@@ -729,27 +726,49 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
       </div>
 
       {/* ===== PRODUCT DETAILS ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SKU *</label>
           <input
             type="text"
             value={form.sku}
             onChange={(e) => update("sku", e.target.value)}
             required
+            placeholder="e.g. COL13276-BLACK"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product code</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand Code</label>
           <input
             type="text"
-            value={form.productCode}
-            onChange={(e) => update("productCode", e.target.value)}
-            placeholder="e.g. 7016-W"
+            value={form.brandCode}
+            onChange={(e) => update("brandCode", e.target.value)}
+            placeholder="CL"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season</label>
+          <input
+            type="text"
+            value={form.season}
+            onChange={(e) => update("season", e.target.value)}
+            placeholder="SS26"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand</label>
+        <input
+          type="text"
+          value={form.brand}
+          onChange={(e) => update("brand", e.target.value)}
+          placeholder="CLAUDIA-C"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+        />
       </div>
 
       <div>
@@ -987,16 +1006,6 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Colour options (comma-separated)</label>
-        <input
-          type="text"
-          value={Array.isArray(form.colours) ? form.colours.join(", ") : ""}
-          onChange={(e) => update("colours", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-          placeholder="e.g. Mocha, Rust, Black"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-        />
-      </div>
       {/* Size Ratio Builder */}
       <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1168,7 +1177,18 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Minimum order quantity in packs</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Min packs per order</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Packs in stock</label>
+          <input
+            type="number"
+            min={0}
+            value={form.packsInStock}
+            onChange={(e) => update("packsInStock", Math.max(0, parseInt(e.target.value, 10) || 0))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          />
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Physical inventory</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per pack (£)</label>

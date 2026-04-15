@@ -52,7 +52,6 @@ Return the extracted information as JSON only (no markdown, no explanation):
 
 {
   "sku": "the SKU, stock code, or article number if visible on any label, otherwise empty string",
-  "productCode": "the product code, style number, or model number if visible (may be different from SKU), otherwise empty string",
   "name": "the product name or description if visible on any label, otherwise empty string",
   "materials": "the full fabric composition, e.g. 95% Polyester, 5% Elastane. Combine info from multiple labels if needed.",
   "careGuide": "all care instructions as a readable sentence, e.g. Machine wash at 30°C, Do not bleach, Iron on low heat, Do not tumble dry. Translate any care symbols you see.",

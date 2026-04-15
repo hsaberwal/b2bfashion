@@ -62,8 +62,6 @@ export async function GET(request: NextRequest) {
       filter.$or = [
         { sku: re },
         { name: re },
-        { styleNumber: re },
-        { barcode: re },
       ];
     }
 
@@ -76,8 +74,6 @@ export async function GET(request: NextRequest) {
       return {
         id: String(p._id),
         sku: p.sku,
-        barcode: p.barcode,
-        styleNumber: p.styleNumber,
         name: p.name,
         description: p.description,
         category: p.category,
@@ -88,6 +84,7 @@ export async function GET(request: NextRequest) {
         packSize: p.packSize,
         minPacks: p.minPacks,
         pricePerPack: pricingApproved ? p.pricePerPack : undefined,
+        available: Math.max(0, (p.packsInStock ?? 0) - (p.packsReserved ?? 0)),
       };
     });
     return NextResponse.json({ products: list });
