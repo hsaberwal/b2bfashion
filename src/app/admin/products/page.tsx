@@ -11,6 +11,9 @@ type Product = {
   category: string;
   colour: string;
   packSize: number;
+  pricePerPack?: number;
+  packsInStock?: number;
+  packsReserved?: number;
   images?: string[];
 };
 
@@ -60,12 +63,20 @@ export default function AdminProductsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Manage products
           </h1>
-          <Link
-            href="/admin/products/new"
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
-          >
-            Add product
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/admin/products/import"
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Bulk Import
+            </Link>
+            <Link
+              href="/admin/products/new"
+              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+            >
+              Add product
+            </Link>
+          </div>
         </div>
         <Link href="/admin" className="text-sm text-gray-500 hover:underline mb-6 inline-block">
           ← Admin
@@ -88,6 +99,8 @@ export default function AdminProductsPage() {
                   <th className="p-3 font-medium text-gray-900 dark:text-white">Category</th>
                   <th className="p-3 font-medium text-gray-900 dark:text-white">Colour</th>
                   <th className="p-3 font-medium text-gray-900 dark:text-white">Pack</th>
+                  <th className="p-3 font-medium text-gray-900 dark:text-white">Price</th>
+                  <th className="p-3 font-medium text-gray-900 dark:text-white">Stock</th>
                   <th className="p-3 font-medium text-gray-900 dark:text-white">Actions</th>
                 </tr>
               </thead>
@@ -106,6 +119,27 @@ export default function AdminProductsPage() {
                     <td className="p-3 text-gray-600 dark:text-gray-400">{p.category}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-400">{p.colour}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-400">{p.packSize}</td>
+                    <td className="p-3 text-gray-600 dark:text-gray-400">
+                      {p.pricePerPack != null ? `£${p.pricePerPack.toFixed(2)}` : "—"}
+                    </td>
+                    <td className="p-3 text-xs">
+                      {(() => {
+                        const inStock = p.packsInStock ?? 0;
+                        const reserved = p.packsReserved ?? 0;
+                        const avail = Math.max(0, inStock - reserved);
+                        const colour = avail === 0 ? "text-red-600" : avail < 5 ? "text-amber-600" : "text-green-700";
+                        return (
+                          <div className={`font-medium ${colour}`}>
+                            <div>{avail} avail</div>
+                            {reserved > 0 && (
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                {inStock} total &middot; {reserved} reserved
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="p-3">
                       <Link href={`/admin/products/${p.id}/edit`} className="text-blue-600 hover:underline mr-3">
                         Edit
