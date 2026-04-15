@@ -30,6 +30,8 @@ See [ROADMAP.md](ROADMAP.md) for upcoming features.
 
 **Highlights:**
 - SEO-optimised: dynamic sitemap, JSON-LD structured data, per-page metadata, breadcrumbs
+- Bulk Excel import with size scale parser (UK ranges and letter ranges)
+- Stock tracking with atomic reservation on order sign
 - AI chatbot that knows the entire catalogue
 - AI label scanner — photograph garment labels to auto-fill product data
 - AI model photo generation with demographic targeting and front/back view
@@ -54,6 +56,8 @@ src/
         claim/            # One-time admin claim
         cleanup-unverified/  # Delete expired unverified accounts
         generate-model-photos/  # FASHN AI integration
+        products/               # Product CRUD
+          bulk-import/          # Excel bulk import with size scale parser
         images/           # Signed image URLs (admin)
         products/         # Product CRUD
         scan-label/       # AI label scanning (Claude Vision)
@@ -127,15 +131,22 @@ src/
 ### Product
 | Field | Type | Description |
 |---|---|---|
-| `sku` | string | Unique stock keeping unit |
+| `sku` | string | Unique stock keeping unit (e.g. `COL13276-BLACK`) |
+| `brandCode` / `brand` / `season` | string | From import (CL / CLAUDIA-C / SS26) |
 | `name` | string | Garment name |
-| `sizes` | string[] | e.g. `["UK-8", "UK-10", "UK-12"]` |
-| `sizeRatio` | number[] | e.g. `[1, 2, 2]` — items per size in each pack |
+| `category` | enum | Blouse, Cardigan, Dress, Gilet, Jumper, Shrug, Skirt, T-shirt, Top, Trouser, Tunic |
+| `colour` | string | Primary colour |
+| `sizes` | string[] | e.g. `["UK-10", "UK-12", "UK-14", "UK-16", "UK-18"]` |
+| `sizeRatio` | number[] | e.g. `[1, 2, 2, 2, 1]` — items per size in each pack |
 | `packSize` | number | Auto-calculated sum of sizeRatio |
 | `minPacks` | number | Minimum packs per order |
 | `pricePerPack` | number | Wholesale price per pack (GBP) |
+| `packsInStock` | number | Total physical inventory in packs |
+| `packsReserved` | number | Packs held by signed orders awaiting fulfilment |
+| `materials` | string | Fabric composition (FabComp from the sheet) |
 | `heroFocalPoint` | string | CSS `object-position` for hero crop |
 | `heroImageIndex` | number | Which image to use on Front Page |
+| `heroExcludedIndexes` | number[] | Images excluded from hero cycling |
 | `showOnHero` | boolean | Front Page visibility |
 | `featured` | boolean | Featured Styles section |
 | `latestLooks` | boolean | Our Latest Looks section |

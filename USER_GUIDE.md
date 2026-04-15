@@ -117,7 +117,32 @@ Click the **"Log out"** button (or icon on mobile) next to your name in the navb
    - **Manage Users** → approve pricing, delete spam
    - **Manage About Page** → edit page content inline
 
-### Adding a New Garment
+### Bulk Importing from Excel (Recommended)
+
+Go to **Admin > Garments > Bulk Import**.
+
+1. **Upload** your `.xlsx` stock sheet
+2. Click **"Preview (Dry Run)"** — shows what will be created, updated, and any errors
+3. Review the per-row table — errors are shown first
+4. Click **"Confirm Import"** to commit
+
+**How it works:**
+
+- Each row becomes a product using `SPC-COLOUR` as the SKU (e.g. `COL13276-BLACK`)
+- **New products** are created with all fields from the sheet
+- **Existing products** are updated: packs in stock, price, materials, sizes, name
+- **Preserves** your admin edits: photos, featured flags, hero settings, min packs
+- **Re-uploading** the same file is safe — it just syncs stock and prices
+
+**After import, for each product you can add:**
+
+- Photos (upload + AI model photo generation)
+- Care instructions (via label scanner)
+- Long description
+- Homepage flags (Front Page / Featured / Latest Looks)
+- Min packs per order
+
+### Adding a Single Garment Manually
 
 Go to **Admin > Garments > New product**.
 

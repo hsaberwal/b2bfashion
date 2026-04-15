@@ -41,6 +41,34 @@ Generate professional model photos from garment images using **FASHN AI**.
 
 ---
 
+## Bulk Product Import
+
+Upload the client's Excel stock sheet to create or update the entire catalogue in one go.
+
+- Accepts `.xlsx` files with the 12 standard columns (Brand Code, Brand, Category, SPC, Description, Colour, Size Scale, Pieces Per Pack, Season, FabComp, Wholesale price, Packs In Stock)
+- **Auto-detects the header row** regardless of where it sits in the file
+- **Size Scale parser** handles both UK numeric ranges and letter ranges (e.g. "10-18 (1-2-2-2-1)" or "S-XL (1-2-2-1)")
+- **Category normalisation** from uppercase (TROUSER → Trouser)
+- **Composite SKU** — each SPC + colour becomes its own product (e.g. `COL13276-BLACK`)
+- **Idempotent** — re-running the same file updates stock without creating duplicates
+- **Dry run mode** — preview before committing with per-row status
+- **Preserves admin edits** — photos, featured flags, hero settings, and min packs are not overwritten on re-import
+- **Validation errors per row** with row numbers and messages
+- **Audit logged** with filename and summary counts
+
+## Stock Tracking & Reservation
+
+Real inventory management with atomic reservations.
+
+- **Three values per product**: `packsInStock` (physical), `packsReserved` (held by signed orders), `available` (derived)
+- **Reserve on sign** — when a customer signs an order, packs are atomically reserved
+- **MongoDB conditional update** prevents race conditions on the last pack
+- **Consume on pay** — successful Worldpay payment or invoice confirmation decrements both `packsInStock` and `packsReserved`
+- **Release on failure** — failed payment or cancellation releases the reservation back to available
+- **Customer display**: In Stock badge, Low Stock warning (under 5 packs), Out of Stock (button disabled)
+- **Admin display**: Stock column in products list with available/total/reserved, colour-coded by health (red/amber/green)
+- **Edit from admin** — `packsInStock` is an editable field in the product edit form
+
 ## Pack Ordering System
 
 Packs contain a **pre-defined ratio of sizes** rather than letting customers pick sizes individually.
