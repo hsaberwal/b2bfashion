@@ -4,7 +4,7 @@ const orderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
   sku: { type: String, required: true },
   quantity: { type: Number, required: true, min: 1 },
-  pricePerPack: Number,
+  pricePerPiece: Number,
   packSize: { type: Number, min: 1 },
   size: { type: String, default: undefined },
 });

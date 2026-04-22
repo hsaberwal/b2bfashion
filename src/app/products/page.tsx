@@ -13,7 +13,7 @@ type Product = {
   colour: string;
   images: string[];
   packSize: number;
-  pricePerPack?: number;
+  pricePerPiece?: number;
   available?: number;
 };
 
@@ -243,9 +243,12 @@ export default function ProductsPage() {
                     <p className="text-sm text-je-muted mt-1">
                       Pack size: {p.packSize} · {STOCK_LABELS[p.stockCategory] ?? p.stockCategory}
                     </p>
-                    {(user?.pricingApproved || user?.role === "admin") && p.pricePerPack != null && (
+                    {(user?.pricingApproved || user?.role === "admin") && p.pricePerPiece != null && (
                       <p className="mt-2 font-semibold text-je-black screenshot-protected relative">
-                        £{p.pricePerPack.toFixed(2)} per pack
+                        £{p.pricePerPiece.toFixed(2)} per piece
+                        <span className="block text-xs font-normal text-je-muted">
+                          (pack of {p.packSize}: £{(p.pricePerPiece * p.packSize).toFixed(2)})
+                        </span>
                       </p>
                     )}
                     <span className="mt-3 inline-block text-sm text-je-black font-medium underline">

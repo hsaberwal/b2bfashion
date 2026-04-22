@@ -21,6 +21,9 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
     const product = raw as Record<string, unknown>;
+    if (product.disabled === true) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
     const images = (product.images ?? []) as string[];
 
     // Check if user has pricing approval
@@ -54,7 +57,7 @@ export async function GET(
       images,
       packSize: product.packSize,
       minPacks: product.minPacks,
-      pricePerPack: pricingApproved ? product.pricePerPack : undefined,
+      pricePerPiece: pricingApproved ? (product.pricePerPiece ?? product.pricePerPack) : undefined,
       available: Math.max(0, ((product.packsInStock as number) ?? 0) - ((product.packsReserved as number) ?? 0)),
     });
   } catch (e) {

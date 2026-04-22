@@ -26,9 +26,10 @@ function mapProduct(p: Record<string, unknown>) {
     images: p.images,
     packSize: p.packSize,
     minPacks: p.minPacks,
-    pricePerPack: p.pricePerPack,
+    pricePerPiece: p.pricePerPiece ?? p.pricePerPack,
     packsInStock: p.packsInStock,
     packsReserved: p.packsReserved,
+    disabled: p.disabled,
   };
 }
 
@@ -51,8 +52,9 @@ const createProductSchema = z.object({
   images: z.array(z.string().min(1)).optional(),
   packSize: z.number().int().min(1),
   minPacks: z.number().int().min(1).optional(),
-  pricePerPack: z.number().optional(),
+  pricePerPiece: z.number().optional(),
   packsInStock: z.number().int().min(0).optional(),
+  disabled: z.boolean().optional(),
 });
 
 export async function GET() {

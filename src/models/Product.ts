@@ -30,8 +30,9 @@ const productSchema = new mongoose.Schema(
     packSize: { type: Number, required: true, min: 1 },  // total items per pack
     minPacks: { type: Number, default: 1, min: 1 },       // minimum packs per order
 
-    // Pricing
-    pricePerPack: Number,
+    // Pricing — the admin enters the per-piece (per-garment) wholesale price.
+    // The pack price is derived at read time as pricePerPiece * packSize.
+    pricePerPiece: Number,
 
     // Stock tracking
     packsInStock: { type: Number, default: 0, min: 0 },       // physical inventory
@@ -49,6 +50,9 @@ const productSchema = new mongoose.Schema(
     showOnHero: { type: Boolean, default: false },
     latestLooks: { type: Boolean, default: false },
 
+    // Visibility: when true, product is hidden from customers but kept in DB
+    disabled: { type: Boolean, default: false },
+
     createdAt: Date,
     updatedAt: Date,
   },
@@ -59,5 +63,6 @@ productSchema.index({ stockCategory: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ colour: 1 });
 productSchema.index({ season: 1 });
+productSchema.index({ disabled: 1 });
 
 export const Product = mongoose.models.Product ?? mongoose.model("Product", productSchema);

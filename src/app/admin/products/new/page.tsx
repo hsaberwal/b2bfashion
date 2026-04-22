@@ -26,8 +26,9 @@ export default function NewProductPage() {
       images: data.images?.length ? data.images : undefined,
       packSize: typeof data.packSize === "number" ? data.packSize : Number(data.packSize) || 1,
       minPacks: data.minPacks,
-      pricePerPack: data.pricePerPack,
+      pricePerPiece: data.pricePerPiece,
       packsInStock: data.packsInStock,
+      disabled: data.disabled,
     };
     const res = await fetch("/api/admin/products", {
       method: "POST",

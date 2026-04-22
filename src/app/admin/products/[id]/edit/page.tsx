@@ -25,12 +25,13 @@ type Product = {
   featured?: boolean;
   showOnHero?: boolean;
   latestLooks?: boolean;
+  disabled?: boolean;
   heroFocalPoint?: string;
   heroImageIndex?: number;
   heroExcludedIndexes?: number[];
   minPacks?: number;
   packSize: number;
-  pricePerPack?: number;
+  pricePerPiece?: number;
   packsInStock?: number;
   packsReserved?: number;
 };
@@ -72,12 +73,13 @@ export default function EditProductPage() {
       featured: data.featured,
       showOnHero: data.showOnHero,
       latestLooks: data.latestLooks,
+      disabled: data.disabled,
       heroFocalPoint: data.heroFocalPoint,
       heroImageIndex: data.heroImageIndex,
       heroExcludedIndexes: data.heroExcludedIndexes,
       minPacks: data.minPacks,
       packSize: data.packSize,
-      pricePerPack: data.pricePerPack,
+      pricePerPiece: data.pricePerPiece,
       packsInStock: data.packsInStock,
     };
     const res = await fetch(`/api/admin/products/${id}`, {
@@ -112,12 +114,13 @@ export default function EditProductPage() {
     featured: product.featured ?? false,
     showOnHero: product.showOnHero ?? false,
     latestLooks: product.latestLooks ?? false,
+    disabled: product.disabled ?? false,
     heroFocalPoint: product.heroFocalPoint ?? "50% 50%",
     heroImageIndex: product.heroImageIndex ?? 0,
     heroExcludedIndexes: product.heroExcludedIndexes ?? [],
     minPacks: product.minPacks ?? 1,
     packSize: product.packSize,
-    pricePerPack: product.pricePerPack != null ? String(product.pricePerPack) : "",
+    pricePerPiece: product.pricePerPiece != null ? String(product.pricePerPiece) : "",
     packsInStock: product.packsInStock ?? 0,
   };
 

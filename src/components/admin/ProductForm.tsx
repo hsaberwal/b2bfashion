@@ -22,12 +22,13 @@ export type ProductFormData = {
   featured: boolean;
   showOnHero: boolean;
   latestLooks: boolean;
+  disabled: boolean;
   heroFocalPoint: string;
   heroImageIndex: number;
   heroExcludedIndexes: number[];
   minPacks: number;
   packSize: number;
-  pricePerPack: string;
+  pricePerPiece: string;
   packsInStock: number;
 };
 
@@ -50,22 +51,24 @@ const defaultForm: ProductFormData = {
   featured: false,
   showOnHero: false,
   latestLooks: false,
+  disabled: false,
   heroFocalPoint: "50% 50%",
   heroImageIndex: 0,
   heroExcludedIndexes: [],
   minPacks: 1,
   packSize: 6,
-  pricePerPack: "",
+  pricePerPiece: "",
   packsInStock: 0,
 };
 
-export type ProductSubmitPayload = Omit<ProductFormData, "pricePerPack" | "sizes" | "sizeRatio"> & {
-  pricePerPack?: number;
+export type ProductSubmitPayload = Omit<ProductFormData, "pricePerPiece" | "sizes" | "sizeRatio"> & {
+  pricePerPiece?: number;
   sizes?: string[];
   sizeRatio?: number[];
   featured?: boolean;
   showOnHero?: boolean;
   latestLooks?: boolean;
+  disabled?: boolean;
   heroFocalPoint?: string;
   heroImageIndex?: number;
   heroExcludedIndexes?: number[];
@@ -185,12 +188,39 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
     }
   };
 
+  /** Load an image and resolve its natural dimensions (client-side). */
+  const getImageDimensions = (src: string): Promise<{ width: number; height: number }> =>
+    new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => reject(new Error("Could not load image for size check."));
+      img.src = src;
+    });
+
   /** Generate AI model photos from a specific image */
   const handleGenerateFromImage = async (imageIndex: number) => {
     if (!productId) {
       alert("Save the product first, then generate AI photos from the edit page.");
       return;
     }
+
+    // Pre-check: FASHN requires product images to be at least 128px on each side.
+    // Catching this client-side avoids a 1–2 minute wait for a server-side rejection.
+    const sourceUrl = form.images[imageIndex];
+    if (sourceUrl) {
+      try {
+        const { width, height } = await getImageDimensions(imageDisplaySrc(sourceUrl));
+        if (width < 128 || height < 128) {
+          alert(
+            `This image is too small (${width}×${height}px). The AI model generator requires at least 128×128px on the source garment photo — ideally 1000×1000px or larger for good results. Please re-upload a higher-resolution photo of this garment.`
+          );
+          return;
+        }
+      } catch {
+        // If the check fails (e.g. CORS), continue and let the server report any issue.
+      }
+    }
+
     setGeneratingAI(true);
     setGenerateFromIndex(null);
 
@@ -295,7 +325,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
         careGuide: data.careGuide || prev.careGuide,
         sizes: data.sizes?.length ? data.sizes : prev.sizes,
         colour: data.colour || prev.colour,
-        pricePerPack: data.pricePerPack || prev.pricePerPack,
+        pricePerPiece: data.pricePerPiece || prev.pricePerPiece,
       }));
       // Clear the queue after successful scan
       labelPreviews.forEach((url) => URL.revokeObjectURL(url));
@@ -315,7 +345,7 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
     try {
       const payload: ProductSubmitPayload = {
         ...form,
-        pricePerPack: form.pricePerPack ? parseFloat(form.pricePerPack) : undefined,
+        pricePerPiece: form.pricePerPiece ? parseFloat(form.pricePerPiece) : undefined,
         sizes: form.sizes.filter(Boolean).length ? form.sizes.filter(Boolean) : undefined,
         sizeRatio: form.sizeRatio.length ? form.sizeRatio : undefined,
         packSize: form.sizeRatio.length
@@ -995,6 +1025,32 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
         )}
       </div>
 
+      {/* Visibility: hide from customers without deleting */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Visibility</label>
+        <div
+          className={`flex items-start gap-3 p-4 border rounded-lg ${
+            form.disabled
+              ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20"
+              : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
+          }`}
+        >
+          <input
+            type="checkbox"
+            id="disabled"
+            checked={form.disabled}
+            onChange={(e) => update("disabled", e.target.checked)}
+            className="w-5 h-5 mt-0.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+          />
+          <label htmlFor="disabled" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+            Hide from customers
+            <span className="block text-xs text-gray-500 dark:text-gray-400 font-normal">
+              Product stays in the database but will not appear on the storefront, search, hero, featured, latest looks, chatbot, or sitemap.
+            </span>
+          </label>
+        </div>
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary colour *</label>
         <input
@@ -1191,15 +1247,32 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Physical inventory</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per pack (£)</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per piece (£)</label>
           <input
             type="number"
             step="0.01"
             min={0}
-            value={form.pricePerPack}
-            onChange={(e) => update("pricePerPack", e.target.value)}
+            value={form.pricePerPiece}
+            onChange={(e) => update("pricePerPiece", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
+          {(() => {
+            const piece = parseFloat(form.pricePerPiece);
+            const packItems = form.sizeRatio.length
+              ? form.sizeRatio.reduce((sum, n) => sum + n, 0)
+              : form.packSize;
+            if (!Number.isFinite(piece) || piece <= 0 || !packItems) {
+              return (
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Wholesale price per garment. Pack price is calculated automatically.</p>
+              );
+            }
+            const pack = piece * packItems;
+            return (
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                Pack of {packItems}: <span className="font-semibold text-gray-700 dark:text-gray-200">£{pack.toFixed(2)}</span>
+              </p>
+            );
+          })()}
         </div>
       </div>
 

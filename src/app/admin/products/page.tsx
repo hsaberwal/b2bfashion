@@ -11,10 +11,11 @@ type Product = {
   category: string;
   colour: string;
   packSize: number;
-  pricePerPack?: number;
+  pricePerPiece?: number;
   packsInStock?: number;
   packsReserved?: number;
   images?: string[];
+  disabled?: boolean;
 };
 
 export default function AdminProductsPage() {
@@ -45,6 +46,20 @@ export default function AdminProductsPage() {
       return;
     }
     setProducts((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  async function toggleDisabled(id: string, disabled: boolean) {
+    const res = await fetch(`/api/admin/products/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ disabled }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error ?? "Failed to update visibility");
+      return;
+    }
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, disabled } : p)));
   }
 
   if (user === null || (user && user.role !== "admin")) {
@@ -106,7 +121,10 @@ export default function AdminProductsPage() {
               </thead>
               <tbody>
                 {products.map((p) => (
-                  <tr key={p.id} className="border-t border-gray-200 dark:border-gray-800">
+                  <tr
+                    key={p.id}
+                    className={`border-t border-gray-200 dark:border-gray-800 ${p.disabled ? "opacity-60" : ""}`}
+                  >
                     <td className="p-3">
                       {p.images?.[0] ? (
                         <img src={imageDisplayUrl(p.images[0], { forAdmin: true })} alt="" className="w-12 h-12 object-contain rounded" />
@@ -115,12 +133,26 @@ export default function AdminProductsPage() {
                       )}
                     </td>
                     <td className="p-3 font-mono text-gray-700 dark:text-gray-300">{p.sku}</td>
-                    <td className="p-3 text-gray-900 dark:text-white">{p.name}</td>
+                    <td className="p-3 text-gray-900 dark:text-white">
+                      {p.name}
+                      {p.disabled && (
+                        <span className="ml-2 inline-block px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                          Hidden
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3 text-gray-600 dark:text-gray-400">{p.category}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-400">{p.colour}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-400">{p.packSize}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-400">
-                      {p.pricePerPack != null ? `£${p.pricePerPack.toFixed(2)}` : "—"}
+                      {p.pricePerPiece != null ? (
+                        <span>
+                          £{p.pricePerPiece.toFixed(2)}
+                          <span className="block text-[10px] text-gray-500 dark:text-gray-400">
+                            pack £{(p.pricePerPiece * (p.packSize ?? 1)).toFixed(2)}
+                          </span>
+                        </span>
+                      ) : "—"}
                     </td>
                     <td className="p-3 text-xs">
                       {(() => {
@@ -140,10 +172,17 @@ export default function AdminProductsPage() {
                         );
                       })()}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <Link href={`/admin/products/${p.id}/edit`} className="text-blue-600 hover:underline mr-3">
                         Edit
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => toggleDisabled(p.id, !p.disabled)}
+                        className="text-amber-700 hover:underline mr-3 dark:text-amber-400"
+                      >
+                        {p.disabled ? "Show" : "Hide"}
+                      </button>
                       <button
                         type="button"
                         onClick={() => deleteProduct(p.id, p.name)}

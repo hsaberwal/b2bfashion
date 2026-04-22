@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { disabled: { $ne: true } };
     if (stockCategory === "forward") {
       if (!canViewForward) {
         return NextResponse.json(
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         images,
         packSize: p.packSize,
         minPacks: p.minPacks,
-        pricePerPack: pricingApproved ? p.pricePerPack : undefined,
+        pricePerPiece: pricingApproved ? (p.pricePerPiece ?? p.pricePerPack) : undefined,
         available: Math.max(0, (p.packsInStock ?? 0) - (p.packsReserved ?? 0)),
       };
     });

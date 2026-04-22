@@ -22,7 +22,7 @@ import * as XLSX from "xlsx";
  *
  * Logic:
  * - Each row becomes a product with SKU = {SPC}-{COLOUR}
- * - If SKU exists, update packsInStock, pricePerPack, and materials
+ * - If SKU exists, update packsInStock, pricePerPiece, and materials
  * - If new, create with default stockCategory="current"
  * - Skip rows with empty Brand Code (summary/total rows)
  * - Returns per-row status and summary counts
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
         sizeRatio: parsed.ratio,
         packSize: parsed.packSize,
         materials: materials || undefined,
-        pricePerPack: priceNum > 0 ? priceNum : undefined,
+        pricePerPiece: priceNum > 0 ? priceNum : undefined,
         packsInStock,
         stockCategory: "current" as const,
       };
@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
           existing.sizeRatio = productData.sizeRatio;
           existing.packSize = productData.packSize;
           existing.materials = productData.materials;
-          existing.pricePerPack = productData.pricePerPack;
+          existing.pricePerPiece = productData.pricePerPiece;
           existing.packsInStock = productData.packsInStock;
           existing.brandCode = productData.brandCode;
           existing.brand = productData.brand;

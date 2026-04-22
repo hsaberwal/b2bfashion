@@ -81,8 +81,8 @@ All card payments are processed securely through **Worldpay** (FIS/Global Paymen
 async function getProductContext(): Promise<string> {
   try {
     await connectDB();
-    const products = await Product.find({ stockCategory: { $in: ["current", "previous"] } })
-      .select("name category colour sizes packSize description longDescription materials careGuide stockCategory sku pricePerPack")
+    const products = await Product.find({ stockCategory: { $in: ["current", "previous"] }, disabled: { $ne: true } })
+      .select("name category colour sizes packSize description longDescription materials careGuide stockCategory sku pricePerPiece pricePerPack")
       .sort({ stockCategory: 1, category: 1 })
       .limit(100)
       .lean();
@@ -98,7 +98,11 @@ async function getProductContext(): Promise<string> {
       if ((p.sizes as string[] | undefined)?.length) parts.push(`Sizes: ${(p.sizes as string[]).join(", ")}`);
       parts.push(`Pack size: ${p.packSize}`);
       parts.push(`Stock: ${p.stockCategory}`);
-      if (p.pricePerPack) parts.push(`Price: £${(p.pricePerPack as number).toFixed(2)}/pack`);
+      const piecePrice = (p.pricePerPiece as number | undefined) ?? (p.pricePerPack as number | undefined);
+      if (piecePrice) {
+        const packPrice = piecePrice * (p.packSize as number);
+        parts.push(`Price: £${piecePrice.toFixed(2)}/piece (pack of ${p.packSize}: £${packPrice.toFixed(2)})`);
+      }
       if (p.description) parts.push(`Description: ${p.description}`);
       if (p.longDescription) parts.push(`Details: ${p.longDescription}`);
       if (p.materials) parts.push(`Materials: ${p.materials}`);

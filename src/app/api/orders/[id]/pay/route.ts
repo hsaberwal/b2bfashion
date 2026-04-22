@@ -58,10 +58,10 @@ export async function POST(
       return NextResponse.json({ error: "This order has already been paid." }, { status: 409 });
     }
 
-    // Calculate order total
+    // Calculate order total. Price is stored per-piece; quantity is total units.
     const orderTotal = (order.items ?? []).reduce(
-      (sum: number, item: { pricePerPack?: number; quantity: number; packSize?: number }) =>
-        sum + (item.pricePerPack ?? 0) * (item.quantity / (item.packSize ?? 1)),
+      (sum: number, item: { pricePerPiece?: number; pricePerPack?: number; quantity: number }) =>
+        sum + ((item.pricePerPiece ?? item.pricePerPack) ?? 0) * item.quantity,
       0
     );
 

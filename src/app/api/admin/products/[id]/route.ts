@@ -29,9 +29,10 @@ const updateProductSchema = z.object({
   heroExcludedIndexes: z.array(z.number().int().min(0)).optional(),
   showOnHero: z.boolean().optional(),
   latestLooks: z.boolean().optional(),
+  disabled: z.boolean().optional(),
   packSize: z.number().int().min(1).optional(),
   minPacks: z.number().int().min(1).optional(),
-  pricePerPack: z.number().optional(),
+  pricePerPiece: z.number().optional(),
   packsInStock: z.number().int().min(0).optional(),
 });
 
@@ -60,9 +61,10 @@ function mapProduct(p: Record<string, unknown>) {
     heroExcludedIndexes: p.heroExcludedIndexes,
     showOnHero: p.showOnHero,
     latestLooks: p.latestLooks,
+    disabled: p.disabled,
     packSize: p.packSize,
     minPacks: p.minPacks,
-    pricePerPack: p.pricePerPack,
+    pricePerPiece: p.pricePerPiece ?? p.pricePerPack,
     packsInStock: p.packsInStock,
     packsReserved: p.packsReserved,
   };

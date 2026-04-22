@@ -26,7 +26,7 @@ type Product = {
   images: string[];
   packSize: number;
   minPacks?: number;
-  pricePerPack?: number;
+  pricePerPiece?: number;
   available?: number;
 };
 
@@ -102,7 +102,7 @@ export default function ProductDetailPage() {
           name: product.name,
           quantity,
           packSize: product.packSize,
-          pricePerPack: product.pricePerPack,
+          pricePerPiece: product.pricePerPiece,
           image: product.images?.[0],
         });
       }
@@ -286,13 +286,16 @@ export default function ProductDetailPage() {
                 </h1>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-3 mb-3">
-                  {(user?.pricingApproved || user?.role === "admin") && product.pricePerPack != null && (
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-3">
+                  {(user?.pricingApproved || user?.role === "admin") && product.pricePerPiece != null && (
                     <>
                       <span className="text-xl font-medium text-je-black screenshot-protected relative">
-                        £{product.pricePerPack.toFixed(2)}
+                        £{product.pricePerPiece.toFixed(2)}
                       </span>
-                      <span className="text-sm text-je-muted">per pack</span>
+                      <span className="text-sm text-je-muted">per piece</span>
+                      <span className="text-sm text-je-muted">
+                        (pack of {product.packSize}: £{(product.pricePerPiece * product.packSize).toFixed(2)})
+                      </span>
                     </>
                   )}
                 </div>
@@ -487,13 +490,16 @@ export default function ProductDetailPage() {
               <h1 className="font-serif text-3xl md:text-4xl text-je-black leading-tight mb-2">
                 {product.name}
               </h1>
-              <div className="flex items-baseline gap-3 mb-6">
-                {(user?.pricingApproved || user?.role === "admin") && product.pricePerPack != null && (
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-6">
+                {(user?.pricingApproved || user?.role === "admin") && product.pricePerPiece != null && (
                   <>
                     <span className="text-xl font-medium text-je-black screenshot-protected relative">
-                      £{product.pricePerPack.toFixed(2)}
+                      £{product.pricePerPiece.toFixed(2)}
                     </span>
-                    <span className="text-sm text-je-muted">per pack</span>
+                    <span className="text-sm text-je-muted">per piece</span>
+                    <span className="text-sm text-je-muted">
+                      (pack of {product.packSize}: £{(product.pricePerPiece * product.packSize).toFixed(2)})
+                    </span>
                   </>
                 )}
               </div>

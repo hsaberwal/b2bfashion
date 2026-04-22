@@ -32,7 +32,7 @@ export interface ProductDoc {
   images: string[];
   packSize: number;
   minPacks?: number;
-  pricePerPack?: number;
+  pricePerPiece?: number;
   packsInStock?: number;
   packsReserved?: number;
   createdAt: Date;
@@ -53,7 +53,7 @@ export interface UserDoc {
 export interface OrderDoc {
   _id: string;
   userId: string;
-  items: { productId: string; sku: string; quantity: number; pricePerPack?: number }[];
+  items: { productId: string; sku: string; quantity: number; pricePerPiece?: number }[];
   status: "pending" | "signed" | "confirmed" | "cancelled";
   signatureDataUrl?: string;
   signedAt?: Date;

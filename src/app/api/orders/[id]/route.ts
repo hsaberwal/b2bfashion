@@ -57,12 +57,12 @@ export async function PATCH(
     }
 
     const input = parsed.data.items.filter((i) => i.quantity > 0);
-    const serializeItems = (items: { productId: unknown; sku: string; quantity: number; pricePerPack?: number; packSize?: number; size?: string }[]) =>
+    const serializeItems = (items: { productId: unknown; sku: string; quantity: number; pricePerPiece?: number; packSize?: number; size?: string }[]) =>
       items.map((i) => ({
         productId: String(i.productId),
         sku: i.sku,
         quantity: i.quantity,
-        pricePerPack: i.pricePerPack,
+        pricePerPiece: i.pricePerPiece,
         packSize: i.packSize,
         size: i.size,
       }));
@@ -78,7 +78,7 @@ export async function PATCH(
       });
     }
 
-    const orderItems: { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerPack?: number; packSize: number; size?: string }[] = [];
+    const orderItems: { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerPiece?: number; packSize: number; size?: string }[] = [];
     for (const item of input) {
       const product = await Product.findById(item.productId);
       if (!product) {
@@ -103,7 +103,7 @@ export async function PATCH(
         productId: product._id,
         sku: product.sku,
         quantity: item.quantity,
-        pricePerPack: user.pricingApproved ? product.pricePerPack : undefined,
+        pricePerPiece: user.pricingApproved ? (product.pricePerPiece ?? product.pricePerPack) : undefined,
         packSize: product.packSize,
         size: productSizes.length > 0 ? item.size!.trim() : undefined,
       });
@@ -118,7 +118,7 @@ export async function PATCH(
         productId: i.productId.toString(),
         sku: i.sku,
         quantity: i.quantity,
-        pricePerPack: i.pricePerPack,
+        pricePerPiece: i.pricePerPiece,
         packSize: i.packSize,
         size: i.size,
       })),

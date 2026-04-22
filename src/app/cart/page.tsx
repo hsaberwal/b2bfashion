@@ -9,7 +9,7 @@ type OrderItem = {
   productId: string;
   sku: string;
   quantity: number;
-  pricePerPack?: number;
+  pricePerPiece?: number;
   packSize?: number;
   size?: string;
 };
@@ -285,9 +285,9 @@ export default function CartPage() {
                                 <span className="ml-2 text-je-muted">· {item.size}</span>
                               )}
                             </span>
-                            {(user?.pricingApproved || user?.role === "admin") && item.pricePerPack != null && (
+                            {(user?.pricingApproved || user?.role === "admin") && item.pricePerPiece != null && (
                               <span className="screenshot-protected ml-3 text-sm text-je-charcoal font-medium">
-                                £{(item.pricePerPack * (item.quantity / (item.packSize ?? 1))).toFixed(2)}
+                                £{(item.pricePerPiece * item.quantity).toFixed(2)}
                               </span>
                             )}
                           </div>
@@ -369,9 +369,9 @@ export default function CartPage() {
                           <li key={`${item.productId}:${item.size ?? ""}`}>
                             {item.sku}
                             {item.size != null && item.size !== "" ? ` · ${item.size}` : ""} &times; {item.quantity}
-                            {(user?.pricingApproved || user?.role === "admin") && item.pricePerPack != null && (
+                            {(user?.pricingApproved || user?.role === "admin") && item.pricePerPiece != null && (
                               <span className="screenshot-protected ml-2">
-                                £{(item.pricePerPack * (item.quantity / (item.packSize ?? 1))).toFixed(2)}
+                                £{(item.pricePerPiece * item.quantity).toFixed(2)}
                               </span>
                             )}
                           </li>

@@ -125,10 +125,11 @@ export async function POST(
       companyName: deliverySnapshot.companyName ?? "",
     };
     if (paymentOption) order.paymentOption = paymentOption;
-    // Always calculate deposit server-side — never trust client value
+    // Always calculate deposit server-side — never trust client value.
+    // Price stored per-piece; total is price * units (quantity is total units).
     const orderTotal = (order.items ?? []).reduce(
-      (sum: number, item: { pricePerPack?: number; quantity: number; packSize?: number }) =>
-        sum + (item.pricePerPack ?? 0) * (item.quantity / (item.packSize ?? 1)),
+      (sum: number, item: { pricePerPiece?: number; pricePerPack?: number; quantity: number }) =>
+        sum + ((item.pricePerPiece ?? item.pricePerPack) ?? 0) * item.quantity,
       0
     );
     order.depositAmount = Math.round(orderTotal * 0.1 * 100) / 100;
