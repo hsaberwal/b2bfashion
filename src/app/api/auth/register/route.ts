@@ -4,6 +4,12 @@ import { User } from "@/models/User";
 import { hashPassword } from "@/lib/auth";
 import { isRateLimited, getClientIp } from "@/lib/rateLimit";
 import { audit } from "@/lib/audit";
+import {
+  VERIFICATION_WINDOW_LABEL,
+  isDisposableEmail,
+  hasValidMxRecord,
+  emailRateKey,
+} from "@/lib/signupHygiene";
 import { nanoid } from "nanoid";
 import { Resend } from "resend";
 import { z } from "zod";
@@ -25,6 +31,9 @@ const bodySchema = z.object({
   name: z.string().optional(),
   companyName: z.string().optional(),
   applicationMessage: z.string().max(5000).optional(),
+  // Honeypot: hidden field that real users leave empty. Bots that blindly fill
+  // every input will set it, and we silently reject them.
+  website: z.string().optional(),
 });
 
 async function sendVerificationEmail(email: string, token: string): Promise<void> {
@@ -57,7 +66,7 @@ async function sendVerificationEmail(email: string, token: string): Promise<void
             </a>
           </div>
           <p style="color: #666; font-size: 14px;">Or copy this link: <code>${verifyLink}</code></p>
-          <p style="color: #666; font-size: 14px;">This link expires in 24 hours.</p>
+          <p style="color: #666; font-size: 14px;">This link expires in ${VERIFICATION_WINDOW_LABEL}.</p>
           <p style="color: #999; font-size: 12px;">If you didn't create an account, you can ignore this email.</p>
         </div>
       `,
@@ -70,7 +79,8 @@ async function sendVerificationEmail(email: string, token: string): Promise<void
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    if (isRateLimited(`register:${ip}`, 5, 60 * 60 * 1000)) {
+    // Per-IP signup cap — 2 per hour.
+    if (isRateLimited(`register:${ip}`, 2, 60 * 60 * 1000)) {
       return NextResponse.json({ error: "Too many registration attempts. Please try again later." }, { status: 429 });
     }
 
@@ -82,7 +92,36 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { email, password, name, companyName, applicationMessage } = parsed.data;
+    const { email, password, name, companyName, applicationMessage, website } = parsed.data;
+
+    // Honeypot: real users never fill this hidden field. Return a generic success
+    // so bots can't tell they were flagged.
+    if (website && website.trim().length > 0) {
+      return NextResponse.json({
+        message: "Please check your email to verify your account.",
+      });
+    }
+
+    // Per-email cap — 1 per hour. Prevents a bot from rotating IPs against the same address
+    // and the same address from being used as part of a wider signup flood.
+    if (isRateLimited(`register:email:${emailRateKey(email)}`, 1, 60 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many registration attempts for this email. Please try again later." }, { status: 429 });
+    }
+
+    if (isDisposableEmail(email)) {
+      return NextResponse.json(
+        { error: "Disposable email addresses are not accepted. Please use a work email." },
+        { status: 400 }
+      );
+    }
+
+    if (!(await hasValidMxRecord(email))) {
+      return NextResponse.json(
+        { error: "We could not verify this email domain. Please check the address and try again." },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
 
     const existing = await User.findOne({ email });

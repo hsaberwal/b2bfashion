@@ -9,6 +9,7 @@ export default function ApplyPage() {
   const [name, setName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [applicationMessage, setApplicationMessage] = useState("");
+  const [website, setWebsite] = useState(""); // Honeypot — real users leave empty
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -27,6 +28,7 @@ export default function ApplyPage() {
           name: name || undefined,
           companyName: companyName || undefined,
           applicationMessage: applicationMessage.trim() || undefined,
+          website: website || undefined,
         }),
       });
       const data = await res.json();
@@ -125,6 +127,19 @@ export default function ApplyPage() {
                 rows={3}
                 className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
                 placeholder="e.g. type of retail, locations, expected order volume"
+              />
+            </div>
+            {/* Honeypot — hidden from users, filled only by naive bots. */}
+            <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
+              <label htmlFor="apply-website-url">Website (leave blank)</label>
+              <input
+                id="apply-website-url"
+                name="website"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
               />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}

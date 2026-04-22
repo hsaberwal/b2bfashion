@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { audit } from "@/lib/audit";
+import { VERIFICATION_WINDOW_MS } from "@/lib/signupHygiene";
 
 /**
  * POST /api/admin/cleanup-unverified
  *
- * Deletes all unverified user accounts older than 24 hours.
+ * Deletes all unverified user accounts whose verification window has elapsed.
  * Can be called by:
  * - Admin manually from the admin panel
  * - A cron job / scheduled task
@@ -17,7 +18,7 @@ import { audit } from "@/lib/audit";
 export async function POST() {
   try {
     await connectDB();
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const cutoff = new Date(Date.now() - VERIFICATION_WINDOW_MS);
 
     // Find unverified users with a verification token, created more than 24 hours ago
     const expired = await User.find({

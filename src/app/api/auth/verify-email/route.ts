@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
+import { VERIFICATION_WINDOW_MS } from "@/lib/signupHygiene";
 
 /**
  * GET /api/auth/verify-email?token=xxx
@@ -27,10 +28,8 @@ export async function GET(request: NextRequest) {
       return redirectWithMessage("Your email is already verified. Please log in.", "info");
     }
 
-    // Check if token has expired (24 hours from account creation)
     const createdAt = user.createdAt ? new Date(user.createdAt).getTime() : 0;
-    const hoursOld = (Date.now() - createdAt) / (1000 * 60 * 60);
-    if (hoursOld > 24) {
+    if (Date.now() - createdAt > VERIFICATION_WINDOW_MS) {
       // Delete the expired unverified account
       await User.deleteOne({ _id: user._id });
       return redirectWithMessage("This verification link has expired. Please register again.", "error");
