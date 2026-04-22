@@ -5,7 +5,7 @@ import { Product } from "@/models/Product";
 export async function GET() {
   try {
     await connectDB();
-    const products = await Product.find({ featured: true })
+    const products = await Product.find({ featured: true, disabled: { $ne: true } })
       .select("name category colour images packSize stockCategory")
       .sort({ updatedAt: -1 })
       .limit(8)

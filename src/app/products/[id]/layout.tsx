@@ -15,10 +15,10 @@ async function fetchProduct(id: string) {
   try {
     await connectDB();
     const raw = await Product.findById(id)
-      .select("name description longDescription category colour images sku")
+      .select("name description longDescription category colour images sku disabled")
       .lean();
     if (!raw || Array.isArray(raw)) return null;
-    return raw as {
+    const product = raw as {
       _id: unknown;
       name?: string;
       description?: string;
@@ -27,7 +27,10 @@ async function fetchProduct(id: string) {
       colour?: string;
       images?: string[];
       sku?: string;
+      disabled?: boolean;
     };
+    if (product.disabled) return null;
+    return product;
   } catch {
     return null;
   }

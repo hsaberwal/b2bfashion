@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productPages: MetadataRoute.Sitemap = [];
   try {
     await connectDB();
-    const products = await Product.find({ stockCategory: { $in: ["current", "forward"] } })
+    const products = await Product.find({ stockCategory: { $in: ["current", "forward"] }, disabled: { $ne: true } })
       .select("_id updatedAt")
       .lean();
     productPages = products.map((p) => ({
