@@ -5,6 +5,7 @@ import { PwaRegister } from "@/components/PwaRegister";
 import { ScreenshotProtection } from "@/components/ScreenshotProtection";
 import { Chatbot } from "@/components/Chatbot";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { CsrfProvider } from "@/components/CsrfProvider";
 import { OrganizationJsonLd } from "@/components/OrganizationJsonLd";
@@ -117,6 +118,7 @@ export default function RootLayout({
         </div>
         <Navbar />
         {children}
+        <Footer />
         <Chatbot />
         <InstallPrompt />
       </body>

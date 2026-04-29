@@ -40,6 +40,13 @@ const ADMIN_SECTIONS = [
   },
 ];
 
+const LEGAL_LINKS = [
+  { title: "Terms & Conditions", href: "/terms" },
+  { title: "Privacy Policy", href: "/privacy" },
+  { title: "Shipping Policy", href: "/shipping" },
+  { title: "Returns Policy", href: "/returns" },
+];
+
 export default function AdminPage() {
   const [user, setUser] = useState<{ role?: string } | null>(null);
 
@@ -110,6 +117,27 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {/* Legal pages & footer */}
+        <div className="border border-je-border rounded-lg p-6 bg-je-offwhite mb-8">
+          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
+            Legal Pages &amp; Footer
+          </h2>
+          <p className="text-xs text-je-muted mb-4">
+            Open any of these pages while logged in as admin and click &ldquo;Edit Page&rdquo; at the top to update the content. Footer details (company number, VAT, address) are edited from the &ldquo;Edit Footer&rdquo; link in the site footer.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {LEGAL_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-xs text-je-charcoal hover:text-je-black border border-je-border rounded px-3 py-2 bg-white text-center"
+              >
+                {l.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+
         {/* Quick stats */}
         <div className="border border-je-border rounded-lg p-6 bg-je-offwhite">
           <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
@@ -127,6 +155,12 @@ export default function AdminPage() {
             </p>
             <p>
               <strong className="text-je-charcoal">Edit About page:</strong> Visit the About page while logged in as admin &mdash; click &ldquo;Edit Page&rdquo; at the top.
+            </p>
+            <p>
+              <strong className="text-je-charcoal">Edit legal pages:</strong> Open Terms, Privacy, Shipping or Returns and click &ldquo;Edit Page&rdquo; at the top.
+            </p>
+            <p>
+              <strong className="text-je-charcoal">Edit footer details:</strong> Scroll to the bottom of any page and click &ldquo;Edit Footer&rdquo;.
             </p>
           </div>
         </div>
