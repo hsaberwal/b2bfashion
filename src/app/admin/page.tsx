@@ -2,169 +2,203 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
-const ADMIN_SECTIONS = [
-  {
-    title: "Manage Garments",
-    description: "Add, edit, and delete garments. Upload photos, generate AI model images, and scan care labels.",
-    href: "/admin/products",
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-        <line x1="7" y1="7" x2="7.01" y2="7" />
-      </svg>
-    ),
-  },
-  {
-    title: "Manage Users",
-    description: "View registered users, approve pricing, manage permissions, and delete spam accounts.",
-    href: "/admin/users",
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-      </svg>
-    ),
-  },
-  {
-    title: "Manage About Page",
-    description: "Edit the About Us page content — story, why choose us, and call to action text.",
-    href: "/about",
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-      </svg>
-    ),
-  },
-];
+type Stats = {
+  products: { total: number; hidden: number; active: number };
+  customers: { total: number; pendingPricing: number; unverified: number };
+  lowStock: {
+    count: number;
+    items: { id: string; sku: string; name: string; image?: string; category: string; available: number }[];
+  };
+};
 
-const LEGAL_LINKS = [
-  { title: "Terms & Conditions", href: "/terms" },
-  { title: "Privacy Policy", href: "/privacy" },
-  { title: "Shipping Policy", href: "/shipping" },
-  { title: "Returns Policy", href: "/returns" },
-];
-
-export default function AdminPage() {
-  const [user, setUser] = useState<{ role?: string } | null>(null);
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/session")
+    fetch("/api/admin/stats")
       .then((r) => r.json())
-      .then((d) => setUser(d.user));
+      .then((d) => {
+        if (!d.error) setStats(d);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  if (user === null) {
-    return (
-      <main className="min-h-screen p-8">
-        <p className="text-je-muted">Loading...</p>
-      </main>
-    );
-  }
-
-  if (user?.role !== "admin") {
-    return (
-      <main className="min-h-screen p-8">
-        <div className="max-w-md mx-auto text-center">
-          <h1 className="font-serif text-3xl text-je-black mb-4">Admin Only</h1>
-          <p className="text-je-muted mb-6">
-            You need an admin account to access this page.
-          </p>
-          <Link href="/" className="btn-outline">&larr; Back to Home</Link>
-        </div>
-      </main>
-    );
-  }
-
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-white">
-      <div className="max-w-3xl mx-auto">
-        {/* Header with nav links */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-serif text-3xl text-je-black">Admin</h1>
-            <p className="text-je-muted text-sm mt-1">Claudia.C B2B management</p>
-          </div>
-          <div className="flex gap-3">
-            {ADMIN_SECTIONS.map((s) => (
-              <Link
-                key={s.href}
-                href={s.href}
-                className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium"
-              >
-                {s.title.replace("Manage ", "")}
-              </Link>
-            ))}
-          </div>
+    <div className="p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6 md:mb-8">
+          <h1 className="font-serif text-2xl md:text-3xl text-gray-900">Home</h1>
+          <p className="text-sm text-gray-500 mt-1">Overview of your store today.</p>
         </div>
 
-        {/* Section cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {ADMIN_SECTIONS.map((s) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              className="group p-6 border border-je-border rounded-lg bg-je-offwhite hover:bg-je-cream hover:border-je-charcoal transition-all"
-            >
-              <div className="w-10 h-10 rounded-full bg-je-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                {s.icon}
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+          <StatCard
+            label="Active products"
+            value={loading ? "—" : String(stats?.products.active ?? 0)}
+            sub={loading ? "" : `${stats?.products.hidden ?? 0} hidden`}
+            href="/admin/products"
+          />
+          <StatCard
+            label="Customers"
+            value={loading ? "—" : String(stats?.customers.total ?? 0)}
+            sub={loading ? "" : `${stats?.customers.unverified ?? 0} unverified`}
+            href="/admin/users"
+          />
+          <StatCard
+            label="Pending approval"
+            value={loading ? "—" : String(stats?.customers.pendingPricing ?? 0)}
+            sub="Awaiting pricing"
+            href="/admin/users"
+            tone={stats?.customers.pendingPricing ? "warn" : "default"}
+          />
+          <StatCard
+            label="Low stock"
+            value={loading ? "—" : String(stats?.lowStock.count ?? 0)}
+            sub="Under 5 packs"
+            href="/admin/products"
+            tone={stats?.lowStock.count ? "warn" : "default"}
+          />
+        </div>
+
+        {/* Two-column area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          {/* Quick actions */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-200">
+                <h2 className="text-sm font-semibold text-gray-900">Quick actions</h2>
               </div>
-              <h2 className="text-sm font-semibold text-je-black mb-2">{s.title}</h2>
-              <p className="text-xs text-je-muted leading-relaxed">{s.description}</p>
-            </Link>
-          ))}
-        </div>
-
-        {/* Legal pages & footer */}
-        <div className="border border-je-border rounded-lg p-6 bg-je-offwhite mb-8">
-          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
-            Legal Pages &amp; Footer
-          </h2>
-          <p className="text-xs text-je-muted mb-4">
-            Open any of these pages while logged in as admin and click &ldquo;Edit Page&rdquo; at the top to update the content. Footer details (company number, VAT, address) are edited from the &ldquo;Edit Footer&rdquo; link in the site footer.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {LEGAL_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="text-xs text-je-charcoal hover:text-je-black border border-je-border rounded px-3 py-2 bg-white text-center"
-              >
-                {l.title}
-              </Link>
-            ))}
+              <ul className="divide-y divide-gray-100">
+                <ActionRow
+                  href="/admin/products/new"
+                  title="Add a product"
+                  desc="Upload photos, scan labels, set pricing"
+                />
+                <ActionRow
+                  href="/admin/products/import"
+                  title="Bulk import"
+                  desc="Update prices & stock from a spreadsheet"
+                />
+                <ActionRow
+                  href="/admin/users"
+                  title="Approve customers"
+                  desc="Toggle pricing access for new accounts"
+                />
+                <ActionRow
+                  href="/admin/pages"
+                  title="Edit site pages"
+                  desc="About, Terms, Privacy, Footer"
+                />
+              </ul>
+            </div>
           </div>
-        </div>
 
-        {/* Quick stats */}
-        <div className="border border-je-border rounded-lg p-6 bg-je-offwhite">
-          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
-            Quick Reference
-          </h2>
-          <div className="text-sm text-je-muted space-y-2">
-            <p>
-              <strong className="text-je-charcoal">Add garments:</strong> Go to Garments &rarr; New product. Upload photos, scan labels with AI, generate model photos.
-            </p>
-            <p>
-              <strong className="text-je-charcoal">Homepage curation:</strong> Edit any garment and use the three checkboxes: Front Page, Featured Styles, Our Latest Looks.
-            </p>
-            <p>
-              <strong className="text-je-charcoal">Approve users:</strong> Go to Users, toggle &ldquo;Allow pricing&rdquo; for approved wholesale accounts.
-            </p>
-            <p>
-              <strong className="text-je-charcoal">Edit About page:</strong> Visit the About page while logged in as admin &mdash; click &ldquo;Edit Page&rdquo; at the top.
-            </p>
-            <p>
-              <strong className="text-je-charcoal">Edit legal pages:</strong> Open Terms, Privacy, Shipping or Returns and click &ldquo;Edit Page&rdquo; at the top.
-            </p>
-            <p>
-              <strong className="text-je-charcoal">Edit footer details:</strong> Scroll to the bottom of any page and click &ldquo;Edit Footer&rdquo;.
-            </p>
+          {/* Low stock */}
+          <div className="lg:col-span-2">
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-900">Running low on stock</h2>
+                <Link href="/admin/products" className="text-xs text-blue-600 hover:underline">
+                  View all
+                </Link>
+              </div>
+              {loading ? (
+                <div className="p-6 text-sm text-gray-500">Loading…</div>
+              ) : !stats?.lowStock.items.length ? (
+                <div className="p-6 text-sm text-gray-500">All active products have at least 5 packs available.</div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {stats.lowStock.items.map((p) => (
+                    <li key={p.id}>
+                      <Link
+                        href={`/admin/products/${p.id}/edit`}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                      >
+                        {p.image ? (
+                          <img
+                            src={imageDisplayUrl(p.image, { forAdmin: true })}
+                            alt=""
+                            className="w-10 h-10 object-cover rounded shrink-0 bg-gray-100"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded bg-gray-100 shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{p.sku} · {p.category}</p>
+                        </div>
+                        <span
+                          className={`shrink-0 text-xs font-semibold ${
+                            p.available === 0 ? "text-red-600" : "text-amber-600"
+                          }`}
+                        >
+                          {p.available} avail
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  href,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  href: string;
+  tone?: "default" | "warn";
+}) {
+  const dotColour =
+    tone === "warn" ? "bg-amber-500" : "bg-gray-300";
+  return (
+    <Link
+      href={href}
+      className="block bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+    >
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className={`w-1.5 h-1.5 rounded-full ${dotColour}`} />
+        <p className="text-xs text-gray-500 font-medium">{label}</p>
+      </div>
+      <p className="text-2xl md:text-3xl font-semibold text-gray-900">{value}</p>
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
+    </Link>
+  );
+}
+
+function ActionRow({ href, title, desc }: { href: string; title: string; desc: string }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 group"
+      >
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900">{title}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+        </div>
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          className="text-gray-400 group-hover:text-gray-600 mt-0.5 shrink-0"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </Link>
+    </li>
   );
 }

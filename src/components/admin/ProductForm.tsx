@@ -1,7 +1,31 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { PRODUCT_CATEGORIES } from "@/lib/types";
+
+function Card({
+  title,
+  description,
+  children,
+  className = "",
+}: {
+  title?: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`bg-white border border-gray-200 rounded-lg ${className}`}>
+      {title && (
+        <header className="px-4 md:px-5 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+          {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+        </header>
+      )}
+      <div className="p-4 md:p-5 space-y-4">{children}</div>
+    </section>
+  );
+}
 
 export type ProductFormData = {
   sku: string;
@@ -105,9 +129,15 @@ type Props = {
 };
 
 export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props) {
+  const initialFormRef = useRef<ProductFormData>({ ...defaultForm, ...initial });
   const [form, setForm] = useState<ProductFormData>({ ...defaultForm, ...initial });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setDirty(JSON.stringify(form) !== JSON.stringify(initialFormRef.current));
+  }, [form]);
   const [uploading, setUploading] = useState(false);
   const [scanningLabel, setScanningLabel] = useState(false);
   const [labelPhotos, setLabelPhotos] = useState<File[]>([]);
@@ -361,9 +391,10 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+    <form onSubmit={handleSubmit} className="pb-24 space-y-4 md:space-y-6">
 
       {/* ===== QUICK ACTIONS: Label Scanner + Photo Upload ===== */}
+      <Card title="Photos & labels" description="Upload garment photos. Scan care labels with AI to auto-fill SKU, materials, sizes and price.">
       <div className="space-y-3">
         {/* Scan Labels — multi-photo capture */}
         <div className={`p-5 border-2 border-dashed rounded-lg transition-all ${
@@ -754,8 +785,10 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           Add image by URL instead
         </button>
       </div>
+      </Card>
 
       {/* ===== PRODUCT DETAILS ===== */}
+      <Card title="Title & description">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SKU *</label>
@@ -830,7 +863,9 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         />
       </div>
+      </Card>
 
+      <Card title="Materials & care">
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Materials</label>
         <input
@@ -851,7 +886,9 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         />
       </div>
+      </Card>
 
+      <Card title="Organisation">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category *</label>
@@ -878,7 +915,9 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           </select>
         </div>
       </div>
+      </Card>
 
+      <Card title="Homepage" description="Choose where this product appears on the storefront homepage.">
       {/* Homepage visibility — 3 sections */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Show on homepage</label>
@@ -1024,10 +1063,12 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           </div>
         )}
       </div>
+      </Card>
 
+      <Card title="Visibility">
       {/* Visibility: hide from customers without deleting */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Visibility</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sr-only">Visibility</label>
         <div
           className={`flex items-start gap-3 p-4 border rounded-lg ${
             form.disabled
@@ -1050,7 +1091,9 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           </label>
         </div>
       </div>
+      </Card>
 
+      <Card title="Colour & sizes" description="Set the primary colour and define the pack size ratio.">
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary colour *</label>
         <input
@@ -1210,7 +1253,9 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           </p>
         )}
       </div>
+      </Card>
 
+      <Card title="Pricing & inventory">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pack size</label>
@@ -1275,10 +1320,56 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
           })()}
         </div>
       </div>
+      </Card>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-4">
-        <button type="submit" disabled={saving} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {/* Sticky save bar */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 lg:left-60 z-30 transition-transform duration-200 ${
+          dirty || saving ? "translate-y-0" : "translate-y-full"
+        }`}
+        aria-hidden={!(dirty || saving)}
+      >
+        <div className="bg-gray-900 text-white border-t border-gray-800 shadow-lg">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between gap-3">
+            <p className="text-sm">
+              {saving ? "Saving changes…" : "Unsaved changes"}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setForm({ ...defaultForm, ...initialFormRef.current });
+                }}
+                disabled={saving}
+                className="px-3 py-2 text-sm rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-50"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-white text-gray-900 hover:bg-gray-100 disabled:opacity-50"
+              >
+                {saving ? "Saving…" : submitLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Static submit fallback (always available below cards) */}
+      <div className="flex gap-3 pt-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 text-sm font-semibold"
+        >
           {saving ? "Saving…" : submitLabel}
         </button>
       </div>

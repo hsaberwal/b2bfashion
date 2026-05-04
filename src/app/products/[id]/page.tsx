@@ -268,10 +268,10 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* All product images stacked below on desktop — BR style */}
+          {/* Product info panel — shown beside gallery on mobile and desktop */}
           {images.length > 1 && (
-            <div className="hidden lg:block">
-              {/* Product Info — sticky on scroll */}
+            <div>
+              {/* Product Info — sticky on scroll on desktop */}
               <div className="lg:sticky lg:top-8">
                 {/* Category & SKU */}
                 <div className="mb-4">

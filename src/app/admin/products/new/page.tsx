@@ -46,12 +46,12 @@ export default function NewProductPage() {
   }
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Add product</h1>
-        <Link href="/admin/products" className="text-sm text-gray-500 hover:underline mb-6 inline-block">← Products</Link>
+    <div className="p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <Link href="/admin/products" className="text-sm text-gray-500 hover:text-gray-900 hover:underline mb-3 inline-block">← Products</Link>
+        <h1 className="font-serif text-2xl md:text-3xl text-gray-900 mb-4 md:mb-6">Add product</h1>
         <ProductForm onSubmit={handleSubmit} submitLabel="Create product" />
       </div>
-    </main>
+    </div>
   );
 }

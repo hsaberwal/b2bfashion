@@ -92,8 +92,8 @@ export default function EditProductPage() {
     router.push("/admin/products");
   }
 
-  if (loading) return <main className="min-h-screen p-8"><p className="text-gray-500">Loading...</p></main>;
-  if (!product) return <main className="min-h-screen p-8"><p className="text-gray-500">Product not found.</p><Link href="/admin/products" className="text-blue-600 hover:underline">&larr; Products</Link></main>;
+  if (loading) return <div className="p-8"><p className="text-gray-500">Loading...</p></div>;
+  if (!product) return <div className="p-8"><p className="text-gray-500">Product not found.</p><Link href="/admin/products" className="text-blue-600 hover:underline">&larr; Products</Link></div>;
 
   const initial: Partial<ProductFormData> = {
     sku: product.sku,
@@ -125,10 +125,10 @@ export default function EditProductPage() {
   };
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit product</h1>
-        <Link href="/admin/products" className="text-sm text-gray-500 hover:underline mb-6 inline-block">&larr; Products</Link>
+    <div className="p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <Link href="/admin/products" className="text-sm text-gray-500 hover:text-gray-900 hover:underline mb-3 inline-block">&larr; Products</Link>
+        <h1 className="font-serif text-2xl md:text-3xl text-gray-900 mb-4 md:mb-6">Edit product</h1>
 
         <ProductForm
           key={JSON.stringify(product.images)}
@@ -138,6 +138,6 @@ export default function EditProductPage() {
           productId={id}
         />
       </div>
-    </main>
+    </div>
   );
 }

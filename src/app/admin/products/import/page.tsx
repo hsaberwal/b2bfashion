@@ -61,18 +61,18 @@ export default function BulkImportPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-white">
+    <div className="p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
+        <div className="mb-3">
           <Link
             href="/admin/products"
-            className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium"
+            className="text-sm text-gray-500 hover:text-gray-900 hover:underline"
           >
-            &larr; Back to Garments
+            &larr; Products
           </Link>
         </div>
-        <h1 className="font-serif text-3xl text-je-black mb-2">Bulk Import Garments</h1>
-        <p className="text-je-muted text-sm mb-8">
+        <h1 className="font-serif text-2xl md:text-3xl text-gray-900 mb-2">Bulk import</h1>
+        <p className="text-gray-500 text-sm mb-6">
           Upload a stock sheet (.xlsx) from your existing system. Products are created or updated by SKU.
         </p>
 
@@ -206,7 +206,7 @@ export default function BulkImportPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 

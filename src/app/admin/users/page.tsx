@@ -140,39 +140,36 @@ export default function AdminUsersPage() {
   }
 
   if (user === null || loading) {
-    return <main className="min-h-screen p-8"><p className="text-je-muted">Loading...</p></main>;
+    return <div className="p-8"><p className="text-gray-500">Loading...</p></div>;
   }
   if (user?.role !== "admin") {
     return (
-      <main className="min-h-screen p-8">
+      <div className="p-8">
         <div className="max-w-md mx-auto text-center">
-          <h1 className="font-serif text-3xl text-je-black mb-4">Admin Only</h1>
+          <h1 className="font-serif text-3xl text-gray-900 mb-4">Admin Only</h1>
           <Link href="/" className="btn-outline">&larr; Back to Home</Link>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-white">
+    <div className="p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-6">
           <div>
-            <h1 className="font-serif text-3xl text-je-black">Manage Users</h1>
-            <p className="text-je-muted text-sm mt-1">{users.length} registered user{users.length !== 1 ? "s" : ""}</p>
+            <h1 className="font-serif text-2xl md:text-3xl text-gray-900">Customers</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              {users.length} registered customer{users.length !== 1 ? "s" : ""}
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/admin" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium">
-              &larr; Admin
-            </Link>
-            <button
-              onClick={enableForwardStockForAll}
-              disabled={bulkForwarding}
-              className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium disabled:opacity-50"
-            >
-              {bulkForwarding ? "Updating..." : "Enable forward stock for all"}
-            </button>
-          </div>
+          <button
+            onClick={enableForwardStockForAll}
+            disabled={bulkForwarding}
+            className="px-3 py-2 text-sm border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {bulkForwarding ? "Updating..." : "Enable forward stock for all"}
+          </button>
         </div>
 
         {/* User cards */}
@@ -181,12 +178,12 @@ export default function AdminUsersPage() {
             const isExpanded = expandedId === u.id;
             const isSelf = u.id === user?.id || u.email === user?.email;
             return (
-              <div key={u.id} className="border border-je-border rounded-lg overflow-hidden bg-je-offwhite">
+              <div key={u.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                 {/* Summary row — always visible */}
                 <button
                   type="button"
                   onClick={() => setExpandedId(isExpanded ? null : u.id)}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-je-cream transition-colors"
+                  className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-gray-50 transition-colors"
                 >
                   {/* Avatar */}
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -356,10 +353,10 @@ export default function AdminUsersPage() {
             );
           })}
           {users.length === 0 && (
-            <p className="text-center text-je-muted py-8">No users yet.</p>
+            <p className="text-center text-gray-500 py-8">No customers yet.</p>
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

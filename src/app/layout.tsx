@@ -3,9 +3,7 @@ import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ScreenshotProtection } from "@/components/ScreenshotProtection";
-import { Chatbot } from "@/components/Chatbot";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { SiteChrome } from "@/components/SiteChrome";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { CsrfProvider } from "@/components/CsrfProvider";
 import { OrganizationJsonLd } from "@/components/OrganizationJsonLd";
@@ -113,13 +111,7 @@ export default function RootLayout({
         <ScreenshotProtection />
         <PwaRegister />
         <CsrfProvider />
-        <div className="bg-je-black text-white text-center text-[11px] tracking-[0.15em] uppercase py-2.5 px-4 font-medium">
-          Wholesale &mdash; bulk ordering only (pack sizes apply)
-        </div>
-        <Navbar />
-        {children}
-        <Footer />
-        <Chatbot />
+        <SiteChrome>{children}</SiteChrome>
         <InstallPrompt />
       </body>
     </html>

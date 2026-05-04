@@ -11,7 +11,14 @@
       "Bash(sed -i 's/Claudia Assistant/Claudia.C Assistant/g' src/components/Chatbot.tsx)",
       "Bash(sed -i 's/your Claudia fashion/your Claudia.C fashion/g' src/components/Chatbot.tsx)",
       "Bash(sed -i 's/Add Claudia to/Add Claudia.C to/g' src/components/InstallPrompt.tsx)",
-      "Bash(sed -i 's/\"Claudia Collection\"/\"Claudia.C Collection\"/g' src/components/HeroSection.tsx)"
+      "Bash(sed -i 's/\"Claudia Collection\"/\"Claudia.C Collection\"/g' src/components/HeroSection.tsx)",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(git pull *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(echo \"Exit: $?\")"
     ]
   }
 }

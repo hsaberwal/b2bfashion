@@ -41,6 +41,37 @@ const DEFAULT_CONTENT: AboutContent = {
   ctaText: "Ready to stock Claudia.C in your store? Apply for a wholesale account or contact our team for more information.",
 };
 
+type FieldProps = {
+  field: keyof AboutContent;
+  rows?: number;
+  className?: string;
+  editing: boolean;
+  value: string;
+  onChange: (field: keyof AboutContent, value: string) => void;
+};
+
+function Field({ field, rows = 1, className = "", editing, value, onChange }: FieldProps) {
+  if (!editing) return null;
+  if (rows > 1) {
+    return (
+      <textarea
+        value={value}
+        onChange={(e) => onChange(field, e.target.value)}
+        rows={rows}
+        className={`w-full px-3 py-2 border border-blue-300 rounded bg-blue-50 text-je-black text-sm mt-1 ${className}`}
+      />
+    );
+  }
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(field, e.target.value)}
+      className={`w-full px-3 py-2 border border-blue-300 rounded bg-blue-50 text-je-black text-sm mt-1 ${className}`}
+    />
+  );
+}
+
 export default function AboutPage() {
   const [content, setContent] = useState<AboutContent>(DEFAULT_CONTENT);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -84,28 +115,8 @@ export default function AboutPage() {
     }
   }
 
-  // Editable text field
-  function Field({ field, rows = 1, className = "" }: { field: keyof AboutContent; rows?: number; className?: string }) {
-    if (!editing) return null;
-    if (rows > 1) {
-      return (
-        <textarea
-          value={editContent[field]}
-          onChange={(e) => setEditContent({ ...editContent, [field]: e.target.value })}
-          rows={rows}
-          className={`w-full px-3 py-2 border border-blue-300 rounded bg-blue-50 text-je-black text-sm mt-1 ${className}`}
-        />
-      );
-    }
-    return (
-      <input
-        type="text"
-        value={editContent[field]}
-        onChange={(e) => setEditContent({ ...editContent, [field]: e.target.value })}
-        className={`w-full px-3 py-2 border border-blue-300 rounded bg-blue-50 text-je-black text-sm mt-1 ${className}`}
-      />
-    );
-  }
+  const updateField = (field: keyof AboutContent, value: string) =>
+    setEditContent((prev) => ({ ...prev, [field]: value }));
 
   const c = editing ? editContent : content;
 
@@ -149,11 +160,11 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto text-center">
           <p className="section-label text-white/60 mb-4">About Us</p>
           <h1 className="heading-serif text-white mb-6">{c.heroTitle}</h1>
-          <Field field="heroTitle" />
+          <Field field="heroTitle" editing={editing} value={editContent.heroTitle} onChange={updateField} />
           <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
             {c.heroSubtitle}
           </p>
-          <Field field="heroSubtitle" rows={3} />
+          <Field field="heroSubtitle" rows={3} editing={editing} value={editContent.heroSubtitle} onChange={updateField} />
         </div>
       </section>
 
@@ -164,12 +175,12 @@ export default function AboutPage() {
           <h2 className="font-serif text-3xl md:text-4xl text-je-black mb-6">
             {c.storyTitle}
           </h2>
-          <Field field="storyTitle" />
+          <Field field="storyTitle" editing={editing} value={editContent.storyTitle} onChange={updateField} />
           <div className="text-je-muted text-base md:text-lg leading-relaxed space-y-4">
             <p>{c.storyText1}</p>
-            <Field field="storyText1" rows={4} />
+            <Field field="storyText1" rows={4} editing={editing} value={editContent.storyText1} onChange={updateField} />
             <p>{c.storyText2}</p>
-            <Field field="storyText2" rows={4} />
+            <Field field="storyText2" rows={4} editing={editing} value={editContent.storyText2} onChange={updateField} />
           </div>
         </div>
       </section>
@@ -212,7 +223,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto">
           <p className="section-label mb-4">Why Claudia.C</p>
           <h2 className="font-serif text-3xl md:text-4xl text-je-black mb-10">{c.whyTitle}</h2>
-          <Field field="whyTitle" />
+          <Field field="whyTitle" editing={editing} value={editContent.whyTitle} onChange={updateField} />
           <div className="space-y-6">
             {([
               { titleField: "point1Title" as const, textField: "point1Text" as const },
@@ -230,8 +241,8 @@ export default function AboutPage() {
                 </div>
                 {editing && (
                   <div className="ml-5 mt-1 space-y-1">
-                    <Field field={titleField} />
-                    <Field field={textField} rows={2} />
+                    <Field field={titleField} editing={editing} value={editContent[titleField]} onChange={updateField} />
+                    <Field field={textField} rows={2} editing={editing} value={editContent[textField]} onChange={updateField} />
                   </div>
                 )}
               </div>
@@ -244,9 +255,9 @@ export default function AboutPage() {
       <section className="py-20 md:py-28 px-4 bg-je-cream">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="font-serif text-3xl md:text-4xl text-je-black mb-6">{c.ctaTitle}</h2>
-          <Field field="ctaTitle" />
+          <Field field="ctaTitle" editing={editing} value={editContent.ctaTitle} onChange={updateField} />
           <p className="text-je-muted text-base md:text-lg mb-10 leading-relaxed">{c.ctaText}</p>
-          <Field field="ctaText" rows={3} />
+          <Field field="ctaText" rows={3} editing={editing} value={editContent.ctaText} onChange={updateField} />
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/apply" className="btn-primary">Apply for Access</Link>
             <Link href="/products" className="btn-outline">Browse Garments</Link>

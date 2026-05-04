@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
@@ -18,24 +18,135 @@ type Product = {
   disabled?: boolean;
 };
 
+type StatusFilter = "all" | "active" | "hidden" | "low" | "out";
+
+function availableOf(p: Product) {
+  return Math.max(0, (p.packsInStock ?? 0) - (p.packsReserved ?? 0));
+}
+
+function InlineNumberEditor({
+  value,
+  onSave,
+  format,
+  step = 1,
+  min = 0,
+  prefix,
+  suffix,
+}: {
+  value: number | undefined;
+  onSave: (next: number) => Promise<void>;
+  format: (v: number | undefined) => React.ReactNode;
+  step?: number;
+  min?: number;
+  prefix?: string;
+  suffix?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value != null ? String(value) : "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function start() {
+    setDraft(value != null ? String(value) : "");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function commit() {
+    const n = Number(draft);
+    if (!Number.isFinite(n) || n < min) {
+      setError(`Must be ≥ ${min}`);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(n);
+      setEditing(false);
+    } catch (e) {
+      setError((e as Error).message ?? "Failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={start}
+        className="text-left hover:underline decoration-dotted underline-offset-2"
+        title="Click to edit"
+      >
+        {format(value)}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {prefix && <span className="text-xs text-gray-500">{prefix}</span>}
+      <input
+        type="number"
+        min={min}
+        step={step}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          else if (e.key === "Escape") setEditing(false);
+        }}
+        autoFocus
+        disabled={saving}
+        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+      />
+      {suffix && <span className="text-xs text-gray-500">{suffix}</span>}
+      <button
+        type="button"
+        onClick={commit}
+        disabled={saving}
+        className="px-2 py-1 text-xs bg-gray-900 text-white rounded hover:bg-gray-800 disabled:opacity-50"
+      >
+        {saving ? "…" : "Save"}
+      </button>
+      <button
+        type="button"
+        onClick={() => setEditing(false)}
+        disabled={saving}
+        className="px-2 py-1 text-xs text-gray-500 hover:text-gray-900"
+      >
+        Cancel
+      </button>
+      {error && <span className="text-[10px] text-red-600 ml-1">{error}</span>}
+    </div>
+  );
+}
+
 export default function AdminProductsPage() {
-  const [user, setUser] = useState<{ role?: string } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<StatusFilter>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/session")
-      .then((r) => r.json())
-      .then((d) => setUser(d.user));
-  }, []);
-
-  useEffect(() => {
-    if (user?.role !== "admin") return;
     fetch("/api/admin/products")
       .then((r) => r.json())
       .then((d) => setProducts(d.products ?? []))
       .finally(() => setLoading(false));
-  }, [user?.role]);
+  }, []);
+
+  async function patchProduct(id: string, body: Record<string, unknown>) {
+    const res = await fetch(`/api/admin/products/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Update failed");
+    return data;
+  }
 
   async function deleteProduct(id: string, name: string) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
@@ -46,140 +157,369 @@ export default function AdminProductsPage() {
       return;
     }
     setProducts((prev) => prev.filter((p) => p.id !== id));
-  }
-
-  async function toggleDisabled(id: string, disabled: boolean) {
-    const res = await fetch(`/api/admin/products/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ disabled }),
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
     });
-    if (!res.ok) {
-      const data = await res.json();
-      alert(data.error ?? "Failed to update visibility");
-      return;
-    }
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, disabled } : p)));
   }
 
-  if (user === null || (user && user.role !== "admin")) {
-    return (
-      <main className="min-h-screen p-8">
-        <p className="text-gray-500">{user === null ? "Loading…" : "Admin only."}</p>
-        <Link href="/admin" className="text-blue-600 hover:underline mt-4 inline-block">← Admin</Link>
-      </main>
-    );
+  async function setDisabled(id: string, disabled: boolean) {
+    try {
+      await patchProduct(id, { disabled });
+      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, disabled } : p)));
+    } catch (e) {
+      alert((e as Error).message);
+    }
   }
+
+  async function setStock(id: string, packsInStock: number) {
+    await patchProduct(id, { packsInStock });
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, packsInStock } : p)));
+  }
+
+  async function setPrice(id: string, pricePerPiece: number) {
+    await patchProduct(id, { pricePerPiece });
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, pricePerPiece } : p)));
+  }
+
+  // Filtered + searched
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (q) {
+        const hay = `${p.name} ${p.sku} ${p.category} ${p.colour}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      const avail = availableOf(p);
+      switch (filter) {
+        case "active":
+          return !p.disabled;
+        case "hidden":
+          return !!p.disabled;
+        case "low":
+          return !p.disabled && avail > 0 && avail < 5;
+        case "out":
+          return !p.disabled && avail === 0;
+        case "all":
+        default:
+          return true;
+      }
+    });
+  }, [products, search, filter]);
+
+  const counts = useMemo(() => {
+    let active = 0, hidden = 0, low = 0, out = 0;
+    for (const p of products) {
+      if (p.disabled) hidden++;
+      else {
+        active++;
+        const avail = availableOf(p);
+        if (avail === 0) out++;
+        else if (avail < 5) low++;
+      }
+    }
+    return { all: products.length, active, hidden, low, out };
+  }, [products]);
+
+  const allSelected = visible.length > 0 && visible.every((p) => selected.has(p.id));
+  const someSelected = selected.size > 0;
+
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        for (const p of visible) next.delete(p.id);
+      } else {
+        for (const p of visible) next.add(p.id);
+      }
+      return next;
+    });
+  }
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkSetDisabled(disabled: boolean) {
+    if (!someSelected) return;
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selected);
+      await Promise.all(ids.map((id) => patchProduct(id, { disabled })));
+      setProducts((prev) => prev.map((p) => (selected.has(p.id) ? { ...p, disabled } : p)));
+      setSelected(new Set());
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function bulkDelete() {
+    if (!someSelected) return;
+    if (!confirm(`Delete ${selected.size} product${selected.size === 1 ? "" : "s"}? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selected);
+      await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/admin/products/${id}`, { method: "DELETE" }).then((r) => {
+            if (!r.ok) throw new Error("One or more deletes failed");
+          }),
+        ),
+      );
+      setProducts((prev) => prev.filter((p) => !selected.has(p.id)));
+      setSelected(new Set());
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  const filterPills: { key: StatusFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: counts.all },
+    { key: "active", label: "Active", count: counts.active },
+    { key: "hidden", label: "Hidden", count: counts.hidden },
+    { key: "low", label: "Low stock", count: counts.low },
+    { key: "out", label: "Out of stock", count: counts.out },
+  ];
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Manage products
-          </h1>
-          <div className="flex gap-3">
+    <div className="p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-6">
+          <div>
+            <h1 className="font-serif text-2xl md:text-3xl text-gray-900">Products</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {counts.all} total · {counts.active} active · {counts.hidden} hidden
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/admin/products/import"
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="px-3 py-2 text-sm border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50"
             >
-              Bulk Import
+              Bulk import
             </Link>
             <Link
               href="/admin/products/new"
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+              className="px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800"
             >
               Add product
             </Link>
           </div>
         </div>
-        <Link href="/admin" className="text-sm text-gray-500 hover:underline mb-6 inline-block">
-          ← Admin
-        </Link>
 
-        {loading ? (
-          <p className="text-gray-500">Loading products…</p>
-        ) : products.length === 0 ? (
-          <p className="text-gray-500">
-            No products yet. <Link href="/admin/products/new" className="text-blue-600 hover:underline">Add one</Link> or seed sample products from Admin.
+        {/* Filter pills */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {filterPills.map((f) => {
+            const active = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                  active
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                {f.label}
+                <span className={`ml-1.5 ${active ? "text-white/70" : "text-gray-400"}`}>{f.count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search */}
+        <div className="mb-3">
+          <div className="relative">
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products by name, SKU, category, or colour…"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:border-gray-900 focus:outline-none"
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1.5">
+            Tip: tap a stock or price number to edit it inline. Use Bulk import for spreadsheet updates.
           </p>
+        </div>
+
+        {/* Bulk action bar */}
+        {someSelected && (
+          <div className="sticky top-14 z-20 mb-3 bg-gray-900 text-white rounded-lg px-3 py-2 flex flex-wrap items-center gap-2 text-sm shadow">
+            <span className="font-medium">{selected.size} selected</span>
+            <span className="opacity-50">·</span>
+            <button
+              type="button"
+              onClick={() => bulkSetDisabled(false)}
+              disabled={bulkBusy}
+              className="px-2.5 py-1 text-xs rounded bg-white/10 hover:bg-white/20 disabled:opacity-50"
+            >
+              Show
+            </button>
+            <button
+              type="button"
+              onClick={() => bulkSetDisabled(true)}
+              disabled={bulkBusy}
+              className="px-2.5 py-1 text-xs rounded bg-white/10 hover:bg-white/20 disabled:opacity-50"
+            >
+              Hide
+            </button>
+            <button
+              type="button"
+              onClick={bulkDelete}
+              disabled={bulkBusy}
+              className="px-2.5 py-1 text-xs rounded bg-red-500/20 text-red-200 hover:bg-red-500/30 disabled:opacity-50"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="ml-auto px-2.5 py-1 text-xs rounded bg-white/10 hover:bg-white/20"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* List */}
+        {loading ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center text-sm text-gray-500">
+            Loading products…
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+            <p className="text-sm text-gray-500 mb-3">
+              {search.trim()
+                ? <>No products match &ldquo;{search}&rdquo;.</>
+                : filter === "all"
+                ? "No products yet."
+                : "No products in this filter."}
+            </p>
+            {!search.trim() && filter === "all" && (
+              <Link
+                href="/admin/products/new"
+                className="inline-block px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+              >
+                Add your first product
+              </Link>
+            )}
+          </div>
         ) : (
-          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white dark:bg-gray-900 dark:border-gray-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Image</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">SKU</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Name</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Category</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Colour</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Pack</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Price</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Stock</th>
-                  <th className="p-3 font-medium text-gray-900 dark:text-white">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr
+          <>
+            {/* Mobile: cards */}
+            <div className="md:hidden space-y-2">
+              {visible.map((p) => {
+                const inStock = p.packsInStock ?? 0;
+                const reserved = p.packsReserved ?? 0;
+                const avail = availableOf(p);
+                const stockColour = avail === 0 ? "text-red-600" : avail < 5 ? "text-amber-600" : "text-green-700";
+                const isSel = selected.has(p.id);
+                return (
+                  <div
                     key={p.id}
-                    className={`border-t border-gray-200 dark:border-gray-800 ${p.disabled ? "opacity-60" : ""}`}
+                    className={`bg-white border rounded-lg p-3 ${
+                      isSel ? "border-gray-900 ring-1 ring-gray-900" : "border-gray-200"
+                    } ${p.disabled ? "opacity-60" : ""}`}
                   >
-                    <td className="p-3">
+                    <div className="flex gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSel}
+                        onChange={() => toggleOne(p.id)}
+                        className="mt-1 w-4 h-4 rounded border-gray-300"
+                      />
                       {p.images?.[0] ? (
-                        <img src={imageDisplayUrl(p.images[0], { forAdmin: true })} alt="" className="w-12 h-12 object-contain rounded" />
+                        <img
+                          src={imageDisplayUrl(p.images[0], { forAdmin: true })}
+                          alt=""
+                          className="w-14 h-14 object-cover rounded shrink-0 bg-gray-100"
+                        />
                       ) : (
-                        <span className="text-gray-400 text-xs">No image</span>
+                        <div className="w-14 h-14 shrink-0 rounded bg-gray-100 flex items-center justify-center text-[10px] text-gray-400">
+                          No image
+                        </div>
                       )}
-                    </td>
-                    <td className="p-3 font-mono text-gray-700 dark:text-gray-300">{p.sku}</td>
-                    <td className="p-3 text-gray-900 dark:text-white">
-                      {p.name}
-                      {p.disabled && (
-                        <span className="ml-2 inline-block px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                          Hidden
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 text-gray-600 dark:text-gray-400">{p.category}</td>
-                    <td className="p-3 text-gray-600 dark:text-gray-400">{p.colour}</td>
-                    <td className="p-3 text-gray-600 dark:text-gray-400">{p.packSize}</td>
-                    <td className="p-3 text-gray-600 dark:text-gray-400">
-                      {p.pricePerPiece != null ? (
-                        <span>
-                          £{p.pricePerPiece.toFixed(2)}
-                          <span className="block text-[10px] text-gray-500 dark:text-gray-400">
-                            pack £{(p.pricePerPiece * (p.packSize ?? 1)).toFixed(2)}
-                          </span>
-                        </span>
-                      ) : "—"}
-                    </td>
-                    <td className="p-3 text-xs">
-                      {(() => {
-                        const inStock = p.packsInStock ?? 0;
-                        const reserved = p.packsReserved ?? 0;
-                        const avail = Math.max(0, inStock - reserved);
-                        const colour = avail === 0 ? "text-red-600" : avail < 5 ? "text-amber-600" : "text-green-700";
-                        return (
-                          <div className={`font-medium ${colour}`}>
-                            <div>{avail} avail</div>
-                            {reserved > 0 && (
-                              <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                {inStock} total &middot; {reserved} reserved
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      <Link href={`/admin/products/${p.id}/edit`} className="text-blue-600 hover:underline mr-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <Link
+                            href={`/admin/products/${p.id}/edit`}
+                            className="text-sm font-medium text-gray-900 hover:underline truncate block"
+                          >
+                            {p.name}
+                          </Link>
+                          {p.disabled && (
+                            <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-amber-100 text-amber-800">
+                              Hidden
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-mono text-gray-500 truncate">{p.sku}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {p.category} · {p.colour} · pack of {p.packSize}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-gray-100 pt-3 text-xs">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Price /piece</div>
+                        <InlineNumberEditor
+                          value={p.pricePerPiece}
+                          step={0.01}
+                          min={0}
+                          prefix="£"
+                          format={(v) =>
+                            v == null ? <span className="text-gray-400">No price</span> : <>£{v.toFixed(2)}</>
+                          }
+                          onSave={(n) => setPrice(p.id, n)}
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Stock (packs)</div>
+                        <InlineNumberEditor
+                          value={p.packsInStock}
+                          format={() => (
+                            <span className={`font-medium ${stockColour}`}>
+                              {avail} avail
+                              {reserved > 0 && (
+                                <span className="text-[10px] text-gray-500 font-normal">
+                                  {" "}· {inStock} total
+                                </span>
+                              )}
+                            </span>
+                          )}
+                          onSave={(n) => setStock(p.id, n)}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap justify-end gap-3 text-sm pt-2 border-t border-gray-100">
+                      <Link href={`/admin/products/${p.id}/edit`} className="text-blue-600 hover:underline">
                         Edit
                       </Link>
                       <button
                         type="button"
-                        onClick={() => toggleDisabled(p.id, !p.disabled)}
-                        className="text-amber-700 hover:underline mr-3 dark:text-amber-400"
+                        onClick={() => setDisabled(p.id, !p.disabled)}
+                        className="text-amber-700 hover:underline"
                       >
                         {p.disabled ? "Show" : "Hide"}
                       </button>
@@ -190,14 +530,150 @@ export default function AdminProductsPage() {
                       >
                         Delete
                       </button>
-                    </td>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th className="p-3 w-8">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                    </th>
+                    <th className="p-3 font-medium">Product</th>
+                    <th className="p-3 font-medium">Category</th>
+                    <th className="p-3 font-medium">Pack</th>
+                    <th className="p-3 font-medium">Price /piece</th>
+                    <th className="p-3 font-medium">Stock</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {visible.map((p) => {
+                    const inStock = p.packsInStock ?? 0;
+                    const reserved = p.packsReserved ?? 0;
+                    const avail = availableOf(p);
+                    const stockColour =
+                      avail === 0 ? "text-red-600" : avail < 5 ? "text-amber-600" : "text-green-700";
+                    const isSel = selected.has(p.id);
+                    return (
+                      <tr
+                        key={p.id}
+                        className={`border-t border-gray-100 hover:bg-gray-50 ${p.disabled ? "opacity-60" : ""} ${isSel ? "bg-gray-50" : ""}`}
+                      >
+                        <td className="p-3">
+                          <input
+                            type="checkbox"
+                            checked={isSel}
+                            onChange={() => toggleOne(p.id)}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-3">
+                            {p.images?.[0] ? (
+                              <img
+                                src={imageDisplayUrl(p.images[0], { forAdmin: true })}
+                                alt=""
+                                className="w-10 h-10 object-cover rounded bg-gray-100 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-gray-100 shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <Link
+                                href={`/admin/products/${p.id}/edit`}
+                                className="text-sm font-medium text-gray-900 hover:underline truncate block"
+                              >
+                                {p.name}
+                              </Link>
+                              <p className="text-xs font-mono text-gray-500">{p.sku} · {p.colour}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-gray-600">{p.category}</td>
+                        <td className="p-3 text-gray-600">{p.packSize}</td>
+                        <td className="p-3">
+                          <InlineNumberEditor
+                            value={p.pricePerPiece}
+                            step={0.01}
+                            min={0}
+                            prefix="£"
+                            format={(v) =>
+                              v == null ? <span className="text-gray-400">—</span> : <>£{v.toFixed(2)}</>
+                            }
+                            onSave={(n) => setPrice(p.id, n)}
+                          />
+                        </td>
+                        <td className="p-3">
+                          <InlineNumberEditor
+                            value={p.packsInStock}
+                            format={() => (
+                              <span className={`font-medium ${stockColour}`}>
+                                {avail}
+                                {reserved > 0 && (
+                                  <span className="text-[10px] text-gray-500 font-normal ml-1">
+                                    ({inStock} total)
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                            onSave={(n) => setStock(p.id, n)}
+                          />
+                        </td>
+                        <td className="p-3">
+                          {p.disabled ? (
+                            <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-amber-100 text-amber-800">
+                              Hidden
+                            </span>
+                          ) : avail === 0 ? (
+                            <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-red-100 text-red-800">
+                              Out of stock
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 whitespace-nowrap text-right">
+                          <Link href={`/admin/products/${p.id}/edit`} className="text-blue-600 hover:underline mr-3 text-xs">
+                            Edit
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setDisabled(p.id, !p.disabled)}
+                            className="text-amber-700 hover:underline mr-3 text-xs"
+                          >
+                            {p.disabled ? "Show" : "Hide"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteProduct(p.id, p.name)}
+                            className="text-red-600 hover:underline text-xs"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
-    </main>
+    </div>
   );
 }

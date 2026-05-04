@@ -80,7 +80,7 @@ export function Navbar() {
           </Link>
           {user?.role === "admin" && (
             <Link
-              href="/admin/products"
+              href="/admin"
               className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium"
             >
               Admin
