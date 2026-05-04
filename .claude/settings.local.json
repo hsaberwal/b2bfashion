@@ -20,7 +20,10 @@
       "Bash(echo \"Exit code: $?\")",
       "Bash(echo \"Exit: $?\")",
       "Bash(npm view *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(npm test *)",
+      "Bash(echo \"tsc-exit: $?\")",
+      "Bash(echo \"lint-exit: $?\")"
     ]
   }
 }

@@ -6,6 +6,7 @@ import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
 import { createCheckoutSession, isStripeConfigured } from "@/lib/stripe";
+import { calculateOrderTotal, calculateDeposit } from "@/lib/pricing";
 import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
 import mongoose from "mongoose";
@@ -58,17 +59,15 @@ export async function POST(
     }
 
     // Calculate order total. Price is stored per-piece; quantity is total units.
-    const orderTotal = (order.items ?? []).reduce(
-      (sum: number, item: { pricePerPiece?: number; pricePerPack?: number; quantity: number }) =>
-        sum + ((item.pricePerPiece ?? item.pricePerPack) ?? 0) * item.quantity,
-      0
+    const orderTotal = calculateOrderTotal(
+      (order.items ?? []) as { pricePerPiece?: number; pricePerPack?: number; quantity: number }[],
     );
 
     if (orderTotal <= 0) {
       return NextResponse.json({ error: "Order has no priced items" }, { status: 400 });
     }
 
-    const depositAmount = Math.round(orderTotal * 0.1 * 100) / 100;
+    const depositAmount = calculateDeposit(orderTotal);
 
     // pay_later (invoice) — no payment processor needed
     if (paymentOption === "pay_later") {

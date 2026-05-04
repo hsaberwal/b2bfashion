@@ -3,6 +3,12 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
+import {
+  availableOf,
+  filterProducts,
+  statusCounts,
+  type StatusFilter,
+} from "@/lib/productFilter";
 
 type Product = {
   id: string;
@@ -17,12 +23,6 @@ type Product = {
   images?: string[];
   disabled?: boolean;
 };
-
-type StatusFilter = "all" | "active" | "hidden" | "low" | "out";
-
-function availableOf(p: Product) {
-  return Math.max(0, (p.packsInStock ?? 0) - (p.packsReserved ?? 0));
-}
 
 function InlineNumberEditor({
   value,
@@ -184,43 +184,12 @@ export default function AdminProductsPage() {
   }
 
   // Filtered + searched
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return products.filter((p) => {
-      if (q) {
-        const hay = `${p.name} ${p.sku} ${p.category} ${p.colour}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      const avail = availableOf(p);
-      switch (filter) {
-        case "active":
-          return !p.disabled;
-        case "hidden":
-          return !!p.disabled;
-        case "low":
-          return !p.disabled && avail > 0 && avail < 5;
-        case "out":
-          return !p.disabled && avail === 0;
-        case "all":
-        default:
-          return true;
-      }
-    });
-  }, [products, search, filter]);
+  const visible = useMemo(
+    () => filterProducts(products, search, filter),
+    [products, search, filter],
+  );
 
-  const counts = useMemo(() => {
-    let active = 0, hidden = 0, low = 0, out = 0;
-    for (const p of products) {
-      if (p.disabled) hidden++;
-      else {
-        active++;
-        const avail = availableOf(p);
-        if (avail === 0) out++;
-        else if (avail < 5) low++;
-      }
-    }
-    return { all: products.length, active, hidden, low, out };
-  }, [products]);
+  const counts = useMemo(() => statusCounts(products), [products]);
 
   const allSelected = visible.length > 0 && visible.every((p) => selected.has(p.id));
   const someSelected = selected.size > 0;

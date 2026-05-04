@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { PRODUCT_CATEGORIES } from "@/lib/types";
+import { calculatePackPrice } from "@/lib/pricing";
 
 function Card({
   title,
@@ -1306,12 +1307,12 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
             const packItems = form.sizeRatio.length
               ? form.sizeRatio.reduce((sum, n) => sum + n, 0)
               : form.packSize;
-            if (!Number.isFinite(piece) || piece <= 0 || !packItems) {
+            const pack = calculatePackPrice(piece, packItems);
+            if (pack == null) {
               return (
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Wholesale price per garment. Pack price is calculated automatically.</p>
               );
             }
-            const pack = piece * packItems;
             return (
               <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
                 Pack of {packItems}: <span className="font-semibold text-gray-700 dark:text-gray-200">£{pack.toFixed(2)}</span>
