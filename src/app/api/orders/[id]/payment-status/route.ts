@@ -6,6 +6,7 @@ import { getSessionToken } from "@/lib/auth";
 import { Session } from "@/models/Session";
 import { audit } from "@/lib/audit";
 import { isRateLimited, getClientIp } from "@/lib/rateLimit";
+import { retrieveSession } from "@/lib/stripe";
 import mongoose from "mongoose";
 
 /**
@@ -42,10 +43,12 @@ async function releaseReservedStock(order: { items?: { productId: unknown; quant
  * GET /api/orders/[id]/payment-status
  * Called by the checkout result page to get the current payment state.
  *
- * SECURITY: worldpayStatus is only accepted as a hint. In production,
- * payment confirmation should come from Worldpay server-to-server
- * webhook with MAC verification. The redirect status is treated as
- * provisional — only the Worldpay order code match provides assurance.
+ * SECURITY: the redirect from Stripe is provisional. The authoritative
+ * source is the Stripe webhook (checkout.session.completed). When a
+ * Checkout Session ID is present in the redirect we can also retrieve
+ * the session directly from Stripe to confirm payment status — that
+ * doubles as a fast-path so users see the right result without waiting
+ * for the webhook.
  */
 export async function GET(
   request: NextRequest,
@@ -77,53 +80,48 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Update payment status from Worldpay redirect — only if:
-    // 1. Order has a Worldpay order code (was actually sent to Worldpay)
-    // 2. Payment is still pending (idempotent — won't re-process)
-    // 3. The user owns this order (checked above)
     const { searchParams } = new URL(request.url);
-    const worldpayStatus = searchParams.get("worldpayStatus");
+    const status = searchParams.get("status");
+    const sessionId = searchParams.get("session_id");
 
-    if (worldpayStatus && order.paymentStatus === "pending" && order.worldpayOrderCode) {
-      switch (worldpayStatus) {
-        case "success":
-          order.paymentStatus = "paid";
-          order.status = "confirmed";
-          if (order.paymentOption === "pay_deposit") {
-            order.depositPaid = true;
+    // Only mutate when payment is still pending and the order owns a Stripe
+    // session. The webhook is the canonical source of truth — this is a
+    // best-effort fast-path so the user sees their payment status without
+    // waiting for the webhook to land.
+    if (status && order.paymentStatus === "pending" && order.stripeSessionId) {
+      // For success: confirm with Stripe before flipping state.
+      if (status === "success" && sessionId && sessionId === order.stripeSessionId) {
+        try {
+          const stripeSession = await retrieveSession(sessionId);
+          if (stripeSession.payment_status === "paid") {
+            order.paymentStatus = "paid";
+            order.status = "confirmed";
+            if (typeof stripeSession.payment_intent === "string") {
+              order.stripePaymentIntentId = stripeSession.payment_intent;
+            }
+            if (order.paymentOption === "pay_deposit") {
+              order.depositPaid = true;
+            }
+            await order.save();
+            await consumeStockForOrder(order);
+            await audit({
+              action: "payment_completed",
+              userId: session.userId.toString(),
+              targetType: "order",
+              targetId: id,
+              ip,
+              details: { paymentOption: order.paymentOption, amountPaid: order.amountPaid },
+            });
           }
-          await order.save();
-          // Consume reserved stock (move from reserved to sold)
-          await consumeStockForOrder(order);
-          await audit({
-            action: "payment_completed",
-            userId: session.userId.toString(),
-            targetType: "order",
-            targetId: id,
-            ip,
-            details: { paymentOption: order.paymentOption, amountPaid: order.amountPaid },
-          });
-          break;
-        case "failure":
-          order.paymentStatus = "failed";
-          await order.save();
-          // Release reservations since payment failed
-          await releaseReservedStock(order);
-          await audit({
-            action: "payment_failed",
-            userId: session.userId.toString(),
-            targetType: "order",
-            targetId: id,
-            ip,
-          });
-          break;
-        case "cancelled":
-          order.paymentStatus = "none";
-          await order.save();
-          // Release reservations
-          await releaseReservedStock(order);
-          break;
-        // "pending" — leave as-is, stock still reserved
+        } catch (err) {
+          // Don't fail the page render on Stripe retrieval errors —
+          // the webhook will reconcile.
+          console.error("Stripe session retrieve failed:", err);
+        }
+      } else if (status === "cancelled") {
+        order.paymentStatus = "none";
+        await order.save();
+        await releaseReservedStock(order);
       }
     }
 

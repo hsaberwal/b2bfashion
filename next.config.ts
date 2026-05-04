@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https:",
-              "frame-src 'self' https://secure.worldpay.com https://secure-test.worldpay.com",
+              "frame-src 'self'",
             ].join("; "),
           },
         ],

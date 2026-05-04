@@ -63,7 +63,7 @@ Real inventory management with atomic reservations.
 - **Three values per product**: `packsInStock` (physical), `packsReserved` (held by signed orders), `available` (derived)
 - **Reserve on sign** — when a customer signs an order, packs are atomically reserved
 - **MongoDB conditional update** prevents race conditions on the last pack
-- **Consume on pay** — successful Worldpay payment or invoice confirmation decrements both `packsInStock` and `packsReserved`
+- **Consume on pay** — successful Stripe payment or invoice confirmation decrements both `packsInStock` and `packsReserved`
 - **Release on failure** — failed payment or cancellation releases the reservation back to available
 - **Customer display**: In Stock badge, Low Stock warning (under 5 packs), Out of Stock (button disabled)
 - **Admin display**: Stock column in products list with available/total/reserved, colour-coded by health (red/amber/green)
@@ -192,17 +192,18 @@ Tops, Blouses, T-shirts, Knitwear, Cardigans, Jumpers, Trousers, Dresses, Skirts
 1. **Delivery address** — address, city, postcode, country, company, VAT
 2. **Order summary** — itemized with per-pack totals
 3. **Three payment options**:
-   - **Pay in full** — redirects to Worldpay for the full amount
-   - **Pay 10% deposit** — redirects to Worldpay for deposit only
+   - **Pay in full** — redirects to Stripe Checkout for the full amount
+   - **Pay 10% deposit** — redirects to Stripe Checkout for deposit only
    - **Invoice (pay later)** — confirms immediately
 4. **Digital signature** — draw with mouse or touch
-5. **Submit** — signs, initiates payment, redirects to Worldpay or confirmation
+5. **Submit** — signs, initiates payment, redirects to Stripe Checkout or confirmation
 
-### Payment Integration (Worldpay)
-- **Hosted payment page** — customer redirected to Worldpay's secure page
-- Card details never touch our servers
-- **Server-to-server webhook** with MAC verification for authoritative payment status
-- Friendly error message if Worldpay is unavailable
+### Payment Integration (Stripe)
+
+- **Stripe Checkout** — customer redirected to Stripe-hosted page
+- Card details never touch our servers (PCI scope offloaded)
+- **Server-to-server webhook** with signature verification for authoritative payment status (`checkout.session.completed`, `checkout.session.expired`, `charge.refunded`)
+- Friendly error message if Stripe is unavailable
 - **Deposit amount always calculated server-side** (never trust client)
 - Double payment prevention (409 if already pending/paid)
 
@@ -329,9 +330,10 @@ All findings from 4 rounds of security auditing have been fixed.
 - **Audit logging**: Login, orders, payments, admin actions, role changes
 
 ### Payment Security
-- Worldpay hosted page — card details never reach our servers
-- Domain validation (redirect must be `.worldpay.com`)
-- **Server-to-server webhook** with MAC verification
+
+- Stripe-hosted Checkout — card details never reach our servers (PCI scope offloaded)
+- **Server-to-server webhook** with signature verification (`STRIPE_WEBHOOK_SECRET`)
+- Stripe Session retrieved server-side on success redirect (the redirect alone is treated as provisional)
 - Double payment prevention (409 if already pending/paid)
 - Server-side deposit calculation (never trust client)
 
@@ -378,4 +380,4 @@ See [README.md](README.md) for the full API reference.
 - **Mobile-first** — camera integration, touch signature, responsive design
 - **PWA** — installable as native app on all platforms
 - **Type-safe** — full TypeScript with Zod validation on all API inputs
-- **Lazy initialization** — Resend, Anthropic, Worldpay clients initialized lazily to prevent build failures
+- **Lazy initialization** — Resend, Anthropic, Stripe clients initialized lazily to prevent build failures

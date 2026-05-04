@@ -15,7 +15,7 @@ A modern, AI-powered B2B wholesale platform for **Claudia.C** ladies fashion. Bu
 | **Database** | MongoDB with Mongoose ODM |
 | **Auth** | Custom session-based auth (bcrypt, crypto-secure tokens) |
 | **Email** | Resend (verification, password reset, OTP) |
-| **Payments** | Worldpay (FIS/Global Payments) — hosted payment page + webhook |
+| **Payments** | Stripe Checkout — hosted page + signed webhook |
 | **AI Chat & Vision** | Claude API (Anthropic) — chatbot, label scanning |
 | **AI Images** | FASHN API — model photo generation |
 | **Image Storage** | Railway Image Service (or Cloudinary fallback) |
@@ -80,7 +80,7 @@ src/
         latest-looks/     # Latest looks products API
       site-content/       # Public site content reader
       webhooks/
-        worldpay/         # Worldpay server-to-server webhook
+        stripe/           # Stripe server-to-server webhook
       images/             # Public signed image proxy
     about/                # Editable About Us page
     account/              # User account management
@@ -114,7 +114,7 @@ src/
     rateLimit.ts          # In-memory rate limiter
     requireAdmin.ts       # Admin authorization
     types.ts              # Shared TypeScript types
-    worldpay.ts           # Worldpay XML API client + MAC verification
+    stripe.ts             # Stripe Checkout client + webhook signature verification
   models/                 # Mongoose models
     AuditLog.ts           # Security audit trail
     Order.ts              # Orders with payment fields
@@ -169,7 +169,8 @@ src/
 | `signatureDataUrl` | AES-256-GCM encrypted signature |
 | `paymentOption` | `pay_now` / `pay_deposit` / `pay_later` |
 | `paymentStatus` | `none` / `pending` / `paid` / `failed` / `refunded` |
-| `worldpayOrderCode` | Unique code for Worldpay transaction |
+| `stripeSessionId` | Checkout Session ID (matches the webhook event) |
+| `stripePaymentIntentId` | Payment Intent ID (for refund lookups) |
 
 ## Environment Variables
 
@@ -199,12 +200,11 @@ cp .env.example .env
 | `CLAIM_ADMIN_SECRET` | One-time secret for claiming admin access |
 
 ### Optional — Payments
-| Variable | Description |
-|----------|-------------|
-| `WORLDPAY_MERCHANT_CODE` | Worldpay merchant code |
-| `WORLDPAY_XML_PASSWORD` | Worldpay XML password |
-| `WORLDPAY_ENV` | `test` or `live` |
-| `WORLDPAY_MAC_SECRET` | Webhook MAC verification secret |
+
+| Variable                | Description                                              |
+|-------------------------|----------------------------------------------------------|
+| `STRIPE_SECRET_KEY`     | Stripe API secret key (`sk_test_...` or `sk_live_...`)   |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`)              |
 
 ## Local Development
 
@@ -248,7 +248,7 @@ The application has been through **4 comprehensive security audits** with all fi
 - **Path traversal**: Regex validation on image keys
 - **Price protection**: Prices hidden until wholesale account approved (admins always see prices)
 - **No enumeration**: Auth endpoints return identical responses for existing/non-existing accounts
-- **Payment security**: Worldpay webhook with MAC verification, domain validation, double-payment prevention
+- **Payment security**: Stripe webhook with signature verification, hosted checkout (no card data on our servers), double-payment prevention
 - **Auto cleanup**: Unverified accounts deleted after 24 hours
 
 ## Documentation

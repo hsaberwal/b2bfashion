@@ -18,7 +18,9 @@
       "Bash(git commit -m ' *)",
       "Bash(npx tsc *)",
       "Bash(echo \"Exit code: $?\")",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(npm view *)",
+      "Bash(git rm *)"
     ]
   }
 }

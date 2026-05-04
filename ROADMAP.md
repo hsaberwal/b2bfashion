@@ -15,7 +15,7 @@ Living document tracking upcoming features. Items move between phases as priorit
 - 🔜 **Cookie consent banner** (GDPR / PECR compliance)
 - 🔜 **Footer with company details** — registered office, company number, VAT number, social links
 - 🔜 **Newsletter signup** — for marketing
-- 🔜 **Trust badges** — Worldpay logo, SSL, "Made in UK", etc.
+- 🔜 **Trust badges** — "Powered by Stripe", SSL, "Made in UK", etc.
 
 ### Phase 2: B2B Sales Essentials
 
@@ -198,7 +198,7 @@ Customer signs order (3 packs)
   → If yes: packsReserved += 3
   → If no: reject with "Only X packs available"
 
-Order paid (Worldpay success)
+Order paid (Stripe success)
   → packsInStock -= 3
   → packsReserved -= 3
   → Net available stays the same, but physical stock is now lower

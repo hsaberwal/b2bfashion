@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Enforces CSRF token validation on all state-changing requests (POST, PATCH, DELETE)
  * to API routes, except for:
  * - Auth endpoints (login, register, OTP, password reset) — user may not have a CSRF token yet
- * - Worldpay webhook — server-to-server, no cookies
+ * - Payment provider webhooks (Stripe) — server-to-server, no cookies
  * - Chat endpoint — public, no state change to user data
  *
  * Uses the double-submit cookie pattern: the CSRF token in the cookie must match

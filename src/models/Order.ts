@@ -43,8 +43,8 @@ const orderSchema = new mongoose.Schema(
       default: "none",
     },
     amountPaid: Number,
-    worldpayOrderCode: String,
-    worldpayPaymentId: String,
+    stripeSessionId: String,
+    stripePaymentIntentId: String,
   },
   { timestamps: true }
 );

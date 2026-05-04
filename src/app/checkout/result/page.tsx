@@ -16,7 +16,8 @@ type PaymentResult = {
 function CheckoutResult() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
-  const worldpayStatus = searchParams.get("status");
+  const status = searchParams.get("status");
+  const sessionId = searchParams.get("session_id");
   const [result, setResult] = useState<PaymentResult | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,8 +27,12 @@ function CheckoutResult() {
       return;
     }
 
-    const url = worldpayStatus
-      ? `/api/orders/${orderId}/payment-status?worldpayStatus=${worldpayStatus}`
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (sessionId) params.set("session_id", sessionId);
+    const qs = params.toString();
+    const url = qs
+      ? `/api/orders/${orderId}/payment-status?${qs}`
       : `/api/orders/${orderId}/payment-status`;
 
     fetch(url)
@@ -38,7 +43,7 @@ function CheckoutResult() {
       })
       .catch(() => setResult(null))
       .finally(() => setLoading(false));
-  }, [orderId, worldpayStatus]);
+  }, [orderId, status, sessionId]);
 
   if (loading) {
     return (

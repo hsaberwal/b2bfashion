@@ -78,12 +78,12 @@ To place an order, you need a wholesale account:
 
 | Option | What happens |
 |--------|-------------|
-| **Pay in full** | Pay the full amount now by card (Worldpay) |
+| **Pay in full** | Pay the full amount now by card (Stripe) |
 | **Pay 10% deposit** | Pay 10% now, remaining 90% on delivery |
 | **Invoice (pay later)** | Order confirms immediately, invoice sent, pay on delivery |
 
 5. **Sign** your order by drawing in the signature box
-6. Click the payment button — redirected to Worldpay for card payments, or confirmation for invoice
+6. Click the payment button — redirected to Stripe Checkout for card payments, or confirmation for invoice
 
 ### After Ordering
 

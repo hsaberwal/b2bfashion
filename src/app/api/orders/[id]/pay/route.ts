@@ -5,12 +5,11 @@ import { Product } from "@/models/Product";
 import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
-import { createWorldpayOrder, isWorldpayConfigured } from "@/lib/worldpay";
+import { createCheckoutSession, isStripeConfigured } from "@/lib/stripe";
 import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { nanoid } from "nanoid";
 
 const bodySchema = z.object({
   paymentOption: z.enum(["pay_now", "pay_deposit", "pay_later"]),
@@ -71,7 +70,7 @@ export async function POST(
 
     const depositAmount = Math.round(orderTotal * 0.1 * 100) / 100;
 
-    // Handle pay_later (invoice) — no Worldpay needed
+    // pay_later (invoice) — no payment processor needed
     if (paymentOption === "pay_later") {
       order.paymentOption = "pay_later";
       order.paymentStatus = "none";
@@ -98,8 +97,8 @@ export async function POST(
       });
     }
 
-    // For pay_now and pay_deposit, redirect to Worldpay
-    if (!isWorldpayConfigured()) {
+    // pay_now and pay_deposit — Stripe Checkout
+    if (!isStripeConfigured()) {
       return NextResponse.json(
         { error: "Payment gateway is not configured. Contact support." },
         { status: 503 }
@@ -107,30 +106,31 @@ export async function POST(
     }
 
     const amountToCharge = paymentOption === "pay_deposit" ? depositAmount : orderTotal;
-    const orderCode = `CLB2B-${order._id.toString().slice(-8).toUpperCase()}-${nanoid(6)}`;
 
     const user = await User.findById(session.userId).select("email");
     const shopperEmail = user?.email ?? "customer@claudiab2b.com";
 
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-    let redirectUrl: string;
+    let session_url: string;
+    let stripeSessionId: string;
     try {
-      redirectUrl = await createWorldpayOrder({
-        orderCode,
+      const checkout = await createCheckoutSession({
+        orderId: id,
         description: paymentOption === "pay_deposit"
           ? `Claudia.C B2B — 10% Deposit (Order ${order._id.toString().slice(-8)})`
           : `Claudia.C B2B — Full Payment (Order ${order._id.toString().slice(-8)})`,
         amount: amountToCharge,
-        currencyCode: "GBP",
-        shopperEmail,
-        successUrl: `${baseUrl}/checkout/result?orderId=${id}&status=success`,
-        failureUrl: `${baseUrl}/checkout/result?orderId=${id}&status=failure`,
-        pendingUrl: `${baseUrl}/checkout/result?orderId=${id}&status=pending`,
+        currency: "GBP",
+        customerEmail: shopperEmail,
+        successUrl: `${baseUrl}/checkout/result?orderId=${id}&status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/checkout/result?orderId=${id}&status=cancelled`,
+        metadata: { paymentOption },
       });
-    } catch (wpErr) {
-      console.error("Worldpay error:", wpErr);
+      session_url = checkout.url;
+      stripeSessionId = checkout.id;
+    } catch (err) {
+      console.error("Stripe error:", err);
       return NextResponse.json(
         { error: "Online payment is currently unavailable. Please contact the office to place your order by phone." },
         { status: 503 }
@@ -140,7 +140,7 @@ export async function POST(
     // Save payment info to order
     order.paymentOption = paymentOption === "pay_deposit" ? "pay_deposit" : "pay_now";
     order.paymentStatus = "pending";
-    order.worldpayOrderCode = orderCode;
+    order.stripeSessionId = stripeSessionId;
     order.depositAmount = depositAmount;
     order.amountPaid = amountToCharge;
     await order.save();
@@ -151,14 +151,14 @@ export async function POST(
       targetType: "order",
       targetId: id,
       ip: getClientIp(request),
-      details: { paymentOption, amount: amountToCharge, orderCode },
+      details: { paymentOption, amount: amountToCharge, stripeSessionId },
     });
 
     return NextResponse.json({
       id: order._id.toString(),
       paymentOption,
       amountToCharge,
-      redirectUrl,
+      redirectUrl: session_url,
     });
   } catch (e) {
     console.error("Payment initiation error:", e);

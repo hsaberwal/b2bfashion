@@ -181,9 +181,9 @@ export default function SignOrderPage() {
         return;
       }
 
-      // Step 3: Redirect to Worldpay or confirmation
+      // Step 3: Redirect to Stripe Checkout or confirmation
       if (payData.redirectUrl) {
-        // Redirect to Worldpay hosted payment page
+        // Redirect to Stripe-hosted checkout
         window.location.href = payData.redirectUrl;
       } else {
         // Invoice / pay later — go to confirmation
@@ -370,7 +370,7 @@ export default function SignOrderPage() {
               <div>
                 <p className="text-sm font-medium text-je-black">Pay in full</p>
                 <p className="text-xs text-je-muted mt-0.5">
-                  Pay the full amount of £{orderTotal.toFixed(2)} now via Worldpay
+                  Pay the full amount of £{orderTotal.toFixed(2)} now via Stripe
                 </p>
               </div>
             </label>
