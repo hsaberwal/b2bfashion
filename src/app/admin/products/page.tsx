@@ -30,6 +30,7 @@ function InlineNumberEditor({
   format,
   step = 1,
   min = 0,
+  integer = false,
   prefix,
   suffix,
 }: {
@@ -38,6 +39,8 @@ function InlineNumberEditor({
   format: (v: number | undefined) => React.ReactNode;
   step?: number;
   min?: number;
+  /** When true, only whole numbers are accepted (reject "12.5" client-side). */
+  integer?: boolean;
   prefix?: string;
   suffix?: string;
 }) {
@@ -56,6 +59,10 @@ function InlineNumberEditor({
     const n = Number(draft);
     if (!Number.isFinite(n) || n < min) {
       setError(`Must be ≥ ${min}`);
+      return;
+    }
+    if (integer && !Number.isInteger(n)) {
+      setError("Whole number only");
       return;
     }
     setSaving(true);
@@ -144,7 +151,19 @@ export default function AdminProductsPage() {
       body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "Update failed");
+    if (!res.ok) {
+      // Surface Zod field errors so the inline editor shows what was wrong
+      // (e.g. "pricePerPiece: Expected number, received string") instead
+      // of just "Invalid input".
+      const fieldErrors = data?.details?.fieldErrors as Record<string, string[]> | undefined;
+      if (fieldErrors) {
+        const parts = Object.entries(fieldErrors)
+          .filter(([, msgs]) => msgs.length > 0)
+          .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`);
+        if (parts.length > 0) throw new Error(parts.join("; "));
+      }
+      throw new Error(data?.error ?? "Update failed");
+    }
     return data;
   }
 
@@ -467,6 +486,7 @@ export default function AdminProductsPage() {
                         <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Stock (packs)</div>
                         <InlineNumberEditor
                           value={p.packsInStock}
+                          integer
                           format={() => (
                             <span className={`font-medium ${stockColour}`}>
                               {avail} avail
@@ -587,6 +607,7 @@ export default function AdminProductsPage() {
                         <td className="p-3">
                           <InlineNumberEditor
                             value={p.packsInStock}
+                            integer
                             format={() => (
                               <span className={`font-medium ${stockColour}`}>
                                 {avail}

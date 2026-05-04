@@ -1,5 +1,5 @@
 // Service worker for PWA installability and caching
-const CACHE_NAME = "b2bfashion-v2";
+const CACHE_NAME = "b2bfashion-v3";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -45,11 +45,24 @@ self.addEventListener("fetch", (event) => {
   // Stale-while-revalidate for static assets (scripts, styles, images)
   event.respondWith(
     caches.match(request).then((cached) => {
-      const networkFetch = fetch(request).then((response) => {
-        if (response.status === 200)
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
-        return response;
-      });
+      const networkFetch = fetch(request)
+        .then((response) => {
+          // Clone synchronously, before anything starts consuming the body.
+          // Doing this inside a later promise chain is racy: if respondWith
+          // has already started reading the body, .clone() throws
+          // "Response body is already used".
+          if (response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
+          }
+          return response;
+        })
+        .catch((err) => {
+          // If we have a cached copy we already returned it; otherwise
+          // surface a generic error response so respondWith doesn't throw.
+          if (cached) return cached;
+          throw err;
+        });
 
       // Return cached immediately, update in background
       return cached || networkFetch;

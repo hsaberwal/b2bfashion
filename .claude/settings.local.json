@@ -23,7 +23,8 @@
       "Bash(git rm *)",
       "Bash(npm test *)",
       "Bash(echo \"tsc-exit: $?\")",
-      "Bash(echo \"lint-exit: $?\")"
+      "Bash(echo \"lint-exit: $?\")",
+      "Bash(echo \"test-exit: $?\")"
     ]
   }
 }
