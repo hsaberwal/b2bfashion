@@ -86,41 +86,72 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Image service client not available" }, { status: 503 });
       }
       const blobKey = `${getProductBlobKeyPrefix()}${nanoid(12)}.${ext}`;
-      const res = await client.put(blobKey, buffer);
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Image service PUT failed:", res.status, text);
-        return NextResponse.json({ error: "Upload to image service failed" }, { status: 502 });
+      try {
+        const res = await client.put(blobKey, buffer);
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          console.error("Image service PUT failed:", res.status, text);
+          return NextResponse.json(
+            { error: `Image service rejected upload (${res.status})${text ? ": " + text.slice(0, 200) : ""}` },
+            { status: 502 }
+          );
+        }
+      } catch (putErr) {
+        const msg = (putErr as Error)?.message ?? "unknown error";
+        console.error("Image service PUT threw:", putErr);
+        return NextResponse.json(
+          { error: `Image service unavailable: ${msg.slice(0, 200)}` },
+          { status: 502 }
+        );
       }
       return NextResponse.json({ url: blobKey });
     }
 
     // 2) Railway Volume
     if (volumePath) {
-      const filename = `${nanoid(12)}.${ext}`;
-      const dir = path.join(volumePath, "uploads");
-      await mkdir(dir, { recursive: true });
-      const filePath = path.join(dir, filename);
-      await writeFile(filePath, buffer);
-      return NextResponse.json({ url: `/api/uploads/${filename}` });
+      try {
+        const filename = `${nanoid(12)}.${ext}`;
+        const dir = path.join(volumePath, "uploads");
+        await mkdir(dir, { recursive: true });
+        const filePath = path.join(dir, filename);
+        await writeFile(filePath, buffer);
+        return NextResponse.json({ url: `/api/uploads/${filename}` });
+      } catch (fsErr) {
+        const msg = (fsErr as Error)?.message ?? "unknown error";
+        console.error("Volume write failed:", fsErr);
+        return NextResponse.json(
+          { error: `Could not write to upload volume: ${msg.slice(0, 200)}` },
+          { status: 500 }
+        );
+      }
     }
 
     // 3) Cloudinary
-    cloudinary.config({ cloud_name: cloudName!, api_key: apiKey!, api_secret: apiSecret! });
-    const base64 = `data:${file.type};base64,${buffer.toString("base64")}`;
-    const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
-      cloudinary.uploader.upload(base64, { resource_type: "image" }, (err, res) => {
-        if (err) reject(err);
-        else if (res?.secure_url) resolve({ secure_url: res.secure_url });
-        else reject(new Error("Upload failed"));
+    try {
+      cloudinary.config({ cloud_name: cloudName!, api_key: apiKey!, api_secret: apiSecret! });
+      const base64 = `data:${file.type};base64,${buffer.toString("base64")}`;
+      const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+        cloudinary.uploader.upload(base64, { resource_type: "image" }, (err, res) => {
+          if (err) reject(err);
+          else if (res?.secure_url) resolve({ secure_url: res.secure_url });
+          else reject(new Error("Cloudinary returned no URL"));
+        });
       });
-    });
-    return NextResponse.json({ url: result.secure_url });
+      return NextResponse.json({ url: result.secure_url });
+    } catch (cloudErr) {
+      const msg = (cloudErr as Error)?.message ?? "unknown error";
+      console.error("Cloudinary upload failed:", cloudErr);
+      return NextResponse.json(
+        { error: `Cloudinary upload failed: ${msg.slice(0, 200)}` },
+        { status: 502 }
+      );
+    }
   } catch (e) {
     const err = e as Error & { status?: number };
     if (err.status === 401) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (err.status === 403) return NextResponse.json({ error: "Forbidden: admin only" }, { status: 403 });
     console.error("Upload error:", e);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    const msg = err?.message ?? "unknown error";
+    return NextResponse.json({ error: `Upload failed: ${msg.slice(0, 200)}` }, { status: 500 });
   }
 }

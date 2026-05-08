@@ -187,15 +187,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2">
               <Link
                 href="/"
-                className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 px-2.5 sm:px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50"
                 target="_blank"
+                aria-label="View store"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
                   <polyline points="15 3 21 3 21 9" />
                   <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
-                View store
+                <span className="hidden sm:inline">View store</span>
               </Link>
               <div className="w-8 h-8 rounded-full bg-gray-900 text-white text-sm flex items-center justify-center font-semibold">
                 {initials}
