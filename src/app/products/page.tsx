@@ -28,15 +28,13 @@ const SCROLL_KEY = "shop-all:last-product-id";
 function ProductsPageContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") ?? "";
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [stockFilter, setStockFilter] = useState<string>("current");
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory);
   const [colourFilter, setColourFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string; canViewForwardStock?: boolean; canViewCurrentStock?: boolean; canViewPreviousStock?: boolean } | null>(null);
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
-  const [availableColours, setAvailableColours] = useState<string[]>([]);
   const restoredRef = useRef(false);
 
   useEffect(() => {
@@ -54,46 +52,67 @@ function ProductsPageContent() {
     }
   }, [user, stockFilter]);
 
+  // Fetch the catalogue once per Stock section. Category/colour/search are
+  // applied client-side so the facet dropdowns can cross-narrow.
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (stockFilter && stockFilter !== "all") params.set("stockCategory", stockFilter);
     else if (stockFilter === "all") params.set("stockCategory", "all");
-    if (categoryFilter) params.set("category", categoryFilter);
-    if (colourFilter) params.set("colour", colourFilter);
-    if (searchQuery.trim()) params.set("search", searchQuery.trim());
     fetch(`/api/products?${params}`)
       .then((r) => {
         if (r.status === 403) return r.json().then((d) => Promise.reject(new Error(d.error)));
         return r.json();
       })
-      .then((d) => setProducts(d.products ?? []))
+      .then((d) => setAllProducts(d.products ?? []))
       .catch((e) => {
         console.error(e);
-        setProducts([]);
+        setAllProducts([]);
       })
       .finally(() => setLoading(false));
-  }, [stockFilter, categoryFilter, colourFilter, searchQuery]);
-
-  // Populate filter facets from the unfiltered (per stock section) catalogue so
-  // dropdown options reflect what's actually in the DB and remain stable while
-  // the user is filtering.
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (stockFilter && stockFilter !== "all") params.set("stockCategory", stockFilter);
-    else if (stockFilter === "all") params.set("stockCategory", "all");
-    fetch(`/api/products?${params}`)
-      .then((r) => (r.ok ? r.json() : { products: [] }))
-      .then((d) => {
-        const list = (d.products ?? []) as Product[];
-        setAvailableCategories(Array.from(new Set(list.map((p) => p.category).filter(Boolean))).sort());
-        setAvailableColours(Array.from(new Set(list.map((p) => p.colour).filter(Boolean))).sort());
-      })
-      .catch(() => {
-        setAvailableCategories([]);
-        setAvailableColours([]);
-      });
   }, [stockFilter]);
+
+  function matchesSearch(p: Product, q: string) {
+    if (!q) return true;
+    const needle = q.toLowerCase();
+    return p.sku.toLowerCase().includes(needle) || p.name.toLowerCase().includes(needle);
+  }
+
+  const trimmedSearch = searchQuery.trim();
+  const products = allProducts.filter(
+    (p) =>
+      (!categoryFilter || p.category === categoryFilter) &&
+      (!colourFilter || p.colour === colourFilter) &&
+      matchesSearch(p, trimmedSearch)
+  );
+
+  // Cross-narrowed facets: each dropdown reflects what's actually pickable
+  // given the OTHER active filters.
+  const categories = Array.from(
+    new Set(
+      allProducts
+        .filter((p) => (!colourFilter || p.colour === colourFilter) && matchesSearch(p, trimmedSearch))
+        .map((p) => p.category)
+        .filter(Boolean)
+    )
+  ).sort();
+  const colours = Array.from(
+    new Set(
+      allProducts
+        .filter((p) => (!categoryFilter || p.category === categoryFilter) && matchesSearch(p, trimmedSearch))
+        .map((p) => p.colour)
+        .filter(Boolean)
+    )
+  ).sort();
+
+  // Keep an active selection visible in its dropdown even if it has been
+  // narrowed out by the other filters (so the user can see and change it).
+  const categoryOptions = categoryFilter && !categories.includes(categoryFilter)
+    ? [...categories, categoryFilter].sort()
+    : categories;
+  const colourOptions = colourFilter && !colours.includes(colourFilter)
+    ? [...colours, colourFilter].sort()
+    : colours;
 
   // Restore scroll to last clicked product after the grid renders
   useEffect(() => {
@@ -107,15 +126,6 @@ function ProductsPageContent() {
       sessionStorage.removeItem(SCROLL_KEY);
     }
   }, [loading, products]);
-
-  // Ensure the currently selected values are present in the dropdowns even if
-  // they aren't in the latest facet list (e.g. a deep-linked category).
-  const categories = categoryFilter && !availableCategories.includes(categoryFilter)
-    ? [...availableCategories, categoryFilter].sort()
-    : availableCategories;
-  const colours = colourFilter && !availableColours.includes(colourFilter)
-    ? [...availableColours, colourFilter].sort()
-    : availableColours;
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-je-cream">
@@ -213,7 +223,7 @@ function ProductsPageContent() {
               className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
             >
               <option value="">All</option>
-              {categories.map((c) => (
+              {categoryOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
@@ -228,7 +238,7 @@ function ProductsPageContent() {
               className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
             >
               <option value="">All</option>
-              {colours.map((c) => (
+              {colourOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
