@@ -194,7 +194,12 @@ export default function AdminUsersPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-je-black truncate">{u.email}</span>
+                      <Link
+                        href={`/admin/users/${u.id}`}
+                        className="text-sm font-medium text-je-black truncate hover:underline"
+                      >
+                        {u.email}
+                      </Link>
                       {u.role === "admin" && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">Admin</span>
                       )}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getGuestCart, setGuestCart, clearGuestCart, dispatchCartUpdated, type GuestCartItem } from "@/lib/guestCart";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
+import { STATUS_LABEL, FULFILMENT_STEPS, type OrderStatus } from "@/lib/orderStatus";
 
 type OrderItem = {
   productId: string;
@@ -384,14 +385,8 @@ export default function CartPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-3">
-                            <span
-                              className={`text-xs font-semibold uppercase tracking-wider ${
-                                order.status === "signed" || order.status === "confirmed"
-                                  ? "text-green-700"
-                                  : "text-je-muted"
-                              }`}
-                            >
-                              {order.status}
+                            <span className="text-xs font-semibold uppercase tracking-wider text-je-charcoal">
+                              {STATUS_LABEL[order.status as OrderStatus] ?? order.status}
                             </span>
                             <svg
                               width="12"
@@ -408,7 +403,10 @@ export default function CartPage() {
                         </button>
                         {isOpen && (
                           <div className="border-t border-je-border p-4">
-                            <ul className="space-y-1 text-sm text-je-charcoal">
+                            {/* Fulfilment progress */}
+                            <FulfilmentProgress status={order.status as OrderStatus} />
+
+                            <ul className="space-y-1 text-sm text-je-charcoal mt-4">
                               {order.items.map((item) => (
                                 <li key={`${item.productId}:${item.size ?? ""}`}>
                                   {item.sku}
@@ -438,5 +436,40 @@ export default function CartPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function FulfilmentProgress({ status }: { status: OrderStatus }) {
+  if (status === "cancelled") {
+    return (
+      <p className="text-xs uppercase tracking-widest text-red-600 font-semibold">
+        Cancelled
+      </p>
+    );
+  }
+  const currentIdx = FULFILMENT_STEPS.indexOf(status);
+  return (
+    <ol className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] uppercase tracking-widest">
+      {FULFILMENT_STEPS.map((step, i) => {
+        const done = i <= currentIdx && currentIdx !== -1;
+        const isCurrent = i === currentIdx;
+        return (
+          <li
+            key={step}
+            className={`flex items-center gap-1.5 ${
+              isCurrent ? "text-je-black font-semibold" : done ? "text-je-charcoal" : "text-je-muted"
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                done ? "bg-je-black" : "bg-je-border"
+              }`}
+              aria-hidden="true"
+            />
+            {STATUS_LABEL[step]}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

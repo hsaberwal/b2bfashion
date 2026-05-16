@@ -28,9 +28,24 @@ const orderSchema = new mongoose.Schema(
     items: [orderItemSchema],
     status: {
       type: String,
-      enum: ["pending", "signed", "confirmed", "cancelled"],
+      enum: [
+        "pending",        // open cart, not yet signed
+        "signed",         // signed, awaiting payment / acceptance on credit
+        "confirmed",      // paid (in full or deposit) or accepted on credit
+        "picked",         // admin has pulled the items
+        "ready_to_ship",  // packed and waiting on the courier
+        "shipped",        // handed to courier
+        "delivered",      // arrived with the customer
+        "cancelled",
+      ],
       default: "pending",
     },
+    pickedAt: Date,
+    readyAt: Date,
+    shippedAt: Date,
+    deliveredAt: Date,
+    shippingCarrier: String,
+    shippingTrackingNumber: String,
     signatureDataUrl: String,
     signedAt: Date,
     deliverySnapshot: deliverySnapshotSchema,

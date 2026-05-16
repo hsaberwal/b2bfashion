@@ -8,6 +8,7 @@ import { getSessionToken } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
 import { encrypt } from "@/lib/encrypt";
+import { sendNewOrderEmail } from "@/lib/adminNotifications";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -166,6 +167,22 @@ export async function POST(
       if (deliverySnapshot.companyName !== undefined) user.companyName = deliverySnapshot.companyName;
       await user.save();
     }
+
+    // Fire-and-forget: notify admins via email. We don't block the response
+    // on the email round-trip and we swallow errors inside sendNewOrderEmail
+    // so a Resend hiccup never breaks the customer's sign action.
+    sendNewOrderEmail({
+      orderId: order._id.toString(),
+      orderShortCode: order._id.toString().slice(-8),
+      customerName: user?.name,
+      customerCompany: user?.companyName,
+      customerEmail: user?.email,
+      total: orderTotal,
+      paymentOption: order.paymentOption ?? "pay_later",
+      paymentStatus: order.paymentStatus ?? "none",
+      itemCount: order.items.length,
+      signedAt: order.signedAt,
+    }).catch((err) => console.error("sendNewOrderEmail failed:", err));
 
     return NextResponse.json({
       id: order._id.toString(),

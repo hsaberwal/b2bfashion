@@ -3,11 +3,17 @@ import { requireAdmin } from "@/lib/requireAdmin";
 import { connectDB } from "@/lib/mongodb";
 import { Product } from "@/models/Product";
 import { User } from "@/models/User";
+import { Order } from "@/models/Order";
+import { Payment } from "@/models/Payment";
+import { calculateOrderTotal, sumPayments, calculateOutstanding } from "@/lib/pricing";
 
 export async function GET() {
   try {
     await requireAdmin();
     await connectDB();
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
 
     const [
       totalProducts,
@@ -16,6 +22,8 @@ export async function GET() {
       pendingPricing,
       unverified,
       lowStockProducts,
+      newTodayOrders,
+      activeOrders,
     ] = await Promise.all([
       Product.countDocuments({}),
       Product.countDocuments({ disabled: true }),
@@ -35,7 +43,36 @@ export async function GET() {
         .sort({ packsInStock: 1 })
         .limit(8)
         .lean(),
+      Order.countDocuments({ signedAt: { $gte: startOfToday }, status: { $ne: "pending" } }),
+      Order.find({ status: { $in: ["signed", "confirmed", "picked", "ready_to_ship", "shipped"] } })
+        .select("items")
+        .lean(),
     ]);
+
+    const activeOrderIds = activeOrders.map((o) => (o as unknown as { _id: unknown })._id);
+    const payments = activeOrderIds.length
+      ? await Payment.find({ orderId: { $in: activeOrderIds } }).select("orderId amount refunded").lean()
+      : [];
+    const paymentsByOrder = new Map<string, { amount: number; refunded?: boolean }[]>();
+    for (const p of payments) {
+      const key = String((p as unknown as { orderId: unknown }).orderId);
+      const arr = paymentsByOrder.get(key) ?? [];
+      arr.push({ amount: (p as unknown as { amount: number }).amount, refunded: (p as unknown as { refunded?: boolean }).refunded });
+      paymentsByOrder.set(key, arr);
+    }
+    let outstandingTotal = 0;
+    let outstandingOrders = 0;
+    for (const o of activeOrders) {
+      const oid = String((o as unknown as { _id: unknown })._id);
+      const items = (o as unknown as { items?: { pricePerPiece?: number; pricePerPack?: number; quantity: number }[] }).items ?? [];
+      const total = calculateOrderTotal(items);
+      const paid = sumPayments(paymentsByOrder.get(oid) ?? []);
+      const out = calculateOutstanding(total, paid);
+      if (out > 0) {
+        outstandingTotal += out;
+        outstandingOrders += 1;
+      }
+    }
 
     return NextResponse.json({
       products: {
@@ -62,6 +99,11 @@ export async function GET() {
             available: Math.max(0, inStock - reserved),
           };
         }),
+      },
+      orders: {
+        newToday: newTodayOrders,
+        outstandingOrders,
+        outstandingTotal: Math.round(outstandingTotal * 100) / 100,
       },
     });
   } catch (e) {

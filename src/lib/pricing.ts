@@ -47,3 +47,26 @@ export function calculatePackPrice(
   if (!Number.isFinite(itemsPerPack) || itemsPerPack <= 0) return null;
   return pricePerPiece * itemsPerPack;
 }
+
+export type PaymentRecord = { amount: number; refunded?: boolean };
+
+/**
+ * Sum of non-refunded payments for an order. Rounded to whole pence to
+ * avoid floating-point drift when comparing against an order total.
+ */
+export function sumPayments(payments: PaymentRecord[]): number {
+  const raw = payments
+    .filter((p) => !p.refunded)
+    .reduce((sum, p) => sum + (p.amount ?? 0), 0);
+  return Math.round(raw * 100) / 100;
+}
+
+/**
+ * Remaining balance on an order. Clamped at zero (never negative) so
+ * over-payment doesn't display as "minus £x outstanding" — refunds
+ * should be tracked separately.
+ */
+export function calculateOutstanding(orderTotal: number, paid: number): number {
+  const diff = Math.round((orderTotal - paid) * 100) / 100;
+  return diff > 0 ? diff : 0;
+}

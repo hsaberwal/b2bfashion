@@ -11,6 +11,11 @@ type Stats = {
     count: number;
     items: { id: string; sku: string; name: string; image?: string; category: string; available: number }[];
   };
+  orders?: {
+    newToday: number;
+    outstandingOrders: number;
+    outstandingTotal: number;
+  };
 };
 
 export default function AdminDashboardPage() {
@@ -34,8 +39,57 @@ export default function AdminDashboardPage() {
           <p className="text-sm text-gray-500 mt-1">Overview of your store today.</p>
         </div>
 
+        {/* New orders banner */}
+        {!loading && stats?.orders && stats.orders.newToday > 0 && (
+          <Link
+            href="/admin/orders"
+            className="mb-4 md:mb-6 flex items-center justify-between gap-3 p-4 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
+                {stats.orders.newToday}
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">
+                  {stats.orders.newToday} new order{stats.orders.newToday === 1 ? "" : "s"} today
+                </p>
+                <p className="text-xs text-blue-800">View, pick, and print.</p>
+              </div>
+            </div>
+            <span className="text-blue-700 text-sm font-medium">Open Orders →</span>
+          </Link>
+        )}
+
+        {/* Outstanding balance banner */}
+        {!loading && stats?.orders && stats.orders.outstandingOrders > 0 && (
+          <Link
+            href="/admin/orders?filter=outstanding"
+            className="mb-4 md:mb-6 flex items-center justify-between gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-sm font-semibold">
+                £
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-amber-900">
+                  £{stats.orders.outstandingTotal.toFixed(2)} outstanding across {stats.orders.outstandingOrders} order{stats.orders.outstandingOrders === 1 ? "" : "s"}
+                </p>
+                <p className="text-xs text-amber-800">Record payments to close balances.</p>
+              </div>
+            </div>
+            <span className="text-amber-700 text-sm font-medium">Open Orders →</span>
+          </Link>
+        )}
+
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+          <StatCard
+            label="Orders today"
+            value={loading ? "—" : String(stats?.orders?.newToday ?? 0)}
+            sub={loading ? "" : `${stats?.orders?.outstandingOrders ?? 0} outstanding`}
+            href="/admin/orders"
+            tone={(stats?.orders?.newToday ?? 0) > 0 ? "warn" : "default"}
+          />
           <StatCard
             label="Active products"
             value={loading ? "—" : String(stats?.products.active ?? 0)}

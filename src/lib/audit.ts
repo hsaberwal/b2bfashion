@@ -23,8 +23,10 @@ export type AuditAction =
   | "product_updated"
   | "product_deleted"
   | "order_signed"
+  | "order_status_changed"
   | "payment_initiated"
   | "payment_completed"
+  | "payment_recorded"
   | "payment_failed"
   | "admin_action";
 

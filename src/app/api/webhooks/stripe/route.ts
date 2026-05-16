@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { Payment } from "@/models/Payment";
 import { Product } from "@/models/Product";
 import { constructWebhookEvent } from "@/lib/stripe";
 import { audit } from "@/lib/audit";
@@ -59,6 +60,29 @@ export async function POST(request: NextRequest) {
           order.depositPaid = true;
         }
         await order.save();
+
+        // Record the captured amount as a Payment row (idempotent on
+        // stripePaymentIntentId so webhook replays don't double-count).
+        const captured = typeof session.amount_total === "number"
+          ? session.amount_total / 100
+          : (order.amountPaid ?? 0);
+        const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : undefined;
+        await Payment.updateOne(
+          paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : { _id: new (await import("mongoose")).default.Types.ObjectId() },
+          {
+            $setOnInsert: {
+              orderId: order._id,
+              userId: order.userId,
+              amount: captured,
+              currency: (session.currency ?? "gbp").toUpperCase(),
+              method: "stripe",
+              stripePaymentIntentId: paymentIntentId,
+              reference: session.id,
+              note: order.paymentOption === "pay_deposit" ? "10% deposit (Stripe)" : "Full payment (Stripe)",
+            },
+          },
+          { upsert: true }
+        );
 
         // Consume reserved stock (move from reserved to sold)
         const items = (order.items ?? []) as { productId: unknown; quantity: number; packSize?: number }[];

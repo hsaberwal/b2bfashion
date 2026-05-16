@@ -1,0 +1,104 @@
+/**
+ * Outbound email notifications for the admin team. Uses the existing
+ * Resend integration. ADMIN_NOTIFICATION_EMAILS env var holds a
+ * comma-separated list of recipient addresses; falls back to a single
+ * admin user lookup if not set.
+ */
+
+import { Resend } from "resend";
+import { connectDB } from "@/lib/mongodb";
+import { User } from "@/models/User";
+
+type NewOrderEmail = {
+  orderId: string;
+  orderShortCode: string;
+  customerName?: string;
+  customerCompany?: string;
+  customerEmail?: string;
+  total: number;
+  paymentOption: string;
+  paymentStatus: string;
+  itemCount: number;
+  signedAt: Date;
+};
+
+async function getRecipients(): Promise<string[]> {
+  const fromEnv = (process.env.ADMIN_NOTIFICATION_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (fromEnv.length > 0) return fromEnv;
+  try {
+    await connectDB();
+    const admins = await User.find({ role: "admin" }).select("email").lean();
+    return admins.map((a) => (a as unknown as { email: string }).email).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function formatGBP(n: number) {
+  return `£${n.toFixed(2)}`;
+}
+
+function paymentLabel(option: string, status: string): string {
+  if (option === "pay_now") return status === "paid" ? "Paid in full" : "Pay in full (awaiting Stripe)";
+  if (option === "pay_deposit") return status === "paid" ? "10% deposit paid" : "10% deposit (awaiting Stripe)";
+  if (option === "pay_later") return "On credit (invoice)";
+  return option;
+}
+
+export async function sendNewOrderEmail(data: NewOrderEmail): Promise<void> {
+  const apiKey = process.env.EMAIL_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!apiKey || !from) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[new-order email skipped — EMAIL_API_KEY or EMAIL_FROM missing]", data);
+    }
+    return;
+  }
+
+  const recipients = await getRecipients();
+  if (recipients.length === 0) {
+    console.warn("[new-order email] no admin recipients configured");
+    return;
+  }
+
+  const baseUrl = process.env.NEXTAUTH_URL ?? "https://claudia-c.com";
+  const orderUrl = `${baseUrl}/admin/orders/${data.orderId}`;
+
+  const customer = [data.customerName, data.customerCompany].filter(Boolean).join(" · ") || data.customerEmail || "Customer";
+
+  const subject = `New order ${data.orderShortCode} — ${formatGBP(data.total)} — ${customer}`;
+
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 560px;">
+      <h2 style="margin: 0 0 8px;">New order signed</h2>
+      <p style="color: #555; margin: 0 0 16px;">A customer just signed an order on Claudia.C B2B.</p>
+      <table style="border-collapse: collapse; width: 100%;">
+        <tr><td style="padding: 4px 0; color: #888;">Order</td><td style="padding: 4px 0;"><strong>${data.orderShortCode}</strong></td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Customer</td><td style="padding: 4px 0;">${customer}</td></tr>
+        ${data.customerEmail ? `<tr><td style="padding: 4px 0; color: #888;">Email</td><td style="padding: 4px 0;">${data.customerEmail}</td></tr>` : ""}
+        <tr><td style="padding: 4px 0; color: #888;">Items</td><td style="padding: 4px 0;">${data.itemCount}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Total</td><td style="padding: 4px 0;"><strong>${formatGBP(data.total)}</strong></td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Payment</td><td style="padding: 4px 0;">${paymentLabel(data.paymentOption, data.paymentStatus)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Signed</td><td style="padding: 4px 0;">${data.signedAt.toLocaleString("en-GB")}</td></tr>
+      </table>
+      <p style="margin-top: 20px;">
+        <a href="${orderUrl}" style="display: inline-block; background: #111; color: #fff; padding: 10px 16px; text-decoration: none; border-radius: 4px;">View order</a>
+      </p>
+    </div>
+  `;
+
+  try {
+    const resend = new Resend(apiKey);
+    await resend.emails.send({
+      from,
+      to: recipients,
+      subject,
+      html,
+    });
+  } catch (err) {
+    console.error("[new-order email] send failed:", err);
+  }
+}
