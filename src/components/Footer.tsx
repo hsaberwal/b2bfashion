@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { NewsletterSignup } from "./NewsletterSignup";
+import { TrustBadges } from "./TrustBadges";
+import { openCookieSettings } from "./CookieConsent";
 
 type FooterContent = {
   brandName: string;
@@ -73,9 +76,9 @@ export function Footer() {
   return (
     <footer className="bg-je-black text-white mt-20">
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10">
           {/* Brand */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-4">
             <p className="font-serif text-2xl mb-3">{c.brandName}</p>
             <p className="text-white/60 text-sm leading-relaxed max-w-md">
               {c.tagline}
@@ -83,7 +86,7 @@ export function Footer() {
           </div>
 
           {/* Shop */}
-          <div>
+          <div className="md:col-span-2">
             <p className="text-[11px] uppercase tracking-widest font-semibold text-white/80 mb-4">
               Shop
             </p>
@@ -107,7 +110,7 @@ export function Footer() {
           </div>
 
           {/* Legal */}
-          <div>
+          <div className="md:col-span-2">
             <p className="text-[11px] uppercase tracking-widest font-semibold text-white/80 mb-4">
               Legal
             </p>
@@ -134,6 +137,16 @@ export function Footer() {
               </li>
             </ul>
           </div>
+
+          {/* Newsletter */}
+          <div className="md:col-span-4">
+            <NewsletterSignup />
+          </div>
+        </div>
+
+        {/* Trust badges */}
+        <div className="mt-10 pt-6 border-t border-white/10">
+          <TrustBadges variant="footer" />
         </div>
 
         {/* Contact + company details */}
@@ -180,14 +193,23 @@ export function Footer() {
           <p className="text-xs text-white/40">
             &copy; {year} {c.legalName}. All rights reserved.
           </p>
-          {isAdmin && !editing && (
+          <div className="flex items-center gap-4">
             <button
-              onClick={() => setEditing(true)}
+              type="button"
+              onClick={openCookieSettings}
               className="text-[11px] uppercase tracking-widest text-white/40 hover:text-white transition-colors font-medium"
             >
-              Edit Footer
+              Cookie settings
             </button>
-          )}
+            {isAdmin && !editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-[11px] uppercase tracking-widest text-white/40 hover:text-white transition-colors font-medium"
+              >
+                Edit Footer
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Admin editor (inline, expanded) */}

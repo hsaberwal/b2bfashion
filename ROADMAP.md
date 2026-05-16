@@ -6,16 +6,16 @@ Living document tracking upcoming features. Items move between phases as priorit
 
 ## Priority Order
 
-### Phase 1: Foundation — Make the site discoverable, legal, and stocked
+### Phase 1: Foundation — Make the site discoverable, legal, and stocked ✅
 
 - ✅ **SEO foundation** — sitemap, robots, JSON-LD, per-page metadata, breadcrumbs, OG/Twitter tags
 - ✅ **Bulk product import (Excel)** — upload .xlsx, parse size scale, create/update products by SKU+colour
 - ✅ **Stock tracking & reservation** — atomic reserve on sign, consume on pay, release on cancel/failure
-- 🔜 **Legal pages** — Privacy Policy, Terms & Conditions, Returns Policy, Shipping Policy, Wholesale Terms
-- 🔜 **Cookie consent banner** (GDPR / PECR compliance)
-- 🔜 **Footer with company details** — registered office, company number, VAT number, social links
-- 🔜 **Newsletter signup** — for marketing
-- 🔜 **Trust badges** — "Powered by Stripe", SSL, "Made in UK", etc.
+- ✅ **Legal pages** — Privacy Policy, Terms & Conditions, Returns Policy, Shipping Policy
+- ✅ **Cookie consent banner** (GDPR / PECR compliance) — accept / reject optional, reopenable from footer
+- ✅ **Footer with company details** — registered office, company number, VAT number, admin-editable
+- ✅ **Newsletter signup** — footer form, stored in `NewsletterSubscriber` collection (export later via admin)
+- ✅ **Trust badges** — Stripe-secure checkout, 256-bit SSL, UK supplier, GDPR compliant
 
 ### Phase 2: B2B Sales Essentials
 

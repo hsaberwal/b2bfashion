@@ -7,6 +7,7 @@ import { SiteChrome } from "@/components/SiteChrome";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { CsrfProvider } from "@/components/CsrfProvider";
 import { OrganizationJsonLd } from "@/components/OrganizationJsonLd";
+import { CookieConsent } from "@/components/CookieConsent";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -113,6 +114,7 @@ export default function RootLayout({
         <CsrfProvider />
         <SiteChrome>{children}</SiteChrome>
         <InstallPrompt />
+        <CookieConsent />
       </body>
     </html>
   );
