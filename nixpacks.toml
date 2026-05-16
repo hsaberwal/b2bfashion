@@ -3,7 +3,11 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm ci"]
+# Use `npm install` rather than `npm ci`: vitest 4 pulls an optional
+# wasm32-only rolldown binding whose sub-deps (@emnapi/*) aren't recorded
+# by npm 10 when the lockfile is generated on a non-Linux host, which
+# breaks `npm ci`'s strict-lockfile check on Railway's Linux builder.
+cmds = ["npm install --no-audit --no-fund"]
 
 [phases.build]
 cmds = ["npm run build"]
