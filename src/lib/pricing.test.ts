@@ -3,6 +3,8 @@ import {
   calculateOrderTotal,
   calculateDeposit,
   calculatePackPrice,
+  sumPayments,
+  calculateOutstanding,
 } from "./pricing";
 
 describe("calculateOrderTotal", () => {
@@ -77,5 +79,66 @@ describe("calculatePackPrice", () => {
     expect(calculatePackPrice(10, undefined)).toBeNull();
     expect(calculatePackPrice(10, 0)).toBeNull();
     expect(calculatePackPrice(10, -1)).toBeNull();
+  });
+});
+
+describe("sumPayments", () => {
+  it("sums non-refunded payments", () => {
+    expect(
+      sumPayments([
+        { amount: 10 },
+        { amount: 20 },
+        { amount: 5 },
+      ]),
+    ).toBe(35);
+  });
+
+  it("ignores refunded payments", () => {
+    expect(
+      sumPayments([
+        { amount: 10, refunded: false },
+        { amount: 20, refunded: true },
+        { amount: 5 },
+      ]),
+    ).toBe(15);
+  });
+
+  it("rounds to whole pence to avoid floating-point drift", () => {
+    // 0.1 + 0.2 = 0.30000000000000004 in IEEE 754
+    expect(sumPayments([{ amount: 0.1 }, { amount: 0.2 }])).toBe(0.3);
+  });
+
+  it("returns zero for an empty list", () => {
+    expect(sumPayments([])).toBe(0);
+  });
+
+  it("treats missing amount as zero (defensive against bad rows)", () => {
+    expect(
+      sumPayments([{} as { amount: number }, { amount: 5 }]),
+    ).toBe(5);
+  });
+});
+
+describe("calculateOutstanding", () => {
+  it("returns total minus paid when positive", () => {
+    expect(calculateOutstanding(100, 30)).toBe(70);
+  });
+
+  it("clamps overpayment to zero (never negative)", () => {
+    expect(calculateOutstanding(100, 120)).toBe(0);
+  });
+
+  it("returns zero when fully paid", () => {
+    expect(calculateOutstanding(50, 50)).toBe(0);
+  });
+
+  it("rounds to whole pence to avoid floating-point dust", () => {
+    // 100.10 - 0.10 → exactly 100 (no 99.99999...)
+    expect(calculateOutstanding(100.1, 0.1)).toBe(100);
+  });
+
+  it("treats zero total as zero outstanding regardless of payments", () => {
+    expect(calculateOutstanding(0, 0)).toBe(0);
+    expect(calculateOutstanding(0, 5)).toBe(0);
   });
 });

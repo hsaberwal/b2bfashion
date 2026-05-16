@@ -1,10 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 // Mock all the data dependencies at the module-resolution boundary.
-const { mockProductCount, mockProductFind, mockUserCount, mockRequireAdmin, mockConnectDB } = vi.hoisted(() => ({
+const {
+  mockProductCount,
+  mockProductFind,
+  mockUserCount,
+  mockOrderCount,
+  mockOrderFind,
+  mockPaymentFind,
+  mockRequireAdmin,
+  mockConnectDB,
+} = vi.hoisted(() => ({
   mockProductCount: vi.fn(),
   mockProductFind: vi.fn(),
   mockUserCount: vi.fn(),
+  mockOrderCount: vi.fn(),
+  mockOrderFind: vi.fn(),
+  mockPaymentFind: vi.fn(),
   mockRequireAdmin: vi.fn(),
   mockConnectDB: vi.fn(),
 }));
@@ -22,11 +34,25 @@ vi.mock("@/models/User", () => ({
     countDocuments: mockUserCount,
   },
 }));
+vi.mock("@/models/Order", () => ({
+  Order: {
+    countDocuments: mockOrderCount,
+    find: mockOrderFind,
+  },
+}));
+vi.mock("@/models/Payment", () => ({
+  Payment: {
+    find: mockPaymentFind,
+  },
+}));
 
 beforeEach(() => {
   mockProductCount.mockReset();
   mockProductFind.mockReset();
   mockUserCount.mockReset();
+  mockOrderCount.mockReset().mockResolvedValue(0);
+  mockOrderFind.mockReset().mockReturnValue({ select: () => ({ lean: () => Promise.resolve([]) }) });
+  mockPaymentFind.mockReset().mockReturnValue({ select: () => ({ lean: () => Promise.resolve([]) }) });
   mockRequireAdmin.mockReset().mockResolvedValue({ id: "admin1", role: "admin" });
   mockConnectDB.mockReset().mockResolvedValue(undefined);
 });
@@ -107,15 +133,16 @@ describe("GET /api/admin/stats", () => {
             available: 3,
           },
           {
+            // image omitted (JSON serialisation drops undefined)
             id: "p2",
             sku: "COL-2",
             name: "Forest Knit",
-            image: undefined,
             category: "Knitwear",
             available: 0,
           },
         ],
       },
+      orders: { newToday: 0, outstandingOrders: 0, outstandingTotal: 0 },
     });
   });
 
