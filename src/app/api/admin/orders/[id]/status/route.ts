@@ -8,7 +8,7 @@ import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
 
 const bodySchema = z.object({
-  status: z.enum(["picked", "ready_to_ship", "shipped", "delivered", "cancelled"]),
+  status: z.enum(["confirmed", "picked", "ready_to_ship", "shipped", "delivered", "cancelled"]),
   shippingCarrier: z.string().max(100).optional(),
   shippingTrackingNumber: z.string().max(200).optional(),
 });

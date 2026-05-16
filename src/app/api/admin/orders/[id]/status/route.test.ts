@@ -98,6 +98,15 @@ describe("POST /api/admin/orders/[id]/status", () => {
     expect(order.save).toHaveBeenCalled();
   });
 
+  it("accepts signed → confirmed (manual confirmation of credit / offline-paid orders)", async () => {
+    const order = buildOrder({ status: "signed" });
+    mockOrderFindById.mockResolvedValueOnce(order);
+    const { POST } = await import("./route");
+    const res = await POST(postReq({ status: "confirmed" }) as never, { params: Promise.resolve({ id: VALID_ID }) });
+    expect(res.status).toBe(200);
+    expect(order.status).toBe("confirmed");
+  });
+
   it("stamps shippedAt + writes carrier/tracking when transitioning to shipped", async () => {
     const order = buildOrder({ status: "ready_to_ship" });
     mockOrderFindById.mockResolvedValueOnce(order);
