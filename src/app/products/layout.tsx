@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Garments",
+  title: "Shop All",
   description:
     "Browse the full Claudia.C wholesale catalogue — tops, dresses, knitwear, jackets, skirts, and more. Filter by category, colour, and stock type. Trade prices visible after wholesale account approval.",
   alternates: { canonical: "/products" },

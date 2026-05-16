@@ -124,16 +124,24 @@ export default function AccountPage() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-je-cream">
-      <header className="max-w-2xl mx-auto flex items-center justify-between mb-8">
+      <header className="max-w-2xl mx-auto flex flex-wrap items-center justify-between gap-3 mb-8">
         <h1 className="text-2xl font-bold text-je-black tracking-tight">
           Your account
         </h1>
-        <Link
-          href="/cart"
-          className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
-        >
-          Cart & orders
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/products"
+            className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+          >
+            Continue Shopping
+          </Link>
+          <Link
+            href="/cart"
+            className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+          >
+            Cart &amp; orders
+          </Link>
+        </div>
       </header>
       <div className="max-w-2xl mx-auto">
         <p className="text-je-muted text-sm mb-6">

@@ -260,7 +260,7 @@ export default function AboutPage() {
           <Field field="ctaText" rows={3} editing={editing} value={editContent.ctaText} onChange={updateField} />
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/apply" className="btn-primary">Apply for Access</Link>
-            <Link href="/products" className="btn-outline">Browse Garments</Link>
+            <Link href="/products" className="btn-outline">Shop All</Link>
           </div>
         </div>
       </section>

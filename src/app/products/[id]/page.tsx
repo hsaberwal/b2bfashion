@@ -140,7 +140,7 @@ export default function ProductDetailPage() {
       <main className="min-h-screen bg-white">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <Link href="/products" className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors">
-            &larr; Back to garments
+            &larr; Back to Shop All
           </Link>
           <p className="text-je-muted mt-8">{loading ? "Loading..." : "Product not found."}</p>
         </div>
@@ -165,7 +165,7 @@ export default function ProductDetailPage() {
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
-            { label: "Garments", href: "/products" },
+            { label: "Shop All", href: "/products" },
             { label: product.category, href: `/products?category=${encodeURIComponent(product.category)}` },
             { label: product.name },
           ]}
@@ -330,7 +330,7 @@ export default function ProductDetailPage() {
                     <p className="text-[11px] uppercase tracking-widest text-je-muted mb-3">
                       Each Pack Contains
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {product.sizes!.map((s, i) => (
                         <span
                           key={s}
@@ -340,9 +340,19 @@ export default function ProductDetailPage() {
                         </span>
                       ))}
                     </div>
-                    <p className="text-xs text-je-muted mt-2">
-                      {product.packSize} items per pack{minPacks > 1 ? ` · Minimum ${minPacks} packs per order` : ""}
+                    {sizeRatio.length > 0 && (
+                      <p className="text-sm font-semibold text-je-black">
+                        Size Ratio: {sizeRatio.join(":")}
+                      </p>
+                    )}
+                    <p className="text-sm font-semibold text-je-black mt-1">
+                      Pack Size: {product.packSize} pcs
                     </p>
+                    {minPacks > 1 && (
+                      <p className="text-xs text-je-muted mt-1">
+                        Minimum {minPacks} packs per order
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -509,14 +519,21 @@ export default function ProductDetailPage() {
               {hasSizes && (
                 <div className="mb-6">
                   <p className="text-[11px] uppercase tracking-widest text-je-muted mb-3">Each Pack Contains</p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {product.sizes!.map((s, i) => (
                       <span key={s} className="px-3 py-1.5 border border-je-border text-sm text-je-charcoal bg-je-offwhite">
                         {sizeRatio[i] ?? 1}&times;{s}
                       </span>
                     ))}
                   </div>
-                  <p className="text-xs text-je-muted mt-2">{product.packSize} items per pack</p>
+                  {sizeRatio.length > 0 && (
+                    <p className="text-sm font-semibold text-je-black">
+                      Size Ratio: {sizeRatio.join(":")}
+                    </p>
+                  )}
+                  <p className="text-sm font-semibold text-je-black mt-1">
+                    Pack Size: {product.packSize} pcs
+                  </p>
                 </div>
               )}
               <div className="mb-6">

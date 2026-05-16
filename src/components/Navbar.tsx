@@ -70,7 +70,7 @@ export function Navbar() {
             href="/products"
             className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium"
           >
-            Garments
+            Shop All
           </Link>
           <Link
             href="/about"
@@ -147,7 +147,7 @@ export function Navbar() {
             href="/products"
             className="md:hidden text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium"
           >
-            Garments
+            Shop All
           </Link>
         </div>
       </div>

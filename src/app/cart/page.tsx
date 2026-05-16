@@ -31,6 +31,7 @@ export default function CartPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [merging, setMerging] = useState(false);
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
 
   function loadOrders() {
     return fetch("/api/orders")
@@ -183,7 +184,7 @@ export default function CartPage() {
                       Your cart is empty.
                     </p>
                     <Link href="/products" className="btn-primary">
-                      Browse Garments
+                      Shop All
                     </Link>
                   </div>
                 ) : (
@@ -268,7 +269,7 @@ export default function CartPage() {
                 </h2>
                 {!hasServerCart ? (
                   <p className="text-je-muted">
-                    Your cart is empty. <Link href="/products" className="text-je-black font-medium underline hover:no-underline">Browse garments</Link>
+                    Your cart is empty. <Link href="/products" className="text-je-black font-medium underline hover:no-underline">Shop All</Link>
                   </p>
                 ) : (
                   <div className="border border-je-border bg-je-offwhite">
@@ -347,43 +348,88 @@ export default function CartPage() {
                 <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
                   Past Orders
                 </h2>
-                <div className="space-y-4">
-                  {pastOrders.map((order) => (
-                    <div key={order.id} className="border border-je-border p-4 bg-je-offwhite">
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <span className="text-xs text-je-muted">
-                          Order {order.id.slice(-8)}
-                        </span>
-                        <span
-                          className={`text-xs font-semibold uppercase tracking-wider ${
-                            order.status === "signed" || order.status === "confirmed"
-                              ? "text-green-700"
-                              : "text-je-muted"
-                          }`}
+                <div className="space-y-3">
+                  {pastOrders.map((order) => {
+                    const isOpen = !!expandedOrders[order.id];
+                    const totalItems = order.items.reduce((sum, i) => sum + i.quantity, 0);
+                    const showPrices = !!(user?.pricingApproved || user?.role === "admin");
+                    const orderTotal = showPrices
+                      ? order.items.reduce((sum, i) => sum + (i.pricePerPiece ?? 0) * i.quantity, 0)
+                      : null;
+                    return (
+                      <div key={order.id} className="border border-je-border bg-je-offwhite">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedOrders((prev) => ({ ...prev, [order.id]: !prev[order.id] }))
+                          }
+                          aria-expanded={isOpen}
+                          className="w-full flex flex-wrap items-center justify-between gap-2 p-4 text-left hover:bg-je-cream transition-colors"
                         >
-                          {order.status}
-                        </span>
-                      </div>
-                      <ul className="space-y-1 text-sm text-je-charcoal">
-                        {order.items.map((item) => (
-                          <li key={`${item.productId}:${item.size ?? ""}`}>
-                            {item.sku}
-                            {item.size != null && item.size !== "" ? ` · ${item.size}` : ""} &times; {item.quantity}
-                            {(user?.pricingApproved || user?.role === "admin") && item.pricePerPiece != null && (
-                              <span className="screenshot-protected ml-2">
-                                £{(item.pricePerPiece * item.quantity).toFixed(2)}
+                          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                            <span className="text-sm font-medium text-je-black">
+                              Order {order.id.slice(-8)}
+                            </span>
+                            <span className="text-xs text-je-muted">
+                              {new Date(order.signedAt ?? order.createdAt).toLocaleDateString()}
+                            </span>
+                            <span className="text-xs text-je-muted">
+                              {totalItems} item{totalItems !== 1 ? "s" : ""}
+                            </span>
+                            {orderTotal !== null && (
+                              <span className="screenshot-protected text-xs text-je-charcoal font-medium">
+                                £{orderTotal.toFixed(2)}
                               </span>
                             )}
-                          </li>
-                        ))}
-                      </ul>
-                      {order.signedAt && (
-                        <p className="mt-2 text-xs text-je-muted">
-                          Signed {new Date(order.signedAt).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`text-xs font-semibold uppercase tracking-wider ${
+                                order.status === "signed" || order.status === "confirmed"
+                                  ? "text-green-700"
+                                  : "text-je-muted"
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className={`text-je-muted transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                            >
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </div>
+                        </button>
+                        {isOpen && (
+                          <div className="border-t border-je-border p-4">
+                            <ul className="space-y-1 text-sm text-je-charcoal">
+                              {order.items.map((item) => (
+                                <li key={`${item.productId}:${item.size ?? ""}`}>
+                                  {item.sku}
+                                  {item.size != null && item.size !== "" ? ` · ${item.size}` : ""} &times; {item.quantity}
+                                  {showPrices && item.pricePerPiece != null && (
+                                    <span className="screenshot-protected ml-2">
+                                      £{(item.pricePerPiece * item.quantity).toFixed(2)}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                            {order.signedAt && (
+                              <p className="mt-3 text-xs text-je-muted">
+                                Signed {new Date(order.signedAt).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

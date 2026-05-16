@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
 type Product = {
@@ -22,29 +23,21 @@ const STOCK_LABELS: Record<string, string> = {
   forward: "Forward / upcoming stock",
 };
 
-const PRODUCT_CATEGORIES = [
-  "Tops",
-  "Blouses",
-  "T-shirts",
-  "Knitwear",
-  "Cardigans",
-  "Jumpers",
-  "Trousers",
-  "Dresses",
-  "Skirts",
-  "Jackets",
-  "Sale",
-  "Other",
-];
+const SCROLL_KEY = "shop-all:last-product-id";
 
-export default function ProductsPage() {
+function ProductsPageContent() {
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams.get("category") ?? "";
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [stockFilter, setStockFilter] = useState<string>("current");
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory);
   const [colourFilter, setColourFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [user, setUser] = useState<{ pricingApproved?: boolean; role?: string; canViewForwardStock?: boolean; canViewCurrentStock?: boolean; canViewPreviousStock?: boolean } | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [availableColours, setAvailableColours] = useState<string[]>([]);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -82,14 +75,54 @@ export default function ProductsPage() {
       .finally(() => setLoading(false));
   }, [stockFilter, categoryFilter, colourFilter, searchQuery]);
 
-  const colours = Array.from(new Set(products.map((p) => p.colour))).sort();
+  // Populate filter facets from the unfiltered (per stock section) catalogue so
+  // dropdown options reflect what's actually in the DB and remain stable while
+  // the user is filtering.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (stockFilter && stockFilter !== "all") params.set("stockCategory", stockFilter);
+    else if (stockFilter === "all") params.set("stockCategory", "all");
+    fetch(`/api/products?${params}`)
+      .then((r) => (r.ok ? r.json() : { products: [] }))
+      .then((d) => {
+        const list = (d.products ?? []) as Product[];
+        setAvailableCategories(Array.from(new Set(list.map((p) => p.category).filter(Boolean))).sort());
+        setAvailableColours(Array.from(new Set(list.map((p) => p.colour).filter(Boolean))).sort());
+      })
+      .catch(() => {
+        setAvailableCategories([]);
+        setAvailableColours([]);
+      });
+  }, [stockFilter]);
+
+  // Restore scroll to last clicked product after the grid renders
+  useEffect(() => {
+    if (loading || restoredRef.current || products.length === 0) return;
+    const lastId = sessionStorage.getItem(SCROLL_KEY);
+    if (!lastId) return;
+    const el = document.querySelector(`[data-product-id="${lastId}"]`) as HTMLElement | null;
+    if (el) {
+      el.scrollIntoView({ block: "center" });
+      restoredRef.current = true;
+      sessionStorage.removeItem(SCROLL_KEY);
+    }
+  }, [loading, products]);
+
+  // Ensure the currently selected values are present in the dropdowns even if
+  // they aren't in the latest facet list (e.g. a deep-linked category).
+  const categories = categoryFilter && !availableCategories.includes(categoryFilter)
+    ? [...availableCategories, categoryFilter].sort()
+    : availableCategories;
+  const colours = colourFilter && !availableColours.includes(colourFilter)
+    ? [...availableColours, colourFilter].sort()
+    : availableColours;
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-je-cream">
-      <header className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 mb-8">
+      <header className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-je-black tracking-tight">
-            Garments
+            Shop All
           </h1>
           <p className="text-je-muted text-sm mt-0.5">
             Claudia.C B2B — bulk ordering only (pack sizes apply)
@@ -106,18 +139,18 @@ export default function ProductsPage() {
                   Admin
                 </Link>
               )}
-<Link
-                  href="/account"
-                  className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
-                >
-                  Account
-                </Link>
               <Link
-                  href="/cart"
-                  className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
-                >
-                  Cart / Orders
-                </Link>
+                href="/account"
+                className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+              >
+                Account
+              </Link>
+              <Link
+                href="/cart"
+                className="px-4 py-2 border border-je-border bg-je-white text-je-black hover:bg-je-offwhite transition-colors"
+              >
+                Cart / Orders
+              </Link>
               <button
                 onClick={async () => {
                   await fetch("/api/auth/logout", { method: "POST" });
@@ -139,16 +172,17 @@ export default function ProductsPage() {
         </nav>
       </header>
 
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
-        <aside className="w-full md:w-56 shrink-0 space-y-4 p-4 bg-je-white border border-je-border">
+      <div className="max-w-7xl mx-auto">
+        {/* Filters across the top */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-je-white border border-je-border mb-6">
           <div>
-            <label className="block text-sm font-medium text-je-black mb-1">
+            <label className="block text-xs font-medium text-je-black mb-1">
               Stock section
             </label>
             <select
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
+              className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
             >
               <option value="all">All stock</option>
               <option value="current">Current stock</option>
@@ -158,7 +192,7 @@ export default function ProductsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-je-black mb-1">
+            <label className="block text-xs font-medium text-je-black mb-1">
               Search (SKU, name, style)
             </label>
             <input
@@ -170,28 +204,28 @@ export default function ProductsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-je-black mb-1">
+            <label className="block text-xs font-medium text-je-black mb-1">
               Category
             </label>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
+              className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
             >
               <option value="">All</option>
-              {PRODUCT_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-je-black mb-1">
+            <label className="block text-xs font-medium text-je-black mb-1">
               Colour
             </label>
             <select
               value={colourFilter}
               onChange={(e) => setColourFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black"
+              className="w-full px-3 py-2 border border-je-border bg-je-white text-je-black text-sm"
             >
               <option value="">All</option>
               {colours.map((c) => (
@@ -199,9 +233,9 @@ export default function ProductsPage() {
               ))}
             </select>
           </div>
-        </aside>
+        </div>
 
-        <div className="flex-1">
+        <div>
           {!(user?.pricingApproved || user?.role === "admin") && (
             <p className="mb-4 text-sm text-je-charcoal bg-je-offwhite border border-je-border px-3 py-2">
               Pricing is hidden until your account is approved. You can still browse and add to cart.
@@ -214,25 +248,27 @@ export default function ProductsPage() {
               No products in this section. Try another filter.
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
               {products.map((p) => (
                 <Link
                   key={p.id}
                   href={`/products/${p.id}`}
-                  className="block border border-je-border overflow-hidden bg-je-white hover:border-je-charcoal transition-colors cursor-pointer"
+                  data-product-id={p.id}
+                  onClick={() => sessionStorage.setItem(SCROLL_KEY, p.id)}
+                  className="block group"
                 >
-                  <div className="aspect-square bg-je-offwhite flex items-center justify-center">
+                  <div className="aspect-[3/4] bg-je-offwhite overflow-hidden">
                     {p.images?.[0] ? (
                       <img
                         src={imageDisplayUrl(p.images[0])}
                         alt={p.name}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />
                     ) : (
-                      <span className="text-je-muted text-sm">No image</span>
+                      <div className="w-full h-full flex items-center justify-center text-je-muted text-sm">No image</div>
                     )}
                   </div>
-                  <div className="p-4">
+                  <div className="pt-3">
                     <p className="text-xs text-je-muted font-medium">{p.sku}</p>
                     <h2 className="font-medium text-je-black truncate mt-0.5">
                       {p.name}
@@ -252,7 +288,7 @@ export default function ProductsPage() {
                       </p>
                     )}
                     <span className="mt-3 inline-block text-sm text-je-black font-medium underline">
-                      View & add to order
+                      View &amp; add to order
                     </span>
                   </div>
                 </Link>
@@ -262,5 +298,13 @@ export default function ProductsPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen p-4 md:p-8 bg-je-cream"><p className="text-je-muted">Loading…</p></main>}>
+      <ProductsPageContent />
+    </Suspense>
   );
 }
