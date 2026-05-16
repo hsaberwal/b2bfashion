@@ -52,6 +52,8 @@ export async function createCheckoutSession(
     mode: "payment",
     payment_method_types: ["card"],
     customer_email: params.customerEmail,
+    locale: "en-GB",
+    billing_address_collection: "required",
     line_items: [
       {
         price_data: {
