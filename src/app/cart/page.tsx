@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getGuestCart, setGuestCart, clearGuestCart, type GuestCartItem } from "@/lib/guestCart";
+import { getGuestCart, setGuestCart, clearGuestCart, dispatchCartUpdated, type GuestCartItem } from "@/lib/guestCart";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
 type OrderItem = {
@@ -110,6 +110,7 @@ export default function CartPage() {
       const data = await res.json();
       setCart(data);
       await loadOrders();
+      dispatchCartUpdated();
     } finally {
       setUpdating(false);
     }

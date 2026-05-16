@@ -106,13 +106,14 @@ export async function POST(
 
     const amountToCharge = paymentOption === "pay_deposit" ? depositAmount : orderTotal;
 
-    const user = await User.findById(session.userId).select("email");
+    const user = await User.findById(session.userId).select("email stripeCustomerId");
     const shopperEmail = user?.email ?? "customer@claudiab2b.com";
 
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
     let session_url: string;
     let stripeSessionId: string;
+    let stripeCustomerId: string;
     try {
       const checkout = await createCheckoutSession({
         orderId: id,
@@ -125,15 +126,22 @@ export async function POST(
         successUrl: `${baseUrl}/checkout/result?orderId=${id}&status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/checkout/result?orderId=${id}&status=cancelled`,
         metadata: { paymentOption },
+        stripeCustomerId: user?.stripeCustomerId,
       });
       session_url = checkout.url;
       stripeSessionId = checkout.id;
+      stripeCustomerId = checkout.stripeCustomerId;
     } catch (err) {
       console.error("Stripe error:", err);
       return NextResponse.json(
         { error: "Online payment is currently unavailable. Please contact the office to place your order by phone." },
         { status: 503 }
       );
+    }
+
+    if (user && user.stripeCustomerId !== stripeCustomerId) {
+      user.stripeCustomerId = stripeCustomerId;
+      await user.save();
     }
 
     // Save payment info to order

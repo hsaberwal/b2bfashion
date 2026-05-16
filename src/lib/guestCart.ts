@@ -15,6 +15,17 @@ export type GuestCartItem = {
 };
 
 const STORAGE_KEY = "claudia_guest_cart";
+export const CART_UPDATED_EVENT = "cart:updated";
+
+/**
+ * Notify any in-page listener (e.g. the Navbar count badge) that the
+ * cart changed. The native `storage` event only fires across tabs, so
+ * we need a same-tab signal too.
+ */
+export function dispatchCartUpdated() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(CART_UPDATED_EVENT));
+}
 
 export function getGuestCart(): GuestCartItem[] {
   if (typeof window === "undefined") return [];
@@ -29,6 +40,7 @@ export function getGuestCart(): GuestCartItem[] {
 export function setGuestCart(items: GuestCartItem[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  dispatchCartUpdated();
 }
 
 export function addToGuestCart(item: GuestCartItem) {
@@ -52,6 +64,7 @@ export function removeFromGuestCart(productId: string, size?: string) {
 export function clearGuestCart() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
+  dispatchCartUpdated();
 }
 
 export function getGuestCartCount(): number {

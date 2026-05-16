@@ -40,7 +40,48 @@ export type CheckoutSessionParams = {
    * billing address dropdown. Defaults to "GB" for this UK wholesale site.
    */
   defaultCountry?: string;
+  /**
+   * Existing Stripe customer ID to reuse for this checkout. When omitted
+   * a new customer is created. Pass the User's stored stripeCustomerId
+   * to keep the same customer record across orders.
+   */
+  stripeCustomerId?: string;
 };
+
+export type CheckoutSessionResult = {
+  id: string;
+  url: string;
+  /** The Stripe customer ID used for this session (newly created or reused). */
+  stripeCustomerId: string;
+};
+
+/**
+ * Resolve a Stripe Customer to use for checkout. Reuses an existing one
+ * when the ID is provided AND still valid in Stripe; otherwise creates
+ * a fresh customer with the supplied default country.
+ */
+async function resolveCustomer(
+  stripe: Stripe,
+  email: string,
+  defaultCountry: string,
+  existingId: string | undefined,
+): Promise<string> {
+  if (existingId) {
+    try {
+      const existing = await stripe.customers.retrieve(existingId);
+      if (existing && !("deleted" in existing && existing.deleted)) {
+        return existing.id;
+      }
+    } catch {
+      // Fall through and create a new customer.
+    }
+  }
+  const created = await stripe.customers.create({
+    email,
+    address: { country: defaultCountry },
+  });
+  return created.id;
+}
 
 /**
  * Create a Stripe Checkout Session and return its hosted URL.
@@ -53,22 +94,24 @@ export type CheckoutSessionParams = {
  */
 export async function createCheckoutSession(
   params: CheckoutSessionParams,
-): Promise<{ id: string; url: string }> {
+): Promise<CheckoutSessionResult> {
   const stripe = getStripe();
   const currency = (params.currency ?? "GBP").toLowerCase();
   const country = (params.defaultCountry ?? "GB").toUpperCase();
   // Stripe expects the amount in the currency's minor units.
   const unitAmount = Math.round(params.amount * 100);
 
-  const customer = await stripe.customers.create({
-    email: params.customerEmail,
-    address: { country },
-  });
+  const customerId = await resolveCustomer(
+    stripe,
+    params.customerEmail,
+    country,
+    params.stripeCustomerId,
+  );
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
-    customer: customer.id,
+    customer: customerId,
     customer_update: { address: "auto", name: "auto" },
     locale: "en-GB",
     billing_address_collection: "required",
@@ -101,7 +144,7 @@ export async function createCheckoutSession(
   if (!session.url) {
     throw new Error("Stripe did not return a Checkout Session URL");
   }
-  return { id: session.id, url: session.url };
+  return { id: session.id, url: session.url, stripeCustomerId: customerId };
 }
 
 /**

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getGuestCartCount } from "@/lib/guestCart";
+import { CART_UPDATED_EVENT, getGuestCartCount } from "@/lib/guestCart";
 
 type User = {
   name?: string;
@@ -15,44 +15,55 @@ export function Navbar() {
   const [cartCount, setCartCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
 
+  const refreshCount = useCallback(async (currentUser: User | null) => {
+    if (currentUser) {
+      try {
+        const res = await fetch("/api/orders");
+        const data = await res.json();
+        const cart = data.cart;
+        const total = cart?.items?.reduce(
+          (sum: number, i: { quantity: number }) => sum + i.quantity,
+          0,
+        ) ?? 0;
+        setCartCount(total);
+      } catch {
+        // Network blip — keep previous count.
+      }
+    } else {
+      setCartCount(getGuestCartCount());
+    }
+  }, []);
+
+  // Initial: figure out who's signed in, then load the right cart count.
   useEffect(() => {
-    // Check auth
     fetch("/api/auth/session")
       .then((r) => r.json())
-      .then((d) => setUser(d.user ?? null))
+      .then((d) => {
+        const u = d.user ?? null;
+        setUser(u);
+        return refreshCount(u);
+      })
       .catch(() => {})
       .finally(() => setLoaded(true));
+  }, [refreshCount]);
 
-    // Guest cart count
-    setCartCount(getGuestCartCount());
-
-    // Listen for storage changes (guest cart updates from other tabs/pages)
-    const handleStorage = () => setCartCount(getGuestCartCount());
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
-
-  // Re-check cart count periodically (for same-tab updates)
+  // React to cart changes: same-tab via custom event, cross-tab via storage event.
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCartCount(getGuestCartCount());
-    }, 2000);
+    const handler = () => refreshCount(user);
+    window.addEventListener(CART_UPDATED_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(CART_UPDATED_EVENT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, [user, refreshCount]);
+
+  // Safety-net poll so the badge stays in sync even if an event was missed
+  // (e.g. cart mutated in another tab while this one was backgrounded).
+  useEffect(() => {
+    const interval = setInterval(() => refreshCount(user), 5000);
     return () => clearInterval(interval);
-  }, []);
-
-  // If logged in, fetch server cart count
-  useEffect(() => {
-    if (!user) return;
-    fetch("/api/orders")
-      .then((r) => r.json())
-      .then((d) => {
-        const cart = d.cart;
-        if (cart?.items?.length) {
-          setCartCount(cart.items.reduce((sum: number, i: { quantity: number }) => sum + i.quantity, 0));
-        }
-      })
-      .catch(() => {});
-  }, [user]);
+  }, [user, refreshCount]);
 
   if (!loaded) return null;
 

@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema(
     otpExpires: Date,
     resetToken: String,
     resetTokenExpires: Date,
+    stripeCustomerId: { type: String, index: true },
   },
   { timestamps: true }
 );

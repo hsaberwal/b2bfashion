@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
-import { addToGuestCart } from "@/lib/guestCart";
+import { addToGuestCart, dispatchCartUpdated } from "@/lib/guestCart";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 const ZOOM = 2.2;
@@ -95,6 +95,7 @@ export default function ProductDetailPage() {
           alert(data.error ?? "Failed to add to order");
           return;
         }
+        dispatchCartUpdated();
       } else {
         addToGuestCart({
           productId: product.id,
@@ -105,6 +106,7 @@ export default function ProductDetailPage() {
           pricePerPiece: product.pricePerPiece,
           image: product.images?.[0],
         });
+        // addToGuestCart already dispatches the event via setGuestCart.
       }
       setAddedMessage(`Added ${packs} pack${packs > 1 ? "s" : ""} of ${product.name} (${quantity} items) to your order`);
       setTimeout(() => setAddedMessage(""), 4000);
