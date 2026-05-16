@@ -35,23 +35,41 @@ export type CheckoutSessionParams = {
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
+  /**
+   * ISO 3166-1 alpha-2 country code used to default the Stripe Checkout
+   * billing address dropdown. Defaults to "GB" for this UK wholesale site.
+   */
+  defaultCountry?: string;
 };
 
 /**
  * Create a Stripe Checkout Session and return its hosted URL.
+ *
+ * To default the billing address country to GB we pre-create a Stripe
+ * Customer with `address.country = 'GB'` and pass it to the session.
+ * Setting `locale` alone only changes the UI language, not the country.
+ * `customer_update.address: 'auto'` lets Stripe overwrite the customer's
+ * address with whatever the shopper actually enters at checkout.
  */
 export async function createCheckoutSession(
   params: CheckoutSessionParams,
 ): Promise<{ id: string; url: string }> {
   const stripe = getStripe();
   const currency = (params.currency ?? "GBP").toLowerCase();
+  const country = (params.defaultCountry ?? "GB").toUpperCase();
   // Stripe expects the amount in the currency's minor units.
   const unitAmount = Math.round(params.amount * 100);
+
+  const customer = await stripe.customers.create({
+    email: params.customerEmail,
+    address: { country },
+  });
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
-    customer_email: params.customerEmail,
+    customer: customer.id,
+    customer_update: { address: "auto", name: "auto" },
     locale: "en-GB",
     billing_address_collection: "required",
     line_items: [
