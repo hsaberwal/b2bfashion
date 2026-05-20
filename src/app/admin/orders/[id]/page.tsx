@@ -212,13 +212,23 @@ export default function AdminOrderDetailPage() {
       <div className="max-w-5xl mx-auto">
         <div className="no-print mb-4 flex items-center justify-between">
           <Link href="/admin/orders" className="text-sm text-gray-500 hover:text-gray-900">&larr; Orders</Link>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
-          >
-            Print pick list
-          </button>
+          <div className="flex gap-2">
+            <a
+              href={`/api/admin/orders/${order.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+            >
+              Download PDF
+            </a>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+            >
+              Print pick list
+            </button>
+          </div>
         </div>
 
         {/* Header — screen */}
