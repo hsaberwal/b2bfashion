@@ -20,6 +20,10 @@ out/
 
 # local Claude Code settings
 .claude/settings.local.json
+
+# local working material (not part of the app)
+Feedback/
+ordersheet.pdf
 .env
 .env*.local
 .env.production
