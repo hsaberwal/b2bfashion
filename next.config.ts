@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // pdfkit reads its built-in font metrics (Helvetica.afm, etc.) from disk
+  // relative to its own __dirname. Bundling it rewrites that path and breaks
+  // the lookup at runtime, so keep it external and load it from node_modules.
+  serverExternalPackages: ["pdfkit"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.cloudinary.com" },
