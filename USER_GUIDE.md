@@ -8,13 +8,13 @@ Welcome to Claudia.C B2B, your wholesale platform for ladies fashion. This guide
 
 ### Getting Started
 
-#### Browsing Garments
+#### Browsing the Shop
 
 1. Visit the website — no account needed to browse
-2. Click **"Garments"** in the navigation bar
-3. Use filters: Stock type (Current / All Stock / Forward if permitted), Category, Colour
+2. Click **"Shop All"** in the navigation bar
+3. Use filters: Stock type (Current / All Stock / Forward if permitted), Category, Colour. The Category and Colour dropdowns **cross-narrow** — picking "Skirt" shrinks the Colour list to colours that exist for skirts, and vice versa.
 4. Use search to find by name, SKU, or style number
-5. Click any garment to see full details, multiple photos, pack contents, materials, and care
+5. Click any garment to see full details, multiple photos, pack contents, materials, and care. If you return from a product page, the listing scrolls back to the product you clicked on.
 
 #### Using the Chatbot
 
@@ -87,9 +87,18 @@ To place an order, you need a wholesale account:
 
 ### After Ordering
 
-- View **past orders** on the Cart page with status (Pending / Signed / Confirmed)
-- Card payments show success/failure/pending on the confirmation page
-- Admin processes and ships the order
+- View **past orders** on the Cart page. Click any order to expand it.
+- Inside each expanded order you'll see a **fulfilment progress indicator** with all six stages:
+  `Signed → Confirmed → Picked → Ready to ship → Shipped → Delivered`
+  The filled dot shows where your order is right now.
+- Status labels:
+  - **Signed — awaiting payment** if you chose Invoice and it hasn't been accepted yet
+  - **Confirmed** — paid (or accepted on credit); we'll start picking
+  - **Picked** — items pulled from stock
+  - **Ready to ship** — packed and awaiting the courier
+  - **Shipped** — handed to the courier
+  - **Delivered** — arrived with you
+- Card payments show success/failure/pending on the `/checkout/result` confirmation page
 
 ### Installing the App on Your Phone
 
@@ -112,10 +121,77 @@ Click the **"Log out"** button (or icon on mobile) next to your name in the navb
 
 1. Log in as an admin
 2. Click **"Admin"** in the navbar
-3. See three **card buttons**:
-   - **Manage Garments** → add/edit products
-   - **Manage Users** → approve pricing, delete spam
-   - **Manage About Page** → edit page content inline
+3. The admin shell shows the main nav: **Home**, **Products**, **Orders**, **Customers**, **Pages**
+4. The dashboard home (Home) shows:
+   - A blue **"X new orders today"** banner whenever you have new signed orders since midnight — click it to jump to the orders list
+   - An amber **"£X outstanding across N orders"** banner whenever there are unpaid orders — click it to open the outstanding filter
+   - Stat cards: Orders today, Active products, Customers, Pending approval, Low stock
+   - Quick actions + low-stock items list
+
+### Managing Orders (`/admin/orders`)
+
+This is your daily workflow.
+
+#### Orders list
+
+- Summary cards: **New today**, **Outstanding orders**, **Total outstanding**
+- Status filter tabs: **All / New / In fulfilment / Outstanding / Complete**
+- Search box matches customer name, email, company, or SKU
+- Columns: order #, customer, status, payment status (green/amber/red chip), total, paid, outstanding, date
+- "New" chip on orders signed today
+- Click any row to open the order
+
+#### Order detail (`/admin/orders/[id]`)
+
+Three things you can do on this page:
+
+**1. Print the pick list.** Top-right buttons:
+
+- **"Print pick list"** → opens the browser print dialog with only the on-screen pick list visible (customer + delivery address at top, then a table of SKU / item / colour / pack contents / packs / pieces / line £).
+- **"Download PDF"** → downloads a tidy A4 **sales order / pick sheet** that matches the CLAUDIA.C order-sheet template (company header, Order Date, Supply to / Invoice Address, then Description / Misc / Style / Colour / Quantity / Price ex-VAT). **Each pack is broken down into one row per size** (size shown in the Description, e.g. `Floral Midi Dress — UK-12`), so warehouse staff pick exact sizes. Large orders flow onto extra pages. Stick this on the warehouse trolley.
+
+**2. Advance the fulfilment status.** The "Fulfilment" card on the right shows the current status and a "Mark as {next step}" button. Click through:
+
+`Signed → Confirmed → Picked → Ready to ship → Shipped → Delivered`
+
+When you advance to **Shipped**, two inline fields appear for **carrier** (e.g. Royal Mail) and **tracking number** — both optional. Cancel button is always available before delivery.
+
+Each transition stamps a timestamp (`pickedAt`, `readyAt`, `shippedAt`, `deliveredAt`) shown below the status label.
+
+**3. Record a payment.** When outstanding > 0, the "Payments recorded" panel shows a small form:
+
+- **Amount** — pre-filled with the outstanding balance
+- **Method** — Bank transfer / Cash / Cheque / Stripe (manual) / Other
+- **Reference** — optional (bank ref, cheque number, etc.)
+- **Note** — optional free-form
+
+Click **Record** to log it. The Payment row appears in the table above and the order's outstanding balance recalculates. When the balance hits zero, `paymentStatus` auto-flips to **paid**.
+
+All Stripe captures are also logged here automatically (via the Stripe webhook).
+
+#### New-order email alerts
+
+Whenever a customer signs an order, you (and anyone else on `ADMIN_NOTIFICATION_EMAILS`) get an email via Resend with:
+
+- Order short-code, customer name + company + email
+- Number of items, total, payment option/status
+- Signed timestamp
+- A direct **View order** link to `/admin/orders/[id]`
+
+Configure recipients with the `ADMIN_NOTIFICATION_EMAILS` env var on Railway (comma-separated). If unset, the alert goes to every admin user in the DB.
+
+### Managing Customers (`/admin/users`)
+
+Click any customer's email to open their detail page (`/admin/users/[id]`):
+
+- Profile: name, company, email, VAT, role, pricing approval, verified status
+- Delivery address on file
+- **Lifetime spend** (sum of paid amounts across all orders)
+- **Total outstanding balance** (across all non-cancelled orders)
+- Stripe customer ID
+- **Order history table** — every order with date, status, payment, total, paid, outstanding. Click any row to open that order.
+
+This gives you a single screen to answer "what does this customer owe us, and what have they ordered?"
 
 ### Bulk Importing from Excel (Recommended)
 

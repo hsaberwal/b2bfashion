@@ -119,7 +119,7 @@ Packs contain a **pre-defined ratio of sizes** rather than letting customers pic
 - **All product fields**: SKU, name, descriptions, materials, care guide, category, stock section, colour, colour variants, sizes, size ratio, pack size (auto), min packs, price per pack
 
 ### Product Categories
-Tops, Blouses, T-shirts, Knitwear, Cardigans, Jumpers, Trousers, Dresses, Skirts, Jackets, Sale, Other
+Blouse, Cardigan, Dress, Gilet, Jumper, Shrug, Skirt, T-shirt, Top, Trouser, Tunic. (The bulk-import normaliser maps uppercase / plural variants from the stock sheet.)
 
 ### Stock Sections
 - **Current** — current season stock (default)
@@ -200,12 +200,93 @@ Tops, Blouses, T-shirts, Knitwear, Cardigans, Jumpers, Trousers, Dresses, Skirts
 
 ### Payment Integration (Stripe)
 
-- **Stripe Checkout** — customer redirected to Stripe-hosted page
-- Card details never touch our servers (PCI scope offloaded)
-- **Server-to-server webhook** with signature verification for authoritative payment status (`checkout.session.completed`, `checkout.session.expired`, `charge.refunded`)
-- Friendly error message if Stripe is unavailable
-- **Deposit amount always calculated server-side** (never trust client)
-- Double payment prevention (409 if already pending/paid)
+- **Stripe Checkout** — customer redirected to Stripe-hosted page (PCI scope offloaded)
+- **Per-customer reuse** — each user gets a `stripeCustomerId` on their first checkout that's reused on every subsequent order, so the Stripe dashboard shows one clean customer record per buyer with their full payment history
+- **GB default** — Stripe Customer is pre-created with `address.country: "GB"` so the billing dropdown defaults to United Kingdom; `locale: "en-GB"` renders the checkout UI in British English; `customer_update.address: "auto"` still lets the shopper enter any other country
+- **Server-to-server webhook** with signature verification on every event (`checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_failed`, `charge.refunded`)
+- **Idempotent payment recording** — every successful Stripe capture upserts a `Payment` row keyed on `stripePaymentIntentId` so webhook retries can't double-count
+- **Server-side deposit calculation** (10% of total, rounded to whole pence) — never trust the client
+- **Double-payment prevention** (409 if already pending/paid)
+- **Friendly fallback** if Stripe is unavailable: customer is offered the "Invoice (pay later)" path
+- **Test card**: `4242 4242 4242 4242`, any future expiry, any CVC, any postcode
+
+---
+
+## Admin Orders Workflow
+
+Built end-to-end so an admin can run the daily order operation from a single screen, no spreadsheet juggling.
+
+### Orders List (`/admin/orders`)
+
+- Summary cards: **New today** count, **Outstanding orders** count, **Total outstanding** (£)
+- Status-bucket filter tabs: All / New / In fulfilment / Outstanding / Complete
+- Search across customer name, email, company, or SKU
+- Columns: order #, customer, status, payment (with tone — green for paid, amber for outstanding, red for failed/refunded), total, paid, outstanding, date
+- "New" chip on orders signed today
+- Click any row to open the detail page
+
+### Order Detail (`/admin/orders/[id]`)
+
+- **Header** — order number, signed timestamp, current status, outstanding balance
+- **Print-ready pick list** (visible on screen; `window.print()` button strips chrome) showing:
+  - SKU + product name + colour + pack contents (e.g. `1×UK-10  2×UK-12  …`)
+  - Packs and total pieces per line
+  - Customer name / company / delivery address
+  - Order totals
+- **Downloadable PDF sales order / pick sheet** ("Download PDF" button → `GET /api/admin/orders/[id]/pdf`) — a bordered A4 form matching the CLAUDIA.C `Order Sheet.xlsx` template (company header, Order Date, Supply to / Invoice Address, Description / Misc / Style / Colour / Quantity / Price ex-VAT columns, Special Instructions + buyer signature footer). **Packs are broken down into one row per size** (size appended to the Description, e.g. `Floral Midi Dress — UK-12`), so the same document doubles as the warehouse pick sheet. Auto-paginates (16 rows/page) for large orders, with the order total + total pieces on the last page.
+- **Customer card** — name, company, email, VAT, with link to the customer detail page
+- **Payment card** — total / paid / outstanding breakdown, payment option + status
+- **Fulfilment card** — current status with stamped timestamps; one-click "Mark as {next step}" button advances the lifecycle. Shipping step prompts inline for carrier + tracking number. Cancel button always available before delivery.
+- **Payments recorded** table — every Stripe capture + manual payment with amount, method, reference, note, timestamp
+- **Record a payment** form — appears whenever outstanding > 0. Amount pre-filled with the outstanding balance; method = bank transfer / cash / cheque / Stripe (manual) / other; optional reference + note. Records into the `Payment` ledger and auto-flips order to "paid" when balance hits zero.
+
+### Order Status Lifecycle
+
+```text
+signed → confirmed → picked → ready_to_ship → shipped → delivered
+                                                              (or cancelled at any point)
+```
+
+- `pending` — open cart, not yet signed (excluded from admin list by default)
+- `signed` — signed, awaiting payment / acceptance on credit
+- `confirmed` — paid in full / deposit paid / accepted as invoice
+- `picked` — admin has pulled the items
+- `ready_to_ship` — packed and waiting on the courier
+- `shipped` — handed to courier (with optional carrier + tracking)
+- `delivered` — arrived with the customer (terminal)
+- `cancelled` — separate terminal state
+
+Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt`.
+
+### Customer Detail (`/admin/users/[id]`)
+
+- Customer profile (name, company, email, VAT, role, pricing approval, verified)
+- Delivery address on file
+- Lifetime spend + total outstanding balance (across all unfulfilled / unpaid orders)
+- Stripe customer ID (when available)
+- Order history table: order #, date, status, payment option, total / paid / outstanding — click any row to open that order
+
+### New-Order Email Notification
+
+- When a customer signs an order, the sign route fires (fire-and-forget) `sendNewOrderEmail` via Resend
+- Recipients come from `ADMIN_NOTIFICATION_EMAILS` (comma-separated env var); falls back to every admin user in the DB if unset
+- Email includes order short-code, customer, items count, total, payment option/status, signed timestamp, and a direct link to `/admin/orders/[id]`
+- Skipped silently in development (logs the payload to console) — never blocks the customer's sign action
+
+### Customer-Facing Order Tracking
+
+On `/cart`, expanding any past order shows a **fulfilment progress indicator** rendering all 6 lifecycle steps with a filled dot on the current step. Customers can self-serve "where is my order?" without contacting support.
+
+---
+
+## Dashboard
+
+`/admin` home shows:
+
+- **New orders today** banner — only appears when there are new signed orders today, links straight to the orders list
+- **Outstanding balance** banner — only appears when there are unpaid orders; shows total £ and count, links to outstanding filter
+- Stat cards: **Orders today** (with outstanding count subtitle), Active products, Customers, Pending approval, Low stock
+- Quick actions and low-stock items list
 
 ---
 
@@ -249,10 +330,10 @@ Tops, Blouses, T-shirts, Knitwear, Cardigans, Jumpers, Trousers, Dresses, Skirts
 
 ### Sticky Navigation Bar
 - **Claudia.C** logo (serif font)
-- **Garments** link (product listing)
+- **Shop All** link (product listing — renamed from "Garments")
 - **About** link (editable page)
 - **Admin** link (admin users only)
-- **Cart icon** with real-time item count badge (guest or server cart)
+- **Cart icon** with **live** item count badge — refreshes via a `cart:updated` window event from add-to-cart (same-tab) + cross-tab storage event + 5s safety poll, for both guest and logged-in carts
 - **User name/icon** when logged in
 - **Logout button** (desktop text, mobile icon)
 
@@ -283,6 +364,11 @@ Tops, Blouses, T-shirts, Knitwear, Cardigans, Jumpers, Trousers, Dresses, Skirts
 - All text fields become inline inputs/textareas
 - Save/Cancel buttons
 - Content stored in MongoDB `SiteContent` collection
+
+### Editable Footer CMS
+- Admins see an "Edit Footer" button at the bottom of every public page
+- Inline editor for brand name, legal company name, tagline, address (one line per row), company number, VAT number, email, phone
+- Content stored in `SiteContent` under key `"footer"`; the public footer reads from the same place
 
 ### Design System
 - **Fonts**: DM Sans (body) + DM Serif Display (headings)
@@ -349,8 +435,27 @@ Editable by admins via inline CMS, with sections:
 - Why Retailers Choose Us
 - Get in Touch CTA
 
+### Legal Pages
+Privacy Policy, Terms & Conditions, Returns Policy, Shipping Policy — all linked from the footer.
+
+### Cookie Consent (GDPR / PECR)
+- Bottom-right banner shown on first visit (suppressed on `/admin`)
+- Two equal-prominence buttons — **Accept all** / **Reject optional** — PECR requires reject to be as easy as accept
+- Choice persisted in localStorage as `cookie-consent`
+- **"Cookie settings"** link in the footer re-opens the banner so a user can change their mind
+- Today the site only sets strictly-necessary cookies (auth, CSRF, cart) — when GA4 lands in Phase 4 we'll honour the rejection
+
+### Newsletter Signup
+- Footer email form
+- POSTs to `/api/newsletter` (rate-limited 5/min per IP), upserts an email into the `NewsletterSubscriber` collection
+- Stores `email`, `source` (default `"footer"`), IP, `unsubscribed` flag
+- No sending yet — emails accumulate for export to Mailchimp/Klaviyo when Phase 4 email marketing ships
+
+### Trust Badges
+Row above the footer's company info: **Secure checkout via Stripe**, **256-bit SSL encryption**, **UK wholesale supplier**, **GDPR compliant**.
+
 ### API Overview
-See [README.md](README.md) for the full API reference.
+See [ARCHITECTURE.md](ARCHITECTURE.md#4-api-surface) for the full API reference.
 
 ---
 

@@ -25,10 +25,12 @@ A modern, AI-powered B2B wholesale platform for **Claudia.C** ladies fashion. Bu
 ## Key Features
 
 See [FEATURES.md](FEATURES.md) for the full feature showcase.
-See [USER_GUIDE.md](USER_GUIDE.md) for end user documentation.
+See [USER_GUIDE.md](USER_GUIDE.md) for end-user documentation.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the canonical technical reference (data models, API surface, lifecycle diagrams, integrations).
 See [ROADMAP.md](ROADMAP.md) for upcoming features.
 
 **Highlights:**
+
 - SEO-optimised: dynamic sitemap, JSON-LD structured data, per-page metadata, breadcrumbs
 - Bulk Excel import with size scale parser (UK ranges and letter ranges)
 - Stock tracking with atomic reservation on order sign
@@ -36,141 +38,123 @@ See [ROADMAP.md](ROADMAP.md) for upcoming features.
 - AI label scanner — photograph garment labels to auto-fill product data
 - AI model photo generation with demographic targeting and front/back view
 - Pack-based ordering with size ratios (UK/EU/US/Letter) and min pack quantities
-- Per-pack pricing visible only to approved wholesale customers
-- Guest cart — browse and add to cart without registering
-- 3 payment options: pay in full, 10% deposit, or invoice
+- Per-piece pricing visible only to approved wholesale customers
+- Guest cart — browse and add to cart without registering, with live cart-count badge
+- 3 payment options: pay in full, 10% deposit, or invoice (Stripe Checkout, reused customer per buyer)
+- Full order lifecycle visible to both sides: `signed → confirmed → picked → ready_to_ship → shipped → delivered`
+- Admin orders dashboard with print-ready pick list, downloadable PDF sales order / pick sheet (matches the CLAUDIA.C order-sheet template, packs broken out per size), status controls (carrier + tracking on ship), and manual payment recording (cash / bank transfer / cheque / Stripe / other)
+- Customer detail page with order history, lifetime spend, and outstanding balance
+- New-order email to admins via Resend (`ADMIN_NOTIFICATION_EMAILS`)
 - Email verification with 24-hour auto-cleanup
 - Cycling hero banner with focal-point image selector
-- Editable About page CMS
+- Editable About page + Footer CMS
 - 3 independent homepage curation sections
+- Cookie consent banner (PECR-compliant), newsletter signup, trust badges
 - Comprehensive security hardening (CSP, HSTS, CSRF middleware, rate limiting, encryption)
+- 125+ tests with v8 coverage; new code paths at 84–100%
 
 ## Project Structure
 
-```
+For a complete walk-through (every file, every route, every model field) see [ARCHITECTURE.md](ARCHITECTURE.md). Quick map:
+
+```text
 src/
-  middleware.ts           # CSRF validation middleware
-  app/                    # Next.js App Router
-    api/                  # API Routes
-      admin/              # Admin-only endpoints
-        claim/            # One-time admin claim
-        cleanup-unverified/  # Delete expired unverified accounts
-        generate-model-photos/  # FASHN AI integration
-        products/               # Product CRUD
-          bulk-import/          # Excel bulk import with size scale parser
-        images/           # Signed image URLs (admin)
-        products/         # Product CRUD
-        scan-label/       # AI label scanning (Claude Vision)
-        site-content/     # Editable site content (About page)
-        upload/           # Image upload with magic bytes validation
-        users/            # User management + deletion
-      auth/               # Authentication
-        login/            # Email/password login
-        register/         # Account registration + verification email
-        verify-email/     # Email verification link handler
-        session/          # Session + CSRF token
-        logout/           # Logout
-        otp/              # OTP send/verify
-        password-reset/   # Password reset flow
-      chat/               # AI chatbot endpoint
-      orders/             # Order management + payment + sign
-      products/           # Public product listing + detail
-        featured/         # Featured products API
-        hero/             # Hero section products API
-        latest-looks/     # Latest looks products API
-      site-content/       # Public site content reader
-      webhooks/
-        stripe/           # Stripe server-to-server webhook
-      images/             # Public signed image proxy
-    about/                # Editable About Us page
-    account/              # User account management
-    admin/                # Admin dashboard + product management
-    apply/                # Wholesale application form
-    cart/                 # Cart + checkout
-    checkout/             # Payment result page
-    login/                # Login page with verification banner
-    products/             # Product listing + detail pages
-    register/             # Registration page
-  components/             # React components
-    admin/                # Admin components (ProductForm)
-    Chatbot.tsx           # AI chatbot widget
-    CsrfProvider.tsx      # Auto-injects CSRF token into fetch
-    FeaturedProducts.tsx  # Featured products grid
-    HeroSection.tsx       # Cycling hero from DB with focal point
-    InstallPrompt.tsx     # PWA install banner (mobile only)
-    LatestLooks.tsx       # Rotating image gallery
-    Navbar.tsx            # Sticky nav with cart badge + logout
-  lib/                    # Shared utilities
-    audit.ts              # Security audit logging
-    auth.ts               # Password hashing, sessions, cookies
-    csrf.ts               # CSRF tokens (double-submit cookie)
-    encrypt.ts            # AES-256-GCM for signature data
-    fashn.ts              # FASHN AI API client
-    fetchWithCsrf.ts      # CSRF-aware fetch helper
-    guestCart.ts          # localStorage guest cart
-    imageDisplayUrl.ts    # Image URL resolver
-    imageService.ts       # Railway Image Service client
-    mongodb.ts            # MongoDB connection
-    rateLimit.ts          # In-memory rate limiter
-    requireAdmin.ts       # Admin authorization
-    types.ts              # Shared TypeScript types
-    stripe.ts             # Stripe Checkout client + webhook signature verification
-  models/                 # Mongoose models
-    AuditLog.ts           # Security audit trail
-    Order.ts              # Orders with payment fields
-    Product.ts            # Products with size ratios, min packs, hero settings
-    Session.ts            # Auth sessions
-    SiteContent.ts        # Editable page content
-    User.ts               # Users with email verification
-  data/
-    homepageImages.ts     # Static image references (legacy fallback)
+  middleware.ts                       # CSRF on POST/PATCH/DELETE
+  app/
+    layout.tsx page.tsx globals.css
+    sitemap.ts robots.ts
+    api/
+      auth/                           # login, logout, register, session, verify-email,
+                                      # otp/{send,verify}, password-reset/{request,perform}
+      orders/                         # Customer cart + sign + pay + payment-status
+      webhooks/stripe/                # Stripe webhook receiver
+      products/                       # Public catalogue + featured/hero/latest-looks
+      user/profile site-content newsletter chat images/signed uploads/[filename]
+      admin/
+        stats orders users products site-content images
+        scan-label generate-model-photos upload seed cleanup-unverified claim
+    about account admin apply cart checkout login register
+    products privacy terms returns shipping forgot-password reset-password claim-admin
+  components/
+    SiteChrome Navbar Footer CookieConsent NewsletterSignup TrustBadges
+    Chatbot HeroSection FeaturedProducts LatestLooks HomepageGallery InstallPrompt
+    Breadcrumbs OrganizationJsonLd ProductJsonLd LegalPage PwaRegister
+    ScreenshotProtection CsrfProvider
+    admin/{AdminShell,ProductForm}
+  lib/
+    mongodb auth requireAdmin csrf encrypt rateLimit audit
+    pricing orderStatus stripe adminNotifications
+    fashn signupHygiene sizeScale productFilter
+    guestCart imageDisplayUrl imageService fetchWithCsrf richText types
+  models/
+    User Session Product Order Payment NewsletterSubscriber SiteContent AuditLog
+public/
+  sw.js manifest.webmanifest icons/ images/
 ```
 
 ## Data Model Highlights
 
+Full field-by-field spec lives in [ARCHITECTURE.md §3](ARCHITECTURE.md#3-data-models). Summary:
+
 ### Product
-| Field | Type | Description |
+| Field | Type | Notes |
 |---|---|---|
-| `sku` | string | Unique stock keeping unit (e.g. `COL13276-BLACK`) |
-| `brandCode` / `brand` / `season` | string | From import (CL / CLAUDIA-C / SS26) |
-| `name` | string | Garment name |
-| `category` | enum | Blouse, Cardigan, Dress, Gilet, Jumper, Shrug, Skirt, T-shirt, Top, Trouser, Tunic |
-| `colour` | string | Primary colour |
-| `sizes` | string[] | e.g. `["UK-10", "UK-12", "UK-14", "UK-16", "UK-18"]` |
-| `sizeRatio` | number[] | e.g. `[1, 2, 2, 2, 1]` — items per size in each pack |
-| `packSize` | number | Auto-calculated sum of sizeRatio |
-| `minPacks` | number | Minimum packs per order |
-| `pricePerPack` | number | Wholesale price per pack (GBP) |
-| `packsInStock` | number | Total physical inventory in packs |
-| `packsReserved` | number | Packs held by signed orders awaiting fulfilment |
-| `materials` | string | Fabric composition (FabComp from the sheet) |
-| `heroFocalPoint` | string | CSS `object-position` for hero crop |
-| `heroImageIndex` | number | Which image to use on Front Page |
-| `heroExcludedIndexes` | number[] | Images excluded from hero cycling |
-| `showOnHero` | boolean | Front Page visibility |
-| `featured` | boolean | Featured Styles section |
-| `latestLooks` | boolean | Our Latest Looks section |
+| `sku` | string (unique) | `{SPC}-{COLOUR}`, e.g. `COL13276-BLACK` |
+| `category` | enum | `Blouse`, `Cardigan`, `Dress`, `Gilet`, `Jumper`, `Shrug`, `Skirt`, `T-shirt`, `Top`, `Trouser`, `Tunic` |
+| `stockCategory` | enum | `previous` / `current` / `forward` |
+| `sizes` / `sizeRatio` / `packSize` / `minPacks` | mixed | Pack composition (e.g. `[1,2,2,2,1]` summing to 8) |
+| `pricePerPiece` | number | Per-piece wholesale price (GBP) |
+| `packsInStock` / `packsReserved` | number | Atomic reservation via `$expr: { $gte: [ … packsInStock − packsReserved, packsToReserve] }` |
+| `images` | string[] | Blob keys; served via `/api/images/signed` |
+| `heroFocalPoint` / `heroImageIndex` / `heroExcludedIndexes` / `showOnHero` / `featured` / `latestLooks` | mixed | Homepage curation |
+| `disabled` | boolean | Hides from public; admin still sees |
 
 ### User
-| Field | Description |
+| Field | Notes |
 |---|---|
-| `email` / `passwordHash` | Credentials (bcrypt) |
-| `emailVerified` / `verificationToken` | Email verification state |
-| `role` | `customer` or `admin` |
-| `pricingApproved` | Whether user sees prices |
-| `canViewForwardStock` | Access to upcoming collection |
-| `deliveryAddress`, `vatNumber`, `companyName` | Trade details |
+| `email` / `passwordHash` | Bcrypt cost 12 |
+| `emailVerified` / `verificationToken` | 24h expiry, auto-deletes if not verified |
+| `role` | `customer` \| `admin` |
+| `pricingApproved` / `canViewForwardStock` / `canViewCurrentStock` / `canViewPreviousStock` | Admin-controlled toggles |
+| `deliveryAddress` / `vatNumber` / `companyName` | Trade details |
+| `stripeCustomerId` | Created on first Stripe checkout, reused thereafter |
 
 ### Order
-| Field | Description |
+| Field | Notes |
 |---|---|
-| `status` | `pending` / `signed` / `confirmed` / `cancelled` |
-| `items[]` | `productId`, `sku`, `quantity`, `pricePerPack`, `packSize` |
-| `signatureDataUrl` | AES-256-GCM encrypted signature |
-| `paymentOption` | `pay_now` / `pay_deposit` / `pay_later` |
-| `paymentStatus` | `none` / `pending` / `paid` / `failed` / `refunded` |
-| `stripeSessionId` | Checkout Session ID (matches the webhook event) |
-| `stripePaymentIntentId` | Payment Intent ID (for refund lookups) |
+| `status` | `pending` → `signed` → `confirmed` → `picked` → `ready_to_ship` → `shipped` → `delivered` (or `cancelled`) |
+| `items[]` | `productId`, `sku`, `quantity`, `pricePerPiece`, `packSize`, `size?` |
+| `signatureDataUrl` | AES-256-GCM encrypted |
+| `deliverySnapshot` | Address captured at sign time (immutable) |
+| `paymentOption` | `pay_now` \| `pay_deposit` \| `pay_later` |
+| `paymentStatus` | `none` \| `pending` \| `paid` \| `failed` \| `refunded` |
+| `depositAmount` / `depositPaid` / `amountPaid` | Recomputed from `Payment` rows |
+| `stripeSessionId` / `stripePaymentIntentId` | Webhook reconciliation |
+| `pickedAt` / `readyAt` / `shippedAt` / `deliveredAt` | Stamped on transition |
+| `shippingCarrier` / `shippingTrackingNumber` | Captured at "Mark shipped" |
+
+### Payment
+
+The source of truth for "how much has been paid against this order."
+
+| Field | Notes |
+|---|---|
+| `orderId` / `userId` | Refs |
+| `amount` / `currency` | GBP default |
+| `method` | `stripe` \| `cash` \| `bank_transfer` \| `cheque` \| `other` |
+| `reference` / `note` | Free-form for receipts |
+| `stripePaymentIntentId` | Webhook upserts idempotently on this key |
+| `refunded` | Excluded from `sumPayments()` |
+| `recordedBy` | Admin who logged a manual payment |
+
+### NewsletterSubscriber
+
+| Field | Notes |
+|---|---|
+| `email` (unique) | Lowercased |
+| `source` | Default `"footer"` |
+| `ipAddress` | For abuse review |
+| `unsubscribed` | Manual flag (no public unsubscribe flow yet — Phase 4) |
 
 ## Environment Variables
 
@@ -181,30 +165,51 @@ cp .env.example .env
 ```
 
 ### Required
+
 | Variable | Description |
-|----------|-------------|
-| `MONGODB_URI` | MongoDB connection string (or `MONGO_URL` / `MONGO_PUBLIC_URL` on Railway) |
-| `JWT_SECRET` | Random string for session signing |
-| `NEXTAUTH_URL` | App URL (e.g. `https://claudia-c.com`) |
+|---|---|
+| `MONGO_URL` / `MONGO_PUBLIC_URL` / `MONGODB_URI` | MongoDB connection string (any one) |
+| `JWT_SECRET` | Random string for session signing (`openssl rand -base64 32`) |
+| `NEXTAUTH_URL` | Public base URL, no trailing slash (e.g. `https://claudia-c.com`) — used in Stripe success/cancel redirects, email links, JSON-LD |
+| `ENCRYPTION_KEY` | 64-char hex — AES-256-GCM key for encrypting order signatures at rest |
 
-### Optional — Features
+### Payments (Stripe)
+
 | Variable | Description |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Claude API key — enables chatbot + label scanning |
-| `FASHN_API_KEY` | FASHN API key — enables AI model photo generation |
-| `EMAIL_API_KEY` | Resend API key — enables verification and password reset emails |
-| `EMAIL_FROM` | Sender email address |
-| `IMAGE_SERVICE_URL` | Railway Image Service URL |
-| `IMAGE_SERVICE_SECRET_KEY` | Image Service auth key |
-| `ENCRYPTION_KEY` | 64-char hex — encrypts signatures at rest |
-| `CLAIM_ADMIN_SECRET` | One-time secret for claiming admin access |
+|---|---|
+| `STRIPE_SECRET_KEY` | `sk_test_…` or `sk_live_…` |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_…` from the Stripe dashboard's webhook endpoint |
 
-### Optional — Payments
+Webhook endpoint URL: `https://<your-domain>/api/webhooks/stripe`. Subscribe to: `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_failed`, `charge.refunded`. Test card: `4242 4242 4242 4242` (any future expiry, any CVC, any postcode).
 
-| Variable                | Description                                              |
-|-------------------------|----------------------------------------------------------|
-| `STRIPE_SECRET_KEY`     | Stripe API secret key (`sk_test_...` or `sk_live_...`)   |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`)              |
+### Email (Resend)
+
+| Variable | Description |
+|---|---|
+| `EMAIL_API_KEY` | Resend API key — verification, OTP, password reset, new-order admin notification |
+| `EMAIL_FROM` | Verified sender address |
+| `ADMIN_NOTIFICATION_EMAILS` | Optional, comma-separated. Recipients for new-order alerts. Falls back to every admin user in the DB if unset. |
+
+### AI
+
+| Variable | Description |
+|---|---|
+| `ANTHROPIC_API_KEY` | Chatbot + label scanner (Claude) |
+| `FASHN_API_KEY` | Model photo generation |
+
+### Image storage (pick one)
+
+| Variable | Description |
+|---|---|
+| `IMAGE_SERVICE_URL` + `IMAGE_SERVICE_SECRET_KEY` (+ `IMAGE_SERVICE_SIGNATURE_SECRET_KEY`) | Railway Image Service (recommended) |
+| `UPLOAD_VOLUME_PATH` | Volume mount fallback (e.g. `/data`) |
+| `CLOUDINARY_CLOUD_NAME` + `CLOUDINARY_API_KEY` + `CLOUDINARY_API_SECRET` | Cloudinary fallback |
+
+### Other
+
+| Variable | Description |
+|---|---|
+| `CLAIM_ADMIN_SECRET` | One-time secret for self-elevating to admin via `/claim-admin` |
 
 ## Local Development
 
@@ -253,7 +258,9 @@ The application has been through **4 comprehensive security audits** with all fi
 
 ## Documentation
 
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Canonical rebuild reference: data models, every API route, lifecycle diagrams, integration flows
 - [FEATURES.md](FEATURES.md) — Full feature showcase
-- [USER_GUIDE.md](USER_GUIDE.md) — User documentation
-- [ROADMAP.md](ROADMAP.md) — Upcoming features
-- [.env.example](.env.example) — Environment variable reference
+- [USER_GUIDE.md](USER_GUIDE.md) — Customer + admin user guide
+- [DEPLOY.md](DEPLOY.md) — Step-by-step Railway deployment
+- [ROADMAP.md](ROADMAP.md) — Phase plan
+- [SECURITY.md](SECURITY.md) — Security posture summary

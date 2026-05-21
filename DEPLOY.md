@@ -6,11 +6,12 @@ Follow these steps to deploy the app to [Railway](https://railway.app).
 
 ## What this app includes
 
-- **Claudia B2B** – wholesale product list, product detail, cart, and order signing (single cart per user).
-- **Admin** – products (CRUD), users, image upload (Railway Image Service, Volume, or Cloudinary), optional **seed** and **Generate model photos** (FASHN AI when `FASHN_API_KEY` is set).
-- **Product images** – uploads stored as blob keys; admin and public pages show images via signed URLs / proxy (`/api/images/signed` for public, `/api/admin/images/signed` for admin). No need to expose Image Service directly to the browser.
-- **Product detail** – size selection when product has sizes, hover-to-zoom on main image, Just Elegance–style theme (cream/white/black). Clicking a product card (image or text) opens the product page.
-- **Orders** – items can include a selected size; cart and sign flow show size when present.
+- **Claudia B2B** — wholesale product list, product detail, cart, and order signing (single cart per user)
+- **Admin** — products CRUD, bulk Excel import, users, orders (list + detail + pick list + PDF sales order + status + payments), customer detail with order history, editable About / Footer CMS, image upload (Railway Image Service / Volume / Cloudinary), optional seed + AI model photo generation (FASHN)
+- **Product images** — uploads stored as blob keys; served via signed URL proxy (`/api/images/signed` public, `/api/admin/images/signed` admin). Image Service URL never needs to be public to the browser.
+- **Payments** — Stripe Checkout (hosted). Three payment options per order: pay in full / 10% deposit / invoice. Customer reused across orders via `stripeCustomerId`. Webhook-driven status (`checkout.session.completed`, `expired`, `async_payment_failed`, `charge.refunded`). Manual payment recording (cash / bank transfer / cheque / Stripe / other) closes outstanding balances.
+- **Orders** — pack-based ordering with size ratios. Lifecycle: `signed → confirmed → picked → ready_to_ship → shipped → delivered`. Customer sees fulfilment progress in the cart's past-orders panel.
+- **Email** — Resend handles verification + OTP + password reset + admin new-order notification
 
 ---
 
@@ -65,18 +66,52 @@ git push origin main
    **Or** copy the MongoDB connection string from the MongoDB service (`MONGO_URL` or `MONGO_PUBLIC_URL`) and add it to the app as **`MONGO_URL`** (the app reads this automatically).
 4. Add these variables on the **app** service:
 
-| Variable | Value | Notes |
-|----------|--------|--------|
-| `MONGO_URL` or `MONGO_PUBLIC_URL` | From your MongoDB service | Reference the MongoDB service variable, or paste the connection string. The app uses either one. |
-| `NEXTAUTH_URL` | `https://b2bfashion-production.up.railway.app` | Your app’s Railway URL (no trailing slash). |
-| `JWT_SECRET` | Long random string | e.g. run `openssl rand -base64 32` and paste the output. |
-| `IMAGE_SERVICE_URL` | (Optional) Railway Image Service public URL | e.g. `https://image-service-production.up.railway.app` (or without `https://` – app will add it). See **Step 9**. |
-| `IMAGE_SERVICE_SECRET_KEY` | (Optional) Same as Image Service `SECRET_KEY` | For admin uploads to Image Service. |
-| `IMAGE_SERVICE_SIGNATURE_SECRET_KEY` | (Optional) Same as Image Service `SIGNATURE_SECRET_KEY` | For local URL signing. |
-| `UPLOAD_VOLUME_PATH` | (Optional) Mount path of a Railway Volume | e.g. `/data`. Fallback if Image Service not set. |
-| `FASHN_API_KEY` | (Optional) FASHN AI API key | For “Generate model photos” on product edit. Get from [app.fashn.ai/api](https://app.fashn.ai/api). |
+**Required:**
 
-You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONGO_PUBLIC_URL` (e.g. from Railway’s MongoDB plugin).
+| Variable | Value | Notes |
+|---|---|---|
+| `MONGO_URL` or `MONGO_PUBLIC_URL` | From your MongoDB service | Reference the MongoDB service variable, or paste the connection string. The app accepts either, plus `MONGODB_URI` as a third alias. |
+| `NEXTAUTH_URL` | e.g. `https://claudia-c.com` | Your app's public base URL, no trailing slash. Used in Stripe success/cancel redirects, verification + new-order emails, JSON-LD. |
+| `JWT_SECRET` | Long random string | e.g. `openssl rand -base64 32`. |
+| `ENCRYPTION_KEY` | 64-char hex string | AES-256-GCM key — encrypts the customer's drawn signature on each signed order. Generate with `openssl rand -hex 32`. |
+
+**Payments — Stripe (see step 10 for full setup):**
+
+| Variable | Value | Notes |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | `sk_test_…` or `sk_live_…` | Test mode first; switch to live after one successful end-to-end test order. |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_…` | From the dashboard webhook endpoint you'll create in step 10. |
+
+**Email — Resend (recommended):**
+
+| Variable | Value | Notes |
+|---|---|---|
+| `EMAIL_API_KEY` | Resend API key | Verification + OTP + password reset + new-order admin alert. App skips silently in dev if unset (logs payload to console). |
+| `EMAIL_FROM` | Verified sender address | e.g. `orders@claudia-c.com`. |
+| `ADMIN_NOTIFICATION_EMAILS` | Optional, comma-separated | Recipients for the new-order alert. Falls back to every admin user in the DB if unset. Example: `ops@claudia-c.com,manager@claudia-c.com`. |
+
+**AI (optional):**
+
+| Variable | Value | Notes |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Claude API key | Powers the chatbot + label scanner. |
+| `FASHN_API_KEY` | FASHN AI key | "Generate model photos" on product edit. [app.fashn.ai/api](https://app.fashn.ai/api). |
+
+**Image storage (optional, pick one):**
+
+| Variable | Value | Notes |
+|---|---|---|
+| `IMAGE_SERVICE_URL` + `IMAGE_SERVICE_SECRET_KEY` (+ `IMAGE_SERVICE_SIGNATURE_SECRET_KEY`) | From the Image Service template | See step 9. Recommended. |
+| `UPLOAD_VOLUME_PATH` | e.g. `/data` | Railway Volume fallback. |
+| `CLOUDINARY_CLOUD_NAME` + `CLOUDINARY_API_KEY` + `CLOUDINARY_API_SECRET` | From Cloudinary | Cloudinary fallback. |
+
+**Other:**
+
+| Variable | Value | Notes |
+|---|---|---|
+| `CLAIM_ADMIN_SECRET` | Optional secret | One-time self-elevation via `/claim-admin` (see step 8). Remove after first use. |
+
+You do **not** need to add `MONGODB_URI` if you already set `MONGO_URL` or `MONGO_PUBLIC_URL`.
 
 ---
 
@@ -164,19 +199,86 @@ After this, the “Upload file” button in **Admin → Products → Add/Edit pr
 
 ---
 
+## 10. Stripe payments (recommended)
+
+The site uses **Stripe Checkout** (hosted page) for card payments. You don't need this until you want to take card payments — orders can still be placed as "Invoice (pay later)" without Stripe.
+
+1. **Create / sign in** at [dashboard.stripe.com](https://dashboard.stripe.com). Leave the top-left toggle on **Test mode** until you've placed a successful test order end-to-end.
+2. **Get your test secret key** — Developers → API keys → **Secret key** (`sk_test_…`). Treat it like a password.
+3. **Set on the app**:
+   - `STRIPE_SECRET_KEY` = `sk_test_…`
+   - `NEXTAUTH_URL` = your full public URL (e.g. `https://claudia-c.com`) — required so the redirect URLs Stripe sends customers back to point at the right host.
+4. **Create the webhook endpoint** — Developers → Webhooks → **Add endpoint**:
+   - **URL**: `https://<your-domain>/api/webhooks/stripe` — the `/api/webhooks/stripe` suffix is critical, an earlier deploy of this app accidentally pointed at the root URL and every webhook delivery got a 405.
+   - **Events to send** — exactly these four:
+     - `checkout.session.completed`
+     - `checkout.session.expired`
+     - `checkout.session.async_payment_failed`
+     - `charge.refunded`
+   - Save, then click **"Reveal signing secret"** (`whsec_…`).
+5. **Set the webhook secret on the app**:
+   - `STRIPE_WEBHOOK_SECRET` = `whsec_…`
+   - Railway auto-redeploys on variable change. Wait for it.
+6. **Optional dashboard toggle** — Settings → Payments → **Currency conversion** → toggle **Off**. This removes Stripe's local-currency picker so shoppers only see GBP. The codebase already forces `currency: "gbp"` and `locale: "en-GB"`, but the dashboard toggle is needed to hide the picker.
+7. **Test end to end** — place an order on the live site, choose Pay now / Pay deposit:
+   - Test card: `4242 4242 4242 4242`, any future expiry, any CVC, any postcode.
+   - After paying you should land on `/checkout/result` with a success message.
+   - In Stripe dashboard → Payments you should see the captured payment.
+   - In your app's `/admin/orders` the order should be `confirmed` with `paymentStatus: paid` and a Payment row in the order detail.
+   - If anything goes wrong, check **Stripe → Developers → Webhooks → your endpoint → Events** for the delivery status and error code.
+8. **Going live** — once you're happy:
+   - Activate your Stripe account (business + bank details).
+   - Switch dashboard to **Live mode**.
+   - Get new `sk_live_…` and create a separate live webhook (you'll get a new `whsec_…`).
+   - Replace `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` on Railway with the live values.
+   - Run one tiny real-card test before opening to customers.
+
+**Other test cards** for edge cases:
+
+| Card | Behaviour |
+|---|---|
+| `4242 4242 4242 4242` | Successful payment |
+| `4000 0000 0000 9995` | Declined — insufficient funds |
+| `4000 0000 0000 0002` | Declined — generic |
+| `4000 0025 0000 3155` | Requires 3D Secure |
+| `4000 0000 0000 3220` | 3D Secure that always fails |
+
+Full list: [docs.stripe.com/testing#cards](https://docs.stripe.com/testing#cards).
+
+---
+
+## 11. Email (Resend)
+
+Verification, OTP, password reset, and the new-order admin notification all go through Resend.
+
+1. Create an account at [resend.com](https://resend.com).
+2. Verify your sending domain (or use Resend's onboarding sender for early testing).
+3. Get an API key (`re_…`).
+4. Set on the app:
+   - `EMAIL_API_KEY` = `re_…`
+   - `EMAIL_FROM` = a verified sender, e.g. `orders@claudia-c.com`
+   - `ADMIN_NOTIFICATION_EMAILS` = comma-separated recipients for the new-order alert. Optional — falls back to every admin user in the DB if unset. Example: `ops@claudia-c.com,manager@claudia-c.com`.
+
+If `EMAIL_API_KEY` or `EMAIL_FROM` is missing the app skips sending and logs the payload to console in dev — never fails the request.
+
+---
+
 ## Quick checklist
 
-- [ ] Repo pushed to GitHub  
-- [ ] Railway project created from that repo  
-- [ ] MongoDB added (Railway plugin or Atlas)  
-- [ ] `MONGO_URL` or `MONGO_PUBLIC_URL` (or `MONGODB_URI`) set on the **app** service  
-- [ ] `NEXTAUTH_URL` set to the app’s Railway URL (after first deploy)  
-- [ ] `JWT_SECRET` set  
-- [ ] Build and deploy successful  
-- [ ] App loads and login/register work  
-- [ ] `CLAIM_ADMIN_SECRET` set, then used at /claim-admin to become admin (optional)  
-- [ ] (Optional) Railway Image Service deployed; `IMAGE_SERVICE_URL` and `IMAGE_SERVICE_SECRET_KEY` set (or Volume + `UPLOAD_VOLUME_PATH`)  
-- [ ] (Optional) `FASHN_API_KEY` set for "Generate model photos" on product edit  
+- [ ] Repo pushed to GitHub
+- [ ] Railway project created from that repo
+- [ ] MongoDB added (Railway plugin or Atlas)
+- [ ] `MONGO_URL` or `MONGO_PUBLIC_URL` (or `MONGODB_URI`) set on the **app** service
+- [ ] `NEXTAUTH_URL` set to the app's public URL
+- [ ] `JWT_SECRET` set (`openssl rand -base64 32`)
+- [ ] `ENCRYPTION_KEY` set (`openssl rand -hex 32`)
+- [ ] Build and deploy successful
+- [ ] App loads and login/register work
+- [ ] `CLAIM_ADMIN_SECRET` set, then used at /claim-admin to become admin (optional)
+- [ ] (Optional) Railway Image Service deployed; `IMAGE_SERVICE_URL` and `IMAGE_SERVICE_SECRET_KEY` set (or Volume + `UPLOAD_VOLUME_PATH`)
+- [ ] (Optional) `FASHN_API_KEY` + `ANTHROPIC_API_KEY` set for AI features
+- [ ] (Recommended) Stripe configured: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, webhook URL = `https://<domain>/api/webhooks/stripe`, test order placed
+- [ ] (Recommended) Resend configured: `EMAIL_API_KEY`, `EMAIL_FROM`, `ADMIN_NOTIFICATION_EMAILS`
 
 ---
 
@@ -231,3 +333,21 @@ These are harmless. The codebase has been updated to remove the duplicate index 
 ### MongoDB logs: "vm.max_map_count", "swappiness", "XFS recommended"
 
 These are **informational** suggestions from the MongoDB container. MongoDB is still running and accepting connections. You can ignore them unless you need to tune performance.
+
+### Build fails at `npm ci`: "Missing: @emnapi/runtime from lock file"
+
+Vitest 4 pulls an *optional* `@rolldown/binding-wasm32-wasi` whose sub-deps (`@emnapi/runtime`, `@emnapi/core`) get omitted from the lockfile when `npm install` is run on a non-Linux host (Windows / macOS). Railway's Linux `npm ci` then refuses to install because the lockfile is "out of sync".
+
+**Fix already applied:** `nixpacks.toml` uses `npm install --no-audit --no-fund` instead of `npm ci`. This regenerates the missing entries inside the build, never touches the repo lockfile, and unblocks the deploy. The trade-off is non-strict lockfile pinning at build time.
+
+To restore strict `npm ci`: regenerate `package-lock.json` on Linux (WSL on Windows works) and commit it; switch the nixpacks install command back to `npm ci`.
+
+### Stripe webhooks all returning 405 in the dashboard
+
+The webhook URL is set to the **site root** (`https://your-domain.com`) instead of the webhook path. The root URL only accepts GET, so every POST from Stripe 405s.
+
+**Fix:** in Stripe dashboard → Developers → Webhooks → edit your endpoint → set URL to `https://your-domain.com/api/webhooks/stripe`. The `/api/webhooks/stripe` suffix is the actual route handler.
+
+### Customer says billing country defaults to "United States" on Stripe Checkout
+
+`locale: "en-GB"` only sets the UI **language**, not the country dropdown default. The code pre-creates a Stripe Customer with `address.country: "GB"` so the dropdown opens on UK. If you see US, either the change isn't deployed (check the latest commit on Railway) or your shopper has a saved Stripe wallet that overrides the default — in either case the customer can still pick UK manually.
