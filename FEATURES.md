@@ -269,7 +269,8 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 ### New-Order Email Notification
 
 - When a customer signs an order, the sign route fires (fire-and-forget) `sendNewOrderEmail` via Resend
-- Recipients come from `ADMIN_NOTIFICATION_EMAILS` (comma-separated env var); falls back to every admin user in the DB if unset
+- Recipients resolve in priority order: (1) the **DB-managed list** edited in **Admin → Settings** (stored as a `SiteContent` doc keyed `orderNotifications`), (2) the legacy `ADMIN_NOTIFICATION_EMAILS` env var, (3) every admin user in the DB
+- Admins manage the list at `/admin/settings` (add / remove addresses, validated + de-duplicated) via `GET`/`PUT /api/admin/notification-recipients` — no redeploy or env-var edit needed
 - Email includes order short-code, customer, items count, total, payment option/status, signed timestamp, and a direct link to `/admin/orders/[id]`
 - Skipped silently in development (logs the payload to console) — never blocks the customer's sign action
 

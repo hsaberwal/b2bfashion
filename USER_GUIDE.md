@@ -171,14 +171,14 @@ All Stripe captures are also logged here automatically (via the Stripe webhook).
 
 #### New-order email alerts
 
-Whenever a customer signs an order, you (and anyone else on `ADMIN_NOTIFICATION_EMAILS`) get an email via Resend with:
+Whenever a customer signs an order, the people on your notification list get an email via Resend with:
 
 - Order short-code, customer name + company + email
 - Number of items, total, payment option/status
 - Signed timestamp
 - A direct **View order** link to `/admin/orders/[id]`
 
-Configure recipients with the `ADMIN_NOTIFICATION_EMAILS` env var on Railway (comma-separated). If unset, the alert goes to every admin user in the DB.
+**Manage recipients in the admin: go to Settings (sidebar) → "New-order notification emails".** Add or remove addresses and click **Save** — changes take effect immediately, no redeploy needed. If the list is empty, alerts fall back to the `ADMIN_NOTIFICATION_EMAILS` env var (if set on Railway), and then to every admin user in the DB.
 
 ### Managing Customers (`/admin/users`)
 

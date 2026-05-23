@@ -44,7 +44,7 @@ See [ROADMAP.md](ROADMAP.md) for upcoming features.
 - Full order lifecycle visible to both sides: `signed → confirmed → picked → ready_to_ship → shipped → delivered`
 - Admin orders dashboard with print-ready pick list, downloadable PDF sales order / pick sheet (matches the CLAUDIA.C order-sheet template, packs broken out per size), status controls (carrier + tracking on ship), and manual payment recording (cash / bank transfer / cheque / Stripe / other)
 - Customer detail page with order history, lifetime spend, and outstanding balance
-- New-order email to admins via Resend (`ADMIN_NOTIFICATION_EMAILS`)
+- New-order email to admins via Resend, with recipients managed in **Admin → Settings** (falls back to `ADMIN_NOTIFICATION_EMAILS`, then all admin users)
 - Email verification with 24-hour auto-cleanup
 - Cycling hero banner with focal-point image selector
 - Editable About page + Footer CMS
@@ -188,7 +188,7 @@ Webhook endpoint URL: `https://<your-domain>/api/webhooks/stripe`. Subscribe to:
 |---|---|
 | `EMAIL_API_KEY` | Resend API key — verification, OTP, password reset, new-order admin notification |
 | `EMAIL_FROM` | Verified sender address |
-| `ADMIN_NOTIFICATION_EMAILS` | Optional, comma-separated. Recipients for new-order alerts. Falls back to every admin user in the DB if unset. |
+| `ADMIN_NOTIFICATION_EMAILS` | Optional, comma-separated. Legacy fallback for new-order alert recipients. Recipients are now managed in **Admin → Settings** (stored in the DB); this env var is only used when that list is empty, before falling back to every admin user. |
 
 ### AI
 

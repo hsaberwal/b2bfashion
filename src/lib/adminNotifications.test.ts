@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-const { mockSend, mockUserFind, mockConnectDB } = vi.hoisted(() => ({
+const { mockSend, mockUserFind, mockConnectDB, mockGetStored } = vi.hoisted(() => ({
   mockSend: vi.fn(),
   mockUserFind: vi.fn(),
   mockConnectDB: vi.fn(),
+  mockGetStored: vi.fn(),
 }));
 
 vi.mock("resend", () => {
@@ -23,16 +24,23 @@ vi.mock("@/models/User", () => ({
   },
 }));
 
+vi.mock("@/lib/notificationRecipients", () => ({
+  getStoredRecipients: mockGetStored,
+}));
+
 const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
   mockSend.mockReset();
   mockUserFind.mockReset();
   mockConnectDB.mockReset();
+  mockGetStored.mockReset();
   // Successful resend response by default.
   mockSend.mockResolvedValue({ id: "em_1" });
   // Default: no users in DB unless a test overrides.
   mockUserFind.mockReturnValue({ select: () => ({ lean: () => Promise.resolve([]) }) });
+  // Default: no DB-managed recipients unless a test overrides.
+  mockGetStored.mockResolvedValue([]);
   vi.resetModules();
 });
 
@@ -70,13 +78,25 @@ describe("sendNewOrderEmail", () => {
     expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it("uses ADMIN_NOTIFICATION_EMAILS when set (no DB lookup needed)", async () => {
+  it("uses the DB-managed recipient list first, ahead of env and admin users", async () => {
+    process.env.EMAIL_API_KEY = "re_test";
+    process.env.EMAIL_FROM = "from@example.com";
+    process.env.ADMIN_NOTIFICATION_EMAILS = "ops@example.com";
+    mockGetStored.mockResolvedValue(["sales@example.com", "warehouse@example.com"]);
+    const { sendNewOrderEmail } = await import("./adminNotifications");
+    await sendNewOrderEmail(baseData);
+    expect(mockUserFind).not.toHaveBeenCalled();
+    const args = (mockSend as Mock).mock.calls[0][0];
+    expect(args.to).toEqual(["sales@example.com", "warehouse@example.com"]);
+  });
+
+  it("falls back to ADMIN_NOTIFICATION_EMAILS when the DB list is empty", async () => {
     process.env.EMAIL_API_KEY = "re_test";
     process.env.EMAIL_FROM = "from@example.com";
     process.env.ADMIN_NOTIFICATION_EMAILS = "ops@example.com, manager@example.com";
+    mockGetStored.mockResolvedValue([]);
     const { sendNewOrderEmail } = await import("./adminNotifications");
     await sendNewOrderEmail(baseData);
-    expect(mockConnectDB).not.toHaveBeenCalled();
     expect(mockUserFind).not.toHaveBeenCalled();
     const args = (mockSend as Mock).mock.calls[0][0];
     expect(args.to).toEqual(["ops@example.com", "manager@example.com"]);

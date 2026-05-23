@@ -1,13 +1,15 @@
 /**
  * Outbound email notifications for the admin team. Uses the existing
- * Resend integration. ADMIN_NOTIFICATION_EMAILS env var holds a
- * comma-separated list of recipient addresses; falls back to a single
- * admin user lookup if not set.
+ * Resend integration. Recipients are resolved in priority order:
+ *   1. the DB-managed list (edited via admin Settings)
+ *   2. the ADMIN_NOTIFICATION_EMAILS env var (comma-separated, legacy fallback)
+ *   3. every admin user in the DB
  */
 
 import { Resend } from "resend";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import { getStoredRecipients } from "@/lib/notificationRecipients";
 
 type NewOrderEmail = {
   orderId: string;
@@ -23,11 +25,20 @@ type NewOrderEmail = {
 };
 
 async function getRecipients(): Promise<string[]> {
+  // 1. DB-managed list (edited via admin Settings) takes precedence.
+  try {
+    const stored = await getStoredRecipients();
+    if (stored.length > 0) return stored;
+  } catch {
+    // fall through to env / admin-user fallbacks
+  }
+  // 2. Legacy env var fallback.
   const fromEnv = (process.env.ADMIN_NOTIFICATION_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   if (fromEnv.length > 0) return fromEnv;
+  // 3. Fall back to every admin user.
   try {
     await connectDB();
     const admins = await User.find({ role: "admin" }).select("email").lean();
