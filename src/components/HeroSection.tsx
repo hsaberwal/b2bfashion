@@ -95,8 +95,9 @@ export function HeroSection() {
         {slides.map((slide, i) => (
           <img
             key={`${slide.product.id}-${i}`}
-            src={imageDisplayUrl(slide.image)}
+            src={imageDisplayUrl(slide.image, { width: 1600 })}
             alt={slide.product.name}
+            decoding="async"
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
               i === currentSlide ? "opacity-100" : "opacity-0"
             }`}
@@ -157,8 +158,10 @@ export function HeroSection() {
             >
               {featureLeft.images[0] && (
                 <img
-                  src={imageDisplayUrl(featureLeft.images[0])}
+                  src={imageDisplayUrl(featureLeft.images[0], { width: 1000 })}
                   alt={featureLeft.name}
+                  loading="lazy"
+                  decoding="async"
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               )}
@@ -179,8 +182,10 @@ export function HeroSection() {
             >
               {featureRight.images[0] && (
                 <img
-                  src={imageDisplayUrl(featureRight.images[0])}
+                  src={imageDisplayUrl(featureRight.images[0], { width: 1000 })}
                   alt={featureRight.name}
+                  loading="lazy"
+                  decoding="async"
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               )}

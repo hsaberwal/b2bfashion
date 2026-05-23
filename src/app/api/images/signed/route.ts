@@ -20,9 +20,38 @@ export async function GET(request: NextRequest) {
     if (!client) {
       return NextResponse.json({ error: "Image service not configured" }, { status: 503 });
     }
-    const path = `blob/${key.trim()}`;
-    const signedUrl = await client.sign(path);
-    const imageRes = await fetch(signedUrl);
+    const trimmedKey = key.trim();
+
+    // Optional ?w= asks the Image Service to resize + re-encode (WebP/AVIF) on the
+    // fly via its serve/ endpoint, instead of piping the full-resolution original.
+    // This is the main lever for fast grids: a thumbnail is a few KB, not several MB.
+    const widthRaw = request.nextUrl.searchParams.get("w");
+    const width =
+      widthRaw && /^\d{1,5}$/.test(widthRaw)
+        ? Math.min(Math.max(parseInt(widthRaw, 10), 1), 3000)
+        : null;
+
+    // Hint the Image Service to negotiate a modern format when serving.
+    const fetchOpts: RequestInit = {
+      headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+    };
+
+    async function fetchBlob(path: string) {
+      const signedUrl = await client!.sign(path);
+      return fetch(signedUrl, fetchOpts);
+    }
+
+    let imageRes: Response;
+    if (width) {
+      imageRes = await fetchBlob(`serve/${width}x/blob/${trimmedKey}`);
+      // Fall back to the original if resizing isn't available on this service.
+      if (!imageRes.ok) {
+        imageRes = await fetchBlob(`blob/${trimmedKey}`);
+      }
+    } else {
+      imageRes = await fetchBlob(`blob/${trimmedKey}`);
+    }
+
     if (!imageRes.ok) {
       console.error("Image service fetch failed:", imageRes.status, key);
       return NextResponse.json({ error: "Image not found" }, { status: 404 });
@@ -32,7 +61,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=3600",
+        // Blob keys are content-addressed (random ids), so a given key+width is
+        // immutable — cache hard and let the browser/CDN reuse it.
+        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
       },
     });
   } catch (e) {

@@ -50,15 +50,19 @@ export function FeaturedProducts() {
             {product.images[0] ? (
               <>
                 <img
-                  src={imageDisplayUrl(product.images[0])}
+                  src={imageDisplayUrl(product.images[0], { width: 600 })}
                   alt={product.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
                 {/* Show second image on hover if available */}
                 {product.images[1] && (
                   <img
-                    src={imageDisplayUrl(product.images[1])}
+                    src={imageDisplayUrl(product.images[1], { width: 600 })}
                     alt={product.name}
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   />
                 )}

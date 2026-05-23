@@ -44,8 +44,10 @@ function RotatingCard({ product }: { product: LatestProduct }) {
         {images.map((url, i) => (
           <img
             key={i}
-            src={imageDisplayUrl(url)}
+            src={imageDisplayUrl(url, { width: 600 })}
             alt={`${product.name} - ${i + 1}`}
+            loading="lazy"
+            decoding="async"
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
               i === index ? "opacity-100" : "opacity-0"
             }`}

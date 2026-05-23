@@ -192,8 +192,10 @@ export default function ProductDetailPage() {
                     }`}
                   >
                     <img
-                      src={imageDisplayUrl(url)}
+                      src={imageDisplayUrl(url, { width: 150 })}
                       alt={`${product.name} — view ${i + 1}`}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -212,8 +214,9 @@ export default function ProductDetailPage() {
                 {images[activeImage] ? (
                   <>
                     <img
-                      src={imageDisplayUrl(images[activeImage])}
+                      src={imageDisplayUrl(images[activeImage], { width: 1200 })}
                       alt={product.name}
+                      decoding="async"
                       className="w-full h-full object-cover pointer-events-none select-none"
                       draggable={false}
                     />
@@ -255,8 +258,10 @@ export default function ProductDetailPage() {
                       }`}
                     >
                       <img
-                        src={imageDisplayUrl(url)}
+                        src={imageDisplayUrl(url, { width: 150 })}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </button>
@@ -603,8 +608,10 @@ export default function ProductDetailPage() {
                 <div key={i} className="aspect-[3/4] relative bg-je-offwhite overflow-hidden group cursor-pointer"
                      onClick={() => { setActiveImage(i); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                   <img
-                    src={imageDisplayUrl(url)}
+                    src={imageDisplayUrl(url, { width: 600 })}
                     alt={`${product.name} - View ${i + 1}`}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   />
                 </div>

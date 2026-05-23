@@ -270,8 +270,10 @@ function ProductsPageContent() {
                   <div className="aspect-[3/4] bg-je-offwhite overflow-hidden">
                     {p.images?.[0] ? (
                       <img
-                        src={imageDisplayUrl(p.images[0])}
+                        src={imageDisplayUrl(p.images[0], { width: 600 })}
                         alt={p.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />
                     ) : (
