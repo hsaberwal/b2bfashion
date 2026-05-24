@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 jobs:
   test:
@@ -31,3 +31,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build
+        run: npm run build
