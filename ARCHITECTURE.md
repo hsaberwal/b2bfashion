@@ -154,7 +154,8 @@ src/
     sizeScale.ts                      # "10-18 (1-2-2-2-1)" parser
     productFilter.ts                  # Used by /api/products
     guestCart.ts                      # localStorage cart + dispatchCartUpdated event
-    imageDisplayUrl.ts                # Resolves blob key → display URL
+    imageDisplayUrl.ts                # Resolves blob key → display URL; optional
+                                      # width → proxy serves a resized copy
     imageService.ts                   # Railway Image Service client
     fetchWithCsrf.ts                  # Convenience wrapper
     richText.tsx                      # Minimal Markdown renderer
@@ -363,7 +364,7 @@ Every state-changing endpoint requires the CSRF token issued via `GET /api/auth/
 | GET | `/api/site-content?key=footer\|about` | Read editable block |
 | POST | `/api/newsletter` | Email signup; rate-limited 5/min per IP |
 | GET | `/api/chat` (server-sent) | Claude chatbot |
-| GET | `/api/images/signed?key=…` | Public image proxy |
+| GET | `/api/images/signed?key=…&w=…` | Public image proxy; optional `w` resizes + re-encodes (WebP/AVIF) via the Image Service `serve/{w}x/` endpoint, falling back to the original |
 
 ### 4.6 Admin
 
@@ -534,6 +535,8 @@ Three backends in priority order:
 3. **Cloudinary** — `CLOUDINARY_CLOUD_NAME` + `CLOUDINARY_API_KEY` + `CLOUDINARY_API_SECRET`.
 
 Public pages always go through `/api/images/signed?key=…` so the storage URL never reaches the browser. `imageDisplayUrl()` picks the right backend.
+
+For performance, public pages pass a `width` to `imageDisplayUrl()` (e.g. 600 for grids, 1200 for detail, 1600 for the hero). The proxy then requests the Image Service `serve/{w}x/blob/{key}` endpoint, which resizes and re-encodes (WebP/AVIF) on the fly instead of piping the full-resolution original; it falls back to the raw blob if `serve/` resizing is unavailable, and caches resized responses hard (blob keys are content-addressed, so a key+width is immutable). Public `<img>`s also use `loading="lazy"`. Admin thumbnails deliberately stay on the raw blob (the admin proxy redirects rather than streams).
 
 Upload validation: magic-bytes check for JPEG / PNG / WebP / GIF in `src/app/api/admin/upload/route.ts`.
 
