@@ -11,6 +11,9 @@ import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { getStoredRecipients } from "@/lib/notificationRecipients";
 
+/** A PDF attachment for an outbound email (Resend accepts a Buffer as content). */
+export type EmailAttachment = { filename: string; content: Buffer };
+
 type NewOrderEmail = {
   orderId: string;
   orderShortCode: string;
@@ -22,6 +25,8 @@ type NewOrderEmail = {
   paymentStatus: string;
   itemCount: number;
   signedAt: Date;
+  /** When present, the order sales sheet PDF is attached to the admin email. */
+  attachment?: EmailAttachment;
 };
 
 async function getRecipients(): Promise<string[]> {
@@ -108,8 +113,74 @@ export async function sendNewOrderEmail(data: NewOrderEmail): Promise<void> {
       to: recipients,
       subject,
       html,
+      ...(data.attachment
+        ? { attachments: [{ filename: data.attachment.filename, content: data.attachment.content }] }
+        : {}),
     });
   } catch (err) {
     console.error("[new-order email] send failed:", err);
+  }
+}
+
+type CustomerOrderEmail = {
+  to: string;
+  customerName?: string;
+  orderShortCode: string;
+  total: number;
+  itemCount: number;
+  attachment?: EmailAttachment;
+};
+
+/**
+ * Send the customer their own copy of the signed order, with the sales-sheet
+ * PDF attached. Fire-and-forget: errors are swallowed so a Resend hiccup never
+ * breaks the customer's sign action.
+ */
+export async function sendCustomerOrderEmail(data: CustomerOrderEmail): Promise<void> {
+  const apiKey = process.env.EMAIL_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!apiKey || !from) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[customer-order email skipped — EMAIL_API_KEY or EMAIL_FROM missing]", { to: data.to, order: data.orderShortCode });
+    }
+    return;
+  }
+  if (!data.to) return;
+
+  const greeting = data.customerName ? `Hi ${data.customerName},` : "Hello,";
+  const subject = `Your Claudia.C order ${data.orderShortCode} — confirmation`;
+
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 560px;">
+      <h2 style="margin: 0 0 8px;">Thank you for your order</h2>
+      <p style="color: #555; margin: 0 0 16px;">${greeting}</p>
+      <p style="color: #555; margin: 0 0 16px;">
+        We've received your signed order. A copy of your sales order sheet is attached to this email as a PDF.
+        Our team will be in touch about despatch.
+      </p>
+      <table style="border-collapse: collapse; width: 100%;">
+        <tr><td style="padding: 4px 0; color: #888;">Order</td><td style="padding: 4px 0;"><strong>${data.orderShortCode}</strong></td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Items</td><td style="padding: 4px 0;">${data.itemCount}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Total (ex VAT)</td><td style="padding: 4px 0;"><strong>${formatGBP(data.total)}</strong></td></tr>
+      </table>
+      <p style="color: #888; font-size: 12px; margin-top: 24px;">
+        Claudia.C · 32-34 Sampson Road North, B11 1BL · Tel: 0121 693 6030
+      </p>
+    </div>
+  `;
+
+  try {
+    const resend = new Resend(apiKey);
+    await resend.emails.send({
+      from,
+      to: data.to,
+      subject,
+      html,
+      ...(data.attachment
+        ? { attachments: [{ filename: data.attachment.filename, content: data.attachment.content }] }
+        : {}),
+    });
+  } catch (err) {
+    console.error("[customer-order email] send failed:", err);
   }
 }

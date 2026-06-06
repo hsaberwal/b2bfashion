@@ -8,7 +8,8 @@ import { getSessionToken } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
 import { encrypt } from "@/lib/encrypt";
-import { sendNewOrderEmail } from "@/lib/adminNotifications";
+import { sendNewOrderEmail, sendCustomerOrderEmail } from "@/lib/adminNotifications";
+import { buildOrderPdf } from "@/lib/buildOrderPdf";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -168,21 +169,44 @@ export async function POST(
       await user.save();
     }
 
-    // Fire-and-forget: notify admins via email. We don't block the response
-    // on the email round-trip and we swallow errors inside sendNewOrderEmail
-    // so a Resend hiccup never breaks the customer's sign action.
-    sendNewOrderEmail({
-      orderId: order._id.toString(),
-      orderShortCode: order._id.toString().slice(-8),
-      customerName: user?.name,
-      customerCompany: user?.companyName,
-      customerEmail: user?.email,
-      total: orderTotal,
-      paymentOption: order.paymentOption ?? "pay_later",
-      paymentStatus: order.paymentStatus ?? "none",
-      itemCount: order.items.length,
-      signedAt: order.signedAt,
-    }).catch((err) => console.error("sendNewOrderEmail failed:", err));
+    // Fire-and-forget: generate the order PDF once, then email it to the admin
+    // team and to the customer. We don't block the response on the PDF render or
+    // the email round-trips, and errors are swallowed inside each sender so a
+    // hiccup never breaks the customer's sign action.
+    (async () => {
+      const orderId = order._id.toString();
+      const orderShortCode = orderId.slice(-8);
+      const built = await buildOrderPdf(orderId).catch((err) => {
+        console.error("buildOrderPdf failed:", err);
+        return null;
+      });
+      const attachment = built ? { filename: built.filename, content: built.buffer } : undefined;
+
+      await sendNewOrderEmail({
+        orderId,
+        orderShortCode,
+        customerName: user?.name,
+        customerCompany: user?.companyName,
+        customerEmail: user?.email,
+        total: orderTotal,
+        paymentOption: order.paymentOption ?? "pay_later",
+        paymentStatus: order.paymentStatus ?? "none",
+        itemCount: order.items.length,
+        signedAt: order.signedAt,
+        attachment,
+      });
+
+      if (user?.email) {
+        await sendCustomerOrderEmail({
+          to: user.email,
+          customerName: user.name,
+          orderShortCode,
+          total: orderTotal,
+          itemCount: order.items.length,
+          attachment,
+        });
+      }
+    })().catch((err) => console.error("order emails failed:", err));
 
     return NextResponse.json({
       id: order._id.toString(),

@@ -10,11 +10,14 @@ import {
   type StatusFilter,
 } from "@/lib/productFilter";
 
+type StockCategory = "previous" | "current" | "forward";
+
 type Product = {
   id: string;
   sku: string;
   name: string;
   category: string;
+  stockCategory?: StockCategory;
   colour: string;
   packSize: number;
   pricePerPiece?: number;
@@ -22,6 +25,12 @@ type Product = {
   packsReserved?: number;
   images?: string[];
   disabled?: boolean;
+};
+
+const STOCK_CATEGORY_LABELS: Record<StockCategory, string> = {
+  current: "Current stock",
+  forward: "Forward ordering",
+  previous: "Previous season",
 };
 
 function InlineNumberEditor({
@@ -271,6 +280,21 @@ export default function AdminProductsPage() {
     }
   }
 
+  async function bulkSetStockCategory(stockCategory: StockCategory) {
+    if (!someSelected) return;
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selected);
+      await Promise.all(ids.map((id) => patchProduct(id, { stockCategory })));
+      setProducts((prev) => prev.map((p) => (selected.has(p.id) ? { ...p, stockCategory } : p)));
+      setSelected(new Set());
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   const filterPills: { key: StatusFilter; label: string; count: number }[] = [
     { key: "all", label: "All", count: counts.all },
     { key: "active", label: "Active", count: counts.active },
@@ -380,6 +404,32 @@ export default function AdminProductsPage() {
             >
               Delete
             </button>
+            <span className="opacity-50">·</span>
+            <span className="text-xs opacity-70">Stock:</span>
+            <button
+              type="button"
+              onClick={() => bulkSetStockCategory("current")}
+              disabled={bulkBusy}
+              className="px-2.5 py-1 text-xs rounded bg-white/10 hover:bg-white/20 disabled:opacity-50"
+            >
+              Current
+            </button>
+            <button
+              type="button"
+              onClick={() => bulkSetStockCategory("forward")}
+              disabled={bulkBusy}
+              className="px-2.5 py-1 text-xs rounded bg-white/10 hover:bg-white/20 disabled:opacity-50"
+            >
+              Forward
+            </button>
+            <button
+              type="button"
+              onClick={() => bulkSetStockCategory("previous")}
+              disabled={bulkBusy}
+              className="px-2.5 py-1 text-xs rounded bg-white/10 hover:bg-white/20 disabled:opacity-50"
+            >
+              Previous
+            </button>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
@@ -466,6 +516,11 @@ export default function AdminProductsPage() {
                         <p className="text-xs text-gray-500 mt-0.5">
                           {p.category} · {p.colour} · pack of {p.packSize}
                         </p>
+                        {p.stockCategory && (
+                          <p className="text-[10px] text-gray-500 mt-0.5">
+                            {STOCK_CATEGORY_LABELS[p.stockCategory]}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-3 border-t border-gray-100 pt-3 text-xs">
@@ -590,7 +645,14 @@ export default function AdminProductsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="p-3 text-gray-600">{p.category}</td>
+                        <td className="p-3 text-gray-600">
+                          {p.category}
+                          {p.stockCategory && (
+                            <span className="block text-[10px] text-gray-400">
+                              {STOCK_CATEGORY_LABELS[p.stockCategory]}
+                            </span>
+                          )}
+                        </td>
                         <td className="p-3 text-gray-600">{p.packSize}</td>
                         <td className="p-3">
                           <InlineNumberEditor
