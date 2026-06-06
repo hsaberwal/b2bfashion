@@ -18,7 +18,7 @@ If you're reading this to **rebuild from scratch**, work through it top-down: st
 | DB | MongoDB | Mongoose ODM; `connectDB()` lazy-singleton in `src/lib/mongodb.ts` |
 | Auth | Custom session cookies | bcrypt password, crypto-random session token; stored in `sessions` collection |
 | CSRF | Double-submit cookie | Enforced by `src/middleware.ts` on POST/PATCH/DELETE |
-| Email | Resend | Verification, OTP, password reset, new-order admin notification |
+| Email | Resend | Verification, OTP, password reset, new-order admin + customer order emails (PDF attached) |
 | Payments | Stripe Checkout (hosted) | Customer pre-created with `address.country: "GB"`; webhook is authoritative |
 | AI chat | Anthropic Claude (Sonnet) | Chatbot widget |
 | AI vision | Anthropic Claude (Sonnet) | Label scanner extracts materials/care/sizes from photos |
@@ -146,9 +146,10 @@ src/
                                       # STATUS_LABEL, nextStatus, isAfter, isAtOrAfter
     stripe.ts                         # createCheckoutSession (with customer reuse),
                                       # constructWebhookEvent, retrieveSession
-    adminNotifications.ts             # sendNewOrderEmail (Resend)
-    orderPdf.ts                       # generateOrderPdf — CLAUDIA.C sales order /
-                                      # pick sheet (pdfkit), packs expanded per size
+    adminNotifications.ts             # sendNewOrderEmail + sendCustomerOrderEmail (Resend)
+    buildOrderPdf.ts                  # load order + render PDF (shared by route + emails)
+    orderPdf.ts                       # generateOrderPdf — CLAUDIA.C sales order (one
+                                      # row per SKU) + per-size picking page + signature
     fashn.ts                          # FASHN client
     signupHygiene.ts                  # Disposable email + MX checks
     sizeScale.ts                      # "10-18 (1-2-2-2-1)" parser
@@ -335,7 +336,7 @@ Every state-changing endpoint requires the CSRF token issued via `GET /api/auth/
 | GET | `/api/orders` | Pending cart + past orders for the logged-in user |
 | POST | `/api/orders` | Add line items to the user's single pending cart |
 | PATCH | `/api/orders/[id]` | Update cart items (only when `status === "pending"`) |
-| POST | `/api/orders/[id]/sign` | Atomic stock reserve, store signature, fire admin email |
+| POST | `/api/orders/[id]/sign` | Atomic stock reserve, store signature, email the sales-order PDF to admins + the customer |
 | POST | `/api/orders/[id]/pay` | Create Stripe Checkout Session OR confirm `pay_later` |
 | GET | `/api/orders/[id]/payment-status` | Sync-check Stripe Session on the `/checkout/result` page |
 
@@ -377,7 +378,7 @@ All require `requireAdmin()` (throws 401 / 403).
 | GET | `/api/admin/orders/[id]` | Full order: customer + payments + rich items |
 | POST | `/api/admin/orders/[id]/status` | `{ status, shippingCarrier?, shippingTrackingNumber? }` |
 | POST | `/api/admin/orders/[id]/payments` | `{ amount, method, reference?, note? }` |
-| GET | `/api/admin/orders/[id]/pdf` | Sales order / pick sheet PDF (packs expanded to one row per size) |
+| GET | `/api/admin/orders/[id]/pdf` | Sales-order PDF — one row per SKU, plus a per-size picking-list page; the customer's signature is drawn on the signature line |
 | GET | `/api/admin/users` | All users |
 | GET | `/api/admin/users/[id]` | Customer profile + order history + lifetime spend + outstanding |
 | PATCH | `/api/admin/users/[id]` | Toggle permissions / role / emailVerified |
@@ -520,9 +521,10 @@ Lazy-init `new Resend(process.env.EMAIL_API_KEY)` — skipped entirely if either
 | Verification link (24h expiry) | `src/app/api/auth/register/route.ts` |
 | OTP code | `src/app/api/auth/otp/send/route.ts` |
 | Password reset link (1h expiry) | `src/app/api/auth/password-reset/request/route.ts` |
-| New-order admin notification | `src/lib/adminNotifications.ts` (called from sign route, fire-and-forget) |
+| New-order admin notification (with PDF attached) | `src/lib/adminNotifications.ts` → `sendNewOrderEmail` (called from sign route, fire-and-forget) |
+| Customer order confirmation (with PDF attached) | `src/lib/adminNotifications.ts` → `sendCustomerOrderEmail` (called from sign route, fire-and-forget) |
 
-Admin recipients for new-order emails come from `ADMIN_NOTIFICATION_EMAILS` (comma-separated) or fall back to every `User` with `role: "admin"`.
+On sign, the route renders the sales-order PDF once (`buildOrderPdf`) and attaches it to both the admin alert and the customer's confirmation. Admin recipients come from the DB-managed list (Admin → Settings), then `ADMIN_NOTIFICATION_EMAILS` (comma-separated), then every `User` with `role: "admin"`.
 
 ---
 

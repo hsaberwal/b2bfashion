@@ -42,9 +42,9 @@ See [ROADMAP.md](ROADMAP.md) for upcoming features.
 - Guest cart — browse and add to cart without registering, with live cart-count badge
 - 3 payment options: pay in full, 10% deposit, or invoice (Stripe Checkout, reused customer per buyer)
 - Full order lifecycle visible to both sides: `signed → confirmed → picked → ready_to_ship → shipped → delivered`
-- Admin orders dashboard with print-ready pick list, downloadable PDF sales order / pick sheet (matches the CLAUDIA.C order-sheet template, packs broken out per size), status controls (carrier + tracking on ship), and manual payment recording (cash / bank transfer / cheque / Stripe / other)
+- Admin orders dashboard with print-ready pick list, downloadable PDF sales order (matches the CLAUDIA.C order-sheet template — one row per SKU, with the customer's signature drawn on, plus a per-size picking-list page), status controls (carrier + tracking on ship), and manual payment recording (cash / bank transfer / cheque / Stripe / other)
 - Customer detail page with order history, lifetime spend, and outstanding balance
-- New-order email to admins via Resend, with recipients managed in **Admin → Settings** (falls back to `ADMIN_NOTIFICATION_EMAILS`, then all admin users)
+- On sign, the sales-order PDF is automatically emailed (via Resend) to admins **and** the customer; admin recipients managed in **Admin → Settings** (falls back to `ADMIN_NOTIFICATION_EMAILS`, then all admin users)
 - Email verification with 24-hour auto-cleanup
 - Cycling hero banner with focal-point image selector
 - Editable About page + Footer CMS
