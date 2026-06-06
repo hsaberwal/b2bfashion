@@ -148,7 +148,7 @@ Three things you can do on this page:
 **1. Print the pick list.** Top-right buttons:
 
 - **"Print pick list"** → opens the browser print dialog with only the on-screen pick list visible (customer + delivery address at top, then a table of SKU / item / colour / pack contents / packs / pieces / line £).
-- **"Download PDF"** → downloads a tidy A4 **sales order / pick sheet** that matches the CLAUDIA.C order-sheet template (company header, Order Date, Supply to / Invoice Address, then Description / Misc / Style / Colour / Quantity / Price ex-VAT). **Each pack is broken down into one row per size** (size shown in the Description, e.g. `Floral Midi Dress — UK-12`), so warehouse staff pick exact sizes. Large orders flow onto extra pages. Stick this on the warehouse trolley.
+- **"Download PDF"** → downloads a tidy A4 **sales order** that matches the CLAUDIA.C order-sheet template (company header, Order Date, Supply to / Invoice Address, then Description / Misc / Style / Colour / Quantity / Price ex-VAT). The sales order shows **one row per product (SKU)** — style, colour, total quantity and price — matching the handwritten order sheet. The customer's **signature is drawn onto the signature line**, and their name is filled in. A separate **picking-list page** follows with the per-size breakdown (one row per size) so warehouse staff pick exact sizes. Large orders flow onto extra pages.
 
 **2. Advance the fulfilment status.** The "Fulfilment" card on the right shows the current status and a "Mark as {next step}" button. Click through:
 
@@ -171,14 +171,16 @@ All Stripe captures are also logged here automatically (via the Stripe webhook).
 
 #### New-order email alerts
 
-Whenever a customer signs an order, the people on your notification list get an email via Resend with:
+Whenever a customer signs an order, two emails go out automatically via Resend — **no manual step**:
 
-- Order short-code, customer name + company + email
-- Number of items, total, payment option/status
-- Signed timestamp
-- A direct **View order** link to `/admin/orders/[id]`
+- **To your notification list** — order short-code, customer name + company + email, item count, total, payment option/status, signed timestamp, a **View order** link to `/admin/orders/[id]`, and the **sales-order PDF attached**.
+- **To the customer** — a confirmation email with the same **sales-order PDF attached**, so both sides keep a copy.
 
-**Manage recipients in the admin: go to Settings (sidebar) → "New-order notification emails".** Add or remove addresses and click **Save** — changes take effect immediately, no redeploy needed. If the list is empty, alerts fall back to the `ADMIN_NOTIFICATION_EMAILS` env var (if set on Railway), and then to every admin user in the DB.
+**Manage recipients in the admin: go to Settings (sidebar) → "New-order notification emails".** Add or remove addresses and click **Save** — changes take effect immediately, no redeploy needed. If the list is empty, alerts fall back to the `ADMIN_NOTIFICATION_EMAILS` env var (if set on Railway), and then to every admin user in the DB. (The customer copy always goes to the email on their account.)
+
+#### "Coming soon" banner
+
+In **Settings → "Coming soon" banner**, flip the toggle on to show **logged-out visitors** a dismissible "coming soon" notice across the top of the public site. You and logged-in customers still see and use the full site as normal, so you can keep editing while the public sees the notice. You can customise the banner text and click **Save message**.
 
 ### Managing Customers (`/admin/users`)
 
@@ -192,6 +194,14 @@ Click any customer's email to open their detail page (`/admin/users/[id]`):
 - **Order history table** — every order with date, status, payment, total, paid, outstanding. Click any row to open that order.
 
 This gives you a single screen to answer "what does this customer owe us, and what have they ordered?"
+
+### Bulk actions on the products list
+
+On **Admin > Garments**, tick the checkboxes to select products (or the header checkbox to select all visible). A bulk action bar appears with:
+
+- **Show / Hide** — toggle whether selected products are visible to customers
+- **Delete** — remove selected products (with confirmation)
+- **Stock: Current / Forward / Previous** — move selected products between stock sections in one click (e.g. flip a batch from **Forward ordering** to **Current stock** when the season lands). Each product's current stock section is shown under its category in the list.
 
 ### Bulk Importing from Excel (Recommended)
 

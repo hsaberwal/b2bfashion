@@ -266,13 +266,20 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 - Stripe customer ID (when available)
 - Order history table: order #, date, status, payment option, total / paid / outstanding — click any row to open that order
 
-### New-Order Email Notification
+### Automated Order Emails (with PDF)
 
-- When a customer signs an order, the sign route fires (fire-and-forget) `sendNewOrderEmail` via Resend
-- Recipients resolve in priority order: (1) the **DB-managed list** edited in **Admin → Settings** (stored as a `SiteContent` doc keyed `orderNotifications`), (2) the legacy `ADMIN_NOTIFICATION_EMAILS` env var, (3) every admin user in the DB
+- When a customer signs an order, the sign route (fire-and-forget) renders the sales-order PDF once via `buildOrderPdf`, then sends two emails via Resend:
+  - **`sendNewOrderEmail`** to the admin team — order short-code, customer, items count, total, payment option/status, signed timestamp, a direct link to `/admin/orders/[id]`, **and the PDF attached**
+  - **`sendCustomerOrderEmail`** to the customer's account email — a confirmation with the **same PDF attached**, so both sides keep a copy
+- Admin recipients resolve in priority order: (1) the **DB-managed list** edited in **Admin → Settings** (stored as a `SiteContent` doc keyed `orderNotifications`), (2) the legacy `ADMIN_NOTIFICATION_EMAILS` env var, (3) every admin user in the DB
 - Admins manage the list at `/admin/settings` (add / remove addresses, validated + de-duplicated) via `GET`/`PUT /api/admin/notification-recipients` — no redeploy or env-var edit needed
-- Email includes order short-code, customer, items count, total, payment option/status, signed timestamp, and a direct link to `/admin/orders/[id]`
-- Skipped silently in development (logs the payload to console) — never blocks the customer's sign action
+- Skipped silently in development if `EMAIL_API_KEY`/`EMAIL_FROM` are unset (logs the payload to console) — never blocks the customer's sign action
+
+### "Coming Soon" Banner
+
+- Admin toggle in **Settings** (stored as a `SiteContent` doc keyed `comingSoon` with `{ enabled, message }`) shows logged-out visitors a dismissible banner across the public site
+- Logged-in users (admins **and** approved customers) bypass it, so the team can keep editing and using the live site while the public sees the notice
+- Rendered by `src/components/ComingSoonBanner.tsx` in the public site chrome; dismissal is remembered per-browser
 
 ### Customer-Facing Order Tracking
 

@@ -10,6 +10,7 @@ const COMPANY_LINES = [
 ];
 
 const ROWS_PER_PAGE = 16;
+const PICK_ROWS_PER_PAGE = 34;
 
 export type OrderPdfItem = {
   sku: string;
@@ -45,15 +46,29 @@ export type OrderPdfData = {
   } | null;
   items: OrderPdfItem[];
   total: number;
+  /**
+   * The customer's captured signature, as a `data:image/png;base64,…` (or jpeg)
+   * data URL. When present it is drawn onto the signature line of the sales sheet.
+   */
+  signatureImage?: string | null;
 };
 
-/** One printed line on the form: a single size of a single product. */
+/** One printed line on the sales sheet: a single product (one SKU per line). */
 type FormRow = {
   description: string;
   style: string;
   colour: string;
   qty: number;
   price?: number;
+};
+
+/** One printed line on the picking list: a single size of a single product. */
+type PickRow = {
+  sku: string;
+  product: string;
+  colour: string;
+  size: string;
+  qty: number;
 };
 
 function fmtGBP(n: number | undefined): string {
@@ -85,22 +100,87 @@ function expandPicks(item: OrderPdfItem): { size: string; qty: number }[] {
   return out;
 }
 
-/** Flatten every order line into per-size form rows, sorted by SKU. */
+/** One sales-sheet row per order line (one SKU per line), sorted by SKU. */
 function buildFormRows(data: OrderPdfData): FormRow[] {
-  const rows: FormRow[] = [];
+  return [...data.items]
+    .sort((a, b) => a.sku.localeCompare(b.sku))
+    .map((item) => ({
+      description: item.productName,
+      style: item.sku,
+      colour: item.colour ?? "",
+      qty: item.quantity,
+      price: item.pricePerPiece,
+    }));
+}
+
+/** Flatten every order line into per-size picking rows, sorted by SKU. */
+function buildPickRows(data: OrderPdfData): PickRow[] {
+  const rows: PickRow[] = [];
   for (const item of [...data.items].sort((a, b) => a.sku.localeCompare(b.sku))) {
     for (const pick of expandPicks(item)) {
       const size = pick.size && pick.size !== "—" ? pick.size : "";
       rows.push({
-        description: size ? `${item.productName} — ${size}` : item.productName,
-        style: item.sku,
+        sku: item.sku,
+        product: item.productName,
         colour: item.colour ?? "",
+        size,
         qty: pick.qty,
-        price: item.pricePerPiece,
       });
     }
   }
   return rows;
+}
+
+/**
+ * Validate that a buffer is a structurally sound PNG. PDFKit's bundled PNG
+ * decoder (png-js) will spin for ~15s on a malformed/truncated PNG before
+ * throwing "Incomplete or corrupt PNG file", so we must reject bad data
+ * *before* handing it to PDFKit — otherwise a single corrupt signature would
+ * stall the whole request. A valid PNG decodes in a couple of milliseconds.
+ */
+function isValidPng(buf: Buffer): boolean {
+  const SIG = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (buf.length < 8 + 12) return false;
+  for (let i = 0; i < 8; i++) if (buf[i] !== SIG[i]) return false;
+  // Walk chunks: [len:4][type:4][data:len][crc:4], must end at IEND in-bounds.
+  let pos = 8;
+  let sawIEND = false;
+  while (pos + 8 <= buf.length) {
+    const len = buf.readUInt32BE(pos);
+    const type = buf.toString("latin1", pos + 4, pos + 8);
+    const next = pos + 12 + len;
+    if (len > buf.length || next > buf.length) return false; // overruns → reject
+    if (type === "IEND") {
+      sawIEND = true;
+      break;
+    }
+    pos = next;
+  }
+  return sawIEND;
+}
+
+/** Validate a JPEG by its SOI/EOI markers. */
+function isValidJpeg(buf: Buffer): boolean {
+  return buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8 && buf[buf.length - 2] === 0xff && buf[buf.length - 1] === 0xd9;
+}
+
+/**
+ * Decode a `data:image/png;base64,…` (or jpeg) data URL into a Buffer for
+ * PDFKit, returning null unless the bytes are a structurally valid image.
+ */
+function dataUrlToBuffer(dataUrl: string | null | undefined): Buffer | null {
+  if (!dataUrl) return null;
+  const m = /^data:image\/(png|jpe?g);base64,(.+)$/i.exec(dataUrl.trim());
+  if (!m) return null;
+  let buf: Buffer;
+  try {
+    buf = Buffer.from(m[2], "base64");
+  } catch {
+    return null;
+  }
+  const isPng = m[1].toLowerCase() === "png";
+  if (isPng ? isValidPng(buf) : isValidJpeg(buf)) return buf;
+  return null;
 }
 
 function buildAddressLines(data: OrderPdfData): string[] {
@@ -147,6 +227,7 @@ export function generateOrderPdf(data: OrderPdfData): Promise<Buffer> {
         pieces: rows.reduce((s, r) => s + r.qty, 0),
         exVat: data.total,
       };
+      const signature = dataUrlToBuffer(data.signatureImage);
 
       const pages: FormRow[][] = [];
       for (let i = 0; i < rows.length; i += ROWS_PER_PAGE) pages.push(rows.slice(i, i + ROWS_PER_PAGE));
@@ -154,8 +235,25 @@ export function generateOrderPdf(data: OrderPdfData): Promise<Buffer> {
 
       pages.forEach((pageRows, idx) => {
         if (idx > 0) doc.addPage();
-        renderFormPage(doc, data, pageRows, idx * ROWS_PER_PAGE + 1, idx === pages.length - 1, totals, idx + 1, pages.length);
+        const isLast = idx === pages.length - 1;
+        renderFormPage(
+          doc, data, pageRows, idx * ROWS_PER_PAGE + 1, isLast, totals, idx + 1, pages.length,
+          isLast ? signature : null,
+        );
       });
+
+      // ---------- PICKING LIST (per-size breakdown) ----------
+      const pickRows = buildPickRows(data);
+      if (pickRows.length > 0) {
+        const pickPages: PickRow[][] = [];
+        for (let i = 0; i < pickRows.length; i += PICK_ROWS_PER_PAGE) {
+          pickPages.push(pickRows.slice(i, i + PICK_ROWS_PER_PAGE));
+        }
+        pickPages.forEach((pageRows, idx) => {
+          doc.addPage();
+          renderPickingPage(doc, data, pageRows, totals.pieces, idx + 1, pickPages.length);
+        });
+      }
 
       doc.end();
     } catch (err) {
@@ -172,7 +270,8 @@ function renderFormPage(
   isLastPage: boolean,
   totals: { pieces: number; exVat: number },
   pageNo: number,
-  pageCount: number
+  pageCount: number,
+  signature: Buffer | null
 ) {
   const margin = doc.page.margins.left;
   const left = margin;
@@ -285,7 +384,27 @@ function renderFormPage(
   doc.font("Helvetica").fontSize(8.5)
     .text("Buyers Name.................................................................", splitX + fpad, footerTop + 44, { width: contentW - leftColW - fpad * 2 })
     .text("Signature.......................................................................", splitX + fpad, footerTop + 58, { width: contentW - leftColW - fpad * 2 });
-  doc.fontSize(6.5)
+
+  // Fill the buyer's name from the order, and draw the captured signature
+  // image over the signature line (last sales page only).
+  const buyerName = data.customer?.name || data.deliverySnapshot?.companyName || data.customer?.companyName;
+  if (isLastPage && buyerName) {
+    doc.font("Helvetica").fontSize(8.5).text(buyerName, splitX + fpad + 60, footerTop + 44, {
+      width: contentW - leftColW - fpad * 2 - 60, lineBreak: false, ellipsis: true,
+    });
+  }
+  if (signature) {
+    try {
+      doc.image(signature, splitX + fpad + 52, footerTop + 49, {
+        fit: [Math.min(130, contentW - leftColW - fpad * 2 - 56), 16],
+        valign: "bottom",
+      });
+    } catch {
+      // Corrupt/unsupported image data — leave the printed signature line blank.
+    }
+  }
+
+  doc.fillColor("#000").font("Helvetica").fontSize(6.5)
     .text("No order accepted without signature. No cancellations accepted once orders are in production.",
       splitX + fpad, footerTop + 76, { width: contentW - leftColW - fpad * 2 });
 
@@ -312,6 +431,94 @@ function renderFormPage(
   // Light row separators
   doc.lineWidth(0.4).strokeColor("#bbb");
   for (let i = 1; i < ROWS_PER_PAGE; i++) hLine(doc, left, right, rowsTop + i * rowH);
+  doc.strokeColor("#000");
+}
+
+// Picking-list column layout (widths sum to the A4 content width of 515.28pt).
+const PICK_COLS: Col[] = [
+  { key: "style",  label: "Style",   width: 80,     align: "left" },
+  { key: "description", label: "Product", width: 210.28, align: "left" },
+  { key: "colour", label: "Colour",  width: 95,     align: "left" },
+  { key: "misc",   label: "Size",    width: 70,     align: "center" },
+  { key: "qty",    label: "Qty",     width: 60,     align: "center" },
+];
+
+/** A simple internal warehouse picking sheet: one row per size, per product. */
+function renderPickingPage(
+  doc: PDFKit.PDFDocument,
+  data: OrderPdfData,
+  rows: PickRow[],
+  totalPieces: number,
+  pageNo: number,
+  pageCount: number
+) {
+  const margin = doc.page.margins.left;
+  const left = margin;
+  const contentW = doc.page.width - margin * 2;
+  const right = left + contentW;
+
+  doc.lineWidth(0.8).strokeColor("#000").fillColor("#000");
+
+  // Title
+  doc.font("Helvetica-Bold").fontSize(14).text("PICKING LIST", left, margin);
+  doc.font("Helvetica").fontSize(9).fillColor("#555")
+    .text(`Order ${data.shortCode}  ·  ${fmtDate(data.signedAt)}`, left, margin + 18);
+  if (pageCount > 1) {
+    doc.text(`Page ${pageNo} of ${pageCount}`, left, margin + 18, { width: contentW, align: "right" });
+  }
+  doc.fillColor("#000");
+
+  const tableTop = margin + 36;
+  const thH = 22;
+  const rowH = 18;
+  const rowsTop = tableTop + thH;
+
+  // Column headers
+  doc.font("Helvetica-Bold").fontSize(9);
+  let hx = left;
+  for (const c of PICK_COLS) {
+    doc.text(c.label, hx + 4, tableTop + 6, { width: c.width - 8, align: c.align });
+    hx += c.width;
+  }
+
+  // Rows
+  doc.font("Helvetica").fontSize(9);
+  rows.forEach((row, i) => {
+    const rowY = rowsTop + i * rowH;
+    let cx = left;
+    for (const c of PICK_COLS) {
+      let value = "";
+      if (c.key === "style") value = row.sku;
+      else if (c.key === "description") value = row.product;
+      else if (c.key === "colour") value = row.colour;
+      else if (c.key === "misc") value = row.size || "—";
+      else if (c.key === "qty") value = String(row.qty);
+      if (value) {
+        doc.text(value, cx + 4, rowY + 4, { width: c.width - 8, align: c.align, lineBreak: false, ellipsis: true });
+      }
+      cx += c.width;
+    }
+  });
+
+  const tableBottom = rowsTop + rows.length * rowH;
+
+  // Total on the final picking page
+  if (pageNo === pageCount) {
+    doc.font("Helvetica-Bold").fontSize(10)
+      .text(`Total: ${totalPieces} pcs`, left, tableBottom + 8, { width: contentW, align: "right" });
+  }
+
+  // Borders / grid
+  doc.lineWidth(0.8).strokeColor("#000");
+  doc.rect(left, tableTop, contentW, thH + rows.length * rowH).stroke();
+  hLine(doc, left, right, rowsTop); // header / rows divider
+  doc.lineWidth(0.4).strokeColor("#bbb");
+  for (let i = 1; i < rows.length; i++) hLine(doc, left, right, rowsTop + i * rowH);
+  let vx = left;
+  for (const c of PICK_COLS) {
+    vx += c.width;
+    if (vx < right - 0.5) vLine(doc, vx, tableTop, tableBottom);
+  }
   doc.strokeColor("#000");
 }
 
