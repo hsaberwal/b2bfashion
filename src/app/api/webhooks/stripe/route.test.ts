@@ -166,7 +166,7 @@ describe("POST /api/webhooks/stripe", () => {
     expect(mockProductUpdateOne).not.toHaveBeenCalled();
   });
 
-  it("marks order refunded on charge.refunded", async () => {
+  it("marks order refunded on a FULL charge.refunded", async () => {
     const order = {
       paymentStatus: "paid",
       save: vi.fn().mockResolvedValue(undefined),
@@ -175,11 +175,27 @@ describe("POST /api/webhooks/stripe", () => {
     mockOrderFindOne.mockResolvedValueOnce(order);
     mockConstructEvent.mockReturnValueOnce({
       type: "charge.refunded",
-      data: { object: { payment_intent: "pi_x" } },
+      data: { object: { payment_intent: "pi_x", amount: 5000, amount_refunded: 5000 } },
     });
     const { POST } = await import("./route");
     await POST(postReq("{}") as never);
     expect(order.paymentStatus).toBe("refunded");
+  });
+
+  it("leaves order paid on a PARTIAL charge.refunded", async () => {
+    const order = {
+      paymentStatus: "paid",
+      save: vi.fn().mockResolvedValue(undefined),
+      _id: "o1",
+    } as Record<string, unknown>;
+    mockOrderFindOne.mockResolvedValueOnce(order);
+    mockConstructEvent.mockReturnValueOnce({
+      type: "charge.refunded",
+      data: { object: { payment_intent: "pi_x", amount: 5000, amount_refunded: 1000 } },
+    });
+    const { POST } = await import("./route");
+    await POST(postReq("{}") as never);
+    expect(order.paymentStatus).toBe("paid"); // partial refund doesn't flip the whole order
   });
 
   it("ignores unknown event types without error", async () => {

@@ -119,4 +119,13 @@ describe("generateOrderPdf", () => {
     });
     expect(isPdf(buf)).toBe(true);
   });
+
+  it("renders the invoice variant with a payment summary", async () => {
+    const buf = await generateOrderPdf({
+      ...baseData,
+      isInvoice: true,
+      invoiceSummary: { paid: 173.4, credited: 89.7, refundOwed: 89.7, balanceDue: 0 },
+    });
+    expect(isPdf(buf)).toBe(true);
+  });
 });

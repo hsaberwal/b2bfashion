@@ -20,6 +20,12 @@ type OrderItem = {
   packs: number | null;
   pricePerPiece?: number;
   lineTotal: number;
+  itemId: string;
+  cancelled: boolean;
+  cancelledReason?: string;
+  creditAmount: number;
+  creditType: "balance" | "refund" | null;
+  refundStatus: "none" | "owed" | "refunded";
 };
 
 type PaymentRow = {
@@ -62,8 +68,13 @@ type OrderDetail = {
   total: number;
   paid: number;
   outstanding: number;
+  refundedTotal: number;
+  credited: number;
+  refundOwed: number;
+  balanceDue: number;
+  stripePaymentIntentId?: string;
   payments: PaymentRow[];
-  customer: { id: string; email: string; name?: string; companyName?: string; vatNumber?: string } | null;
+  customer: { id: string; email: string; name?: string; companyName?: string; vatNumber?: string; creditBalance: number } | null;
 };
 
 const METHOD_LABEL: Record<string, string> = {
@@ -99,6 +110,11 @@ export default function AdminOrderDetailPage() {
 
   const [carrier, setCarrier] = useState("");
   const [tracking, setTracking] = useState("");
+
+  // Pack removal dialog
+  const [removeTarget, setRemoveTarget] = useState<OrderItem | null>(null);
+  const [removeCreditType, setRemoveCreditType] = useState<"balance" | "refund">("balance");
+  const [removeReason, setRemoveReason] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -140,6 +156,57 @@ export default function AdminOrderDetailPage() {
       if (!r.ok) {
         const data = await r.json();
         setErr(data.error ?? "Status update failed");
+        return;
+      }
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openRemove(item: OrderItem) {
+    setRemoveTarget(item);
+    setRemoveCreditType("balance");
+    setRemoveReason("");
+    setErr("");
+  }
+
+  async function confirmRemove() {
+    if (!order || !removeTarget) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const r = await fetch(`/api/admin/orders/${id}/cancel-item`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: removeTarget.itemId, creditType: removeCreditType, reason: removeReason.trim() || undefined }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setErr(data.error ?? "Failed to remove pack");
+        return;
+      }
+      setRemoveTarget(null);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refundItem(item: OrderItem) {
+    if (!order) return;
+    if (!confirm(`Issue a Stripe refund of ${fmtGBP(item.creditAmount)} for ${item.sku}?`)) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const r = await fetch(`/api/admin/orders/${id}/refund-item`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.itemId }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setErr(data.error ?? "Refund failed");
         return;
       }
       await load();
@@ -297,46 +364,124 @@ export default function AdminOrderDetailPage() {
                 <th className="text-right py-2 font-semibold">Packs</th>
                 <th className="text-right py-2 font-semibold">Pieces</th>
                 <th className="text-right py-2 font-semibold">Line £</th>
+                <th className="text-right py-2 font-semibold no-print" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {order.items.map((i, idx) => (
-                <tr key={`${i.productId}:${i.size ?? ""}:${idx}`}>
-                  <td className="py-2 font-mono text-xs">{i.sku}</td>
-                  <td className="py-2">
-                    <p className="text-gray-900">{i.productName}</p>
-                    {i.category && <p className="text-xs text-gray-500">{i.category}</p>}
-                  </td>
-                  <td className="py-2 text-gray-700">{i.colour ?? "—"}</td>
-                  <td className="py-2 text-xs text-gray-600">
-                    {i.sizes && i.sizes.length > 0 ? (
-                      i.sizes.map((s, si) => (
-                        <span key={s} className="inline-block mr-2">
-                          {(i.sizeRatio?.[si] ?? 1)}×{s}
-                        </span>
-                      ))
-                    ) : i.size ? (
-                      <span>Size {i.size}</span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="py-2 text-right">{i.packs ?? "—"}</td>
-                  <td className="py-2 text-right">{i.quantity}</td>
-                  <td className="py-2 text-right">{fmtGBP(i.lineTotal)}</td>
-                </tr>
-              ))}
+              {order.items.map((i, idx) => {
+                const canRemove = order.status !== "pending" && order.status !== "cancelled";
+                return (
+                  <tr key={i.itemId ?? `${i.productId}:${i.size ?? ""}:${idx}`} className={i.cancelled ? "text-gray-400" : ""}>
+                    <td className={`py-2 font-mono text-xs ${i.cancelled ? "line-through" : ""}`}>{i.sku}</td>
+                    <td className="py-2">
+                      <p className={i.cancelled ? "line-through" : "text-gray-900"}>{i.productName}</p>
+                      {i.category && <p className="text-xs text-gray-500">{i.category}</p>}
+                      {i.cancelled && (
+                        <p className="text-[11px] mt-0.5 not-italic">
+                          {i.creditType === "refund" ? (
+                            i.refundStatus === "refunded"
+                              ? <span className="text-green-700">Removed · {fmtGBP(i.creditAmount)} refunded</span>
+                              : <span className="text-amber-700">Removed · {fmtGBP(i.creditAmount)} refund owed</span>
+                          ) : i.creditAmount > 0 ? (
+                            <span className="text-blue-700">Removed · {fmtGBP(i.creditAmount)} credited to account</span>
+                          ) : (
+                            <span className="text-gray-500">Removed</span>
+                          )}
+                          {i.cancelledReason ? ` — ${i.cancelledReason}` : ""}
+                        </p>
+                      )}
+                    </td>
+                    <td className={`py-2 ${i.cancelled ? "" : "text-gray-700"}`}>{i.colour ?? "—"}</td>
+                    <td className="py-2 text-xs text-gray-600">
+                      {i.sizes && i.sizes.length > 0 ? (
+                        i.sizes.map((s, si) => (
+                          <span key={s} className="inline-block mr-2">
+                            {(i.sizeRatio?.[si] ?? 1)}×{s}
+                          </span>
+                        ))
+                      ) : i.size ? (
+                        <span>Size {i.size}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className={`py-2 text-right ${i.cancelled ? "line-through" : ""}`}>{i.packs ?? "—"}</td>
+                    <td className={`py-2 text-right ${i.cancelled ? "line-through" : ""}`}>{i.quantity}</td>
+                    <td className={`py-2 text-right ${i.cancelled ? "line-through" : ""}`}>{fmtGBP(i.lineTotal)}</td>
+                    <td className="py-2 text-right no-print whitespace-nowrap">
+                      {!i.cancelled && canRemove && (
+                        <button
+                          type="button"
+                          onClick={() => openRemove(i)}
+                          disabled={busy}
+                          className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                        >
+                          Remove pack
+                        </button>
+                      )}
+                      {i.cancelled && i.creditType === "refund" && i.refundStatus === "owed" && order.stripePaymentIntentId && (
+                        <button
+                          type="button"
+                          onClick={() => refundItem(i)}
+                          disabled={busy}
+                          className="text-xs text-amber-700 hover:underline disabled:opacity-50"
+                        >
+                          Refund £{i.creditAmount.toFixed(2)} via Stripe
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot className="border-t-2 border-gray-300">
               <tr>
                 <td colSpan={4} className="py-3 text-right text-xs uppercase text-gray-600 font-semibold">Totals</td>
-                <td className="py-3 text-right font-semibold">{order.items.reduce((s, i) => s + (i.packs ?? 0), 0)}</td>
-                <td className="py-3 text-right font-semibold">{order.items.reduce((s, i) => s + i.quantity, 0)}</td>
+                <td className="py-3 text-right font-semibold">{order.items.filter((i) => !i.cancelled).reduce((s, i) => s + (i.packs ?? 0), 0)}</td>
+                <td className="py-3 text-right font-semibold">{order.items.filter((i) => !i.cancelled).reduce((s, i) => s + i.quantity, 0)}</td>
                 <td className="py-3 text-right font-semibold">{fmtGBP(order.total)}</td>
+                <td className="no-print" />
               </tr>
             </tfoot>
           </table>
         </section>
+
+        {/* Pack removal dialog */}
+        {removeTarget && (
+          <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !busy && setRemoveTarget(null)}>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Remove pack from order</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Removing <strong>{removeTarget.sku}</strong> ({fmtGBP(removeTarget.lineTotal)}). The stock is returned and,
+                if the order has been paid, that value is credited back to the customer.
+              </p>
+              <div className="space-y-2 mb-4">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="radio" name="creditType" checked={removeCreditType === "balance"} onChange={() => setRemoveCreditType("balance")} className="mt-0.5" />
+                  <span><span className="text-sm font-medium text-gray-900">Add to account credit</span><span className="block text-xs text-gray-500">Customer can spend it on a future order.</span></span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="radio" name="creditType" checked={removeCreditType === "refund"} onChange={() => setRemoveCreditType("refund")} className="mt-0.5" />
+                  <span><span className="text-sm font-medium text-gray-900">Mark as refund owed</span><span className="block text-xs text-gray-500">Refund via Stripe afterwards (Stripe-paid orders).</span></span>
+                </label>
+              </div>
+              <input
+                type="text"
+                value={removeReason}
+                onChange={(e) => setRemoveReason(e.target.value)}
+                placeholder="Reason (optional)"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-4"
+              />
+              {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setRemoveTarget(null)} disabled={busy} className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={confirmRemove} disabled={busy} className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+                  {busy ? "Removing…" : "Remove pack"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Customer + payment summary — screen only */}
         <div className="no-print grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
@@ -353,6 +498,11 @@ export default function AdminOrderDetailPage() {
                 {order.customer.companyName && <p className="text-sm text-gray-600">{order.customer.companyName}</p>}
                 <p className="text-sm text-gray-500 mt-1">{order.customer.email}</p>
                 {order.customer.vatNumber && <p className="text-xs text-gray-500 mt-1">VAT {order.customer.vatNumber}</p>}
+                {order.customer.creditBalance > 0 && (
+                  <p className="mt-2 inline-block rounded bg-blue-50 text-blue-800 text-xs font-medium px-2 py-1">
+                    Account credit: {fmtGBP(order.customer.creditBalance)}
+                  </p>
+                )}
               </>
             ) : (
               <p className="text-sm text-gray-400">—</p>
@@ -366,9 +516,18 @@ export default function AdminOrderDetailPage() {
             <div className="mt-3 space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-gray-600">Total</span><span className="font-medium">{fmtGBP(order.total)}</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Paid</span><span className="font-medium text-green-700">{fmtGBP(order.paid)}</span></div>
+              {order.credited > 0 && (
+                <div className="flex justify-between"><span className="text-gray-600">Credited</span><span className="font-medium text-blue-700">{fmtGBP(order.credited)}</span></div>
+              )}
+              {order.refundOwed > 0 && (
+                <div className="flex justify-between"><span className="text-gray-600">Refund owed</span><span className="font-medium text-amber-700">{fmtGBP(order.refundOwed)}</span></div>
+              )}
+              {order.refundedTotal > 0 && (
+                <div className="flex justify-between"><span className="text-gray-600">Refunded</span><span className="font-medium text-gray-500">{fmtGBP(order.refundedTotal)}</span></div>
+              )}
               <div className="flex justify-between border-t border-gray-100 pt-1 mt-1">
-                <span className="text-gray-600">Outstanding</span>
-                <span className={`font-semibold ${order.outstanding > 0 ? "text-amber-700" : "text-gray-400"}`}>{fmtGBP(order.outstanding)}</span>
+                <span className="text-gray-600">Balance due</span>
+                <span className={`font-semibold ${order.balanceDue > 0 ? "text-amber-700" : "text-gray-400"}`}>{fmtGBP(order.balanceDue)}</span>
               </div>
             </div>
           </div>

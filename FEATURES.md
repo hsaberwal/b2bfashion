@@ -290,6 +290,15 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 - Config is stored as a `SiteContent` doc keyed `heroBanners` and sanitised on read by `src/lib/heroBanners.ts`; the hero (`/api/products/hero`) returns it alongside the product list and `HeroSection` composes the rotation
 - _Note: PDFs can't render as web banners — banners are images. Export PDF artwork to JPG first._
 
+### Partial Cancellation (remove a pack + credit/refund)
+
+- Admins can remove an individual pack (line item) from an otherwise-live order without cancelling the whole order — `POST /api/admin/orders/[id]/cancel-item`.
+- Removing a pack **releases its stock** (the reservation for `signed` orders, or physical `packsInStock` once consumed) and **records a credit** capped at what the customer actually paid.
+- The credit is either **added to the customer's account balance** (`User.creditBalance`, spendable later) or **marked as a refund owed**, chosen per removal.
+- For refund-owed packs on Stripe-paid orders, an admin issues the **Stripe refund** with one click — `POST /api/admin/orders/[id]/refund-item` (partial refund; the webhook no longer flips the whole order to refunded unless it's a full refund).
+- A **revised invoice PDF** (titled INVOICE, showing remaining items + paid / credited / refund owed / balance due) is generated and **emailed to the customer and the admin team**, explaining that the removed pack won't ship with the rest.
+- The admin order page shows removed lines struck-through with their credit/refund state, the customer's account-credit balance, and per-line Remove / Refund actions.
+
 ### Customer-Facing Order Tracking
 
 On `/cart`, expanding any past order shows a **fulfilment progress indicator** rendering all 6 lifecycle steps with a filled dot on the current step. Customers can self-serve "where is my order?" without contacting support.

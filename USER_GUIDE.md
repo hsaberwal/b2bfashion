@@ -170,6 +170,13 @@ Click **Record** to log it. The Payment row appears in the table above and the o
 
 All Stripe captures are also logged here automatically (via the Stripe webhook).
 
+**4. Remove a pack (without cancelling the whole order).** In the pick-list table, each line has a **"Remove pack"** button. Use it when one product can't go out with the rest:
+
+- You choose how to handle the value: **Add to account credit** (the customer can spend it on a future order) or **Mark as refund owed**.
+- The pack's **stock is returned** automatically, and the value is credited **only up to what the customer has actually paid**.
+- The customer (and your team) are **emailed a revised invoice** showing the remaining items, what was paid, and what was credited — and noting that the removed pack won't ship with the others.
+- Removed lines stay on the order, struck through, with their credit/refund status. If you marked it as a **refund owed** on a Stripe-paid order, a **"Refund £X via Stripe"** button appears — click it to issue the refund. The customer's running **account credit** shows on the Customer card.
+
 #### New-order email alerts
 
 Whenever a customer signs an order, two emails go out automatically via Resend — **no manual step**:

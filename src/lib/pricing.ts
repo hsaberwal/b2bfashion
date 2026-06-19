@@ -9,20 +9,33 @@ export type OrderItem = {
   /** Legacy field still present on some old order items. */
   pricePerPack?: number;
   quantity: number;
+  /** Set when a pack is removed from an otherwise live order (partial cancellation). */
+  cancelled?: boolean;
+  /** Value credited back to the customer for a removed line. */
+  creditAmount?: number;
 };
 
+/** The value of a single order line: pricePerPiece (or legacy pricePerPack) × quantity. */
+export function lineValue(item: OrderItem): number {
+  const piece = item.pricePerPiece ?? item.pricePerPack ?? 0;
+  return piece * item.quantity;
+}
+
 /**
- * Sum of (pricePerPiece × quantity) across order items. Items with no
- * price contribute zero — useful for quoting unpriced carts as 0 so
- * the caller can surface "order has no priced items".
+ * Sum of (pricePerPiece × quantity) across order items, **excluding cancelled
+ * lines**. Items with no price contribute zero — useful for quoting unpriced
+ * carts as 0 so the caller can surface "order has no priced items".
  *
  * Falls back to legacy pricePerPack if pricePerPiece is missing.
  */
 export function calculateOrderTotal(items: OrderItem[]): number {
-  return items.reduce((sum, item) => {
-    const piece = item.pricePerPiece ?? item.pricePerPack ?? 0;
-    return sum + piece * item.quantity;
-  }, 0);
+  return items.reduce((sum, item) => (item.cancelled ? sum : sum + lineValue(item)), 0);
+}
+
+/** Sum of credit amounts recorded against removed (cancelled) lines, rounded to pence. */
+export function sumCredited(items: OrderItem[]): number {
+  const raw = items.reduce((sum, item) => (item.cancelled ? sum + (item.creditAmount ?? 0) : sum), 0);
+  return Math.round(raw * 100) / 100;
 }
 
 /**

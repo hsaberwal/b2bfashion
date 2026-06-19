@@ -201,6 +201,7 @@ public/
 | `otpCode` / `otpExpires` | string / Date | Time-limited login OTP |
 | `resetToken` / `resetTokenExpires` | string / Date | Password reset |
 | `stripeCustomerId` | string (indexed) | Set on first checkout; reused on subsequent orders |
+| `creditBalance` | number | Account credit (GBP) accrued from packs removed off paid orders; spendable on future orders |
 | `createdAt` / `updatedAt` | Date | Auto |
 
 ### 3.2 Session (`src/models/Session.ts`)
@@ -255,10 +256,13 @@ Indexes: `stockCategory`, `category`, `colour`, `season`, `disabled`.
 | `depositPaid` | bool | |
 | `paymentStatus` | enum | `none` \| `pending` \| `paid` \| `failed` \| `refunded` |
 | `amountPaid` | number | Recomputed from `Payment` rows after each payment event |
+| `refundedTotal` | number | Sum of Stripe refunds issued across partial cancellations |
 | `stripeSessionId` / `stripePaymentIntentId` | string | For webhook reconciliation |
 | `pickedAt` / `readyAt` / `shippedAt` / `deliveredAt` | Date | Stamped on each transition |
 | `shippingCarrier` / `shippingTrackingNumber` | string | Optional, captured at "Mark shipped" |
 | `createdAt` / `updatedAt` | Date | Auto |
+
+Per-line **partial cancellation** fields on `items[]`: `cancelled`, `cancelledAt`, `cancelledReason`, `creditAmount` (capped at what the customer paid), `creditType` (`balance` \| `refund`), `refundStatus` (`none` \| `owed` \| `refunded`), `stripeRefundId`. Removing a pack releases its stock (reservation if `signed`, physical stock once consumed), records the credit, and emails a revised invoice. `creditType: "balance"` increments `User.creditBalance`; `creditType: "refund"` leaves a refund "owed" until an admin issues the Stripe refund.
 
 Indexes: `userId`, `status`.
 
@@ -385,6 +389,8 @@ All require `requireAdmin()` (throws 401 / 403).
 | GET | `/api/admin/orders/[id]` | Full order: customer + payments + rich items |
 | POST | `/api/admin/orders/[id]/status` | `{ status, shippingCarrier?, shippingTrackingNumber? }` |
 | POST | `/api/admin/orders/[id]/payments` | `{ amount, method, reference?, note? }` |
+| POST | `/api/admin/orders/[id]/cancel-item` | Remove a pack: `{ itemId, creditType: "balance"\|"refund", reason? }` — releases stock, records credit, emails revised invoice |
+| POST | `/api/admin/orders/[id]/refund-item` | Issue the Stripe refund for a refund-owed removed pack: `{ itemId }` |
 | GET | `/api/admin/orders/[id]/pdf` | Sales-order PDF — one row per SKU (this **is** the packing list); the customer's signature is drawn on the signature line; special instructions printed in the footer box |
 | GET | `/api/payment-options` | Which checkout payment options are enabled (public; admin-configured) |
 | GET | `/api/admin/users` | All users |

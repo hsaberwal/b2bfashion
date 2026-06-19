@@ -24,6 +24,8 @@ export type AuditAction =
   | "product_deleted"
   | "order_signed"
   | "order_status_changed"
+  | "order_item_cancelled"
+  | "order_item_refunded"
   | "payment_initiated"
   | "payment_completed"
   | "payment_recorded"

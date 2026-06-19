@@ -150,8 +150,17 @@ export async function POST(request: NextRequest) {
         const order = await Order.findOne({ stripePaymentIntentId: paymentIntentId });
         if (!order) break;
 
-        order.paymentStatus = "refunded";
-        await order.save();
+        // Only flip the whole order to "refunded" on a FULL refund. Partial
+        // refunds (e.g. one pack removed from a multi-pack order) leave the
+        // order paid — the per-item refund state is tracked on the line itself.
+        const fullyRefunded =
+          typeof charge.amount === "number" &&
+          typeof charge.amount_refunded === "number" &&
+          charge.amount_refunded >= charge.amount;
+        if (fullyRefunded) {
+          order.paymentStatus = "refunded";
+          await order.save();
+        }
 
         await audit({
           action: "payment_failed",
