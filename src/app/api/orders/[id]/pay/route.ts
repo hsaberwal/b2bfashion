@@ -6,6 +6,8 @@ import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 import { getSessionToken } from "@/lib/auth";
 import { createCheckoutSession, isStripeConfigured } from "@/lib/stripe";
+import { getEnabledPaymentOptions } from "@/lib/paymentOptionsServer";
+import { isPaymentOptionEnabled } from "@/lib/paymentOptions";
 import { calculateOrderTotal, calculateDeposit } from "@/lib/pricing";
 import { audit } from "@/lib/audit";
 import { getClientIp } from "@/lib/rateLimit";
@@ -36,6 +38,13 @@ export async function POST(
       return NextResponse.json({ error: "Invalid payment option" }, { status: 400 });
     }
     const { paymentOption } = parsed.data;
+
+    // Enforce the admin-configured set server-side — never trust the client to
+    // only send enabled options.
+    const enabledOptions = await getEnabledPaymentOptions();
+    if (!isPaymentOptionEnabled(enabledOptions, paymentOption)) {
+      return NextResponse.json({ error: "That payment option is not available." }, { status: 400 });
+    }
 
     await connectDB();
     const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });

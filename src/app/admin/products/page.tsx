@@ -6,8 +6,12 @@ import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 import {
   availableOf,
   filterProducts,
+  sortProducts,
   statusCounts,
+  SORT_OPTIONS,
   type StatusFilter,
+  type SortKey,
+  type SortDir,
 } from "@/lib/productFilter";
 
 type StockCategory = "previous" | "current" | "forward";
@@ -143,6 +147,8 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
 
@@ -211,10 +217,10 @@ export default function AdminProductsPage() {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, pricePerPiece } : p)));
   }
 
-  // Filtered + searched
+  // Filtered + searched + sorted
   const visible = useMemo(
-    () => filterProducts(products, search, filter),
-    [products, search, filter],
+    () => sortProducts(filterProducts(products, search, filter), sortKey, sortDir),
+    [products, search, filter, sortKey, sortDir],
   );
 
   const counts = useMemo(() => statusCounts(products), [products]);
@@ -373,6 +379,29 @@ export default function AdminProductsPage() {
           <p className="text-xs text-gray-500 mt-1.5">
             Tip: tap a stock or price number to edit it inline. Use Bulk import for spreadsheet updates.
           </p>
+        </div>
+
+        {/* Sort */}
+        <div className="mb-3 flex items-center gap-2">
+          <label htmlFor="product-sort" className="text-xs text-gray-500">Sort by</label>
+          <select
+            id="product-sort"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+            className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg bg-white focus:border-gray-900 focus:outline-none"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg bg-white hover:border-gray-300"
+            title={sortDir === "asc" ? "Ascending" : "Descending"}
+          >
+            {sortDir === "asc" ? "↑ A–Z" : "↓ Z–A"}
+          </button>
         </div>
 
         {/* Bulk action bar */}

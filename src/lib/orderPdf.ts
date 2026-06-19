@@ -10,7 +10,6 @@ const COMPANY_LINES = [
 ];
 
 const ROWS_PER_PAGE = 16;
-const PICK_ROWS_PER_PAGE = 34;
 
 export type OrderPdfItem = {
   sku: string;
@@ -64,15 +63,6 @@ type FormRow = {
   price?: number;
 };
 
-/** One printed line on the picking list: a single size of a single product. */
-type PickRow = {
-  sku: string;
-  product: string;
-  colour: string;
-  size: string;
-  qty: number;
-};
-
 function fmtGBP(n: number | undefined): string {
   if (n == null || !Number.isFinite(n)) return "";
   return `£${n.toFixed(2)}`;
@@ -83,23 +73,6 @@ function fmtDate(d: Date | string | null | undefined): string {
   const date = typeof d === "string" ? new Date(d) : d;
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-/** Expand one order line into one (size, qty) row per size in the pack ratio. */
-function expandPicks(item: OrderPdfItem): { size: string; qty: number }[] {
-  const sizes = item.sizes ?? [];
-  const ratio = item.sizeRatio ?? [];
-  const packs = item.packSize > 0 ? Math.floor(item.quantity / item.packSize) : 0;
-  if (sizes.length === 0 || ratio.length === 0 || packs === 0 || sizes.length !== ratio.length) {
-    // Fallback: one row with the whole quantity, no size.
-    return [{ size: item.sizes?.[0] ?? "", qty: item.quantity }];
-  }
-  const out: { size: string; qty: number }[] = [];
-  for (let i = 0; i < sizes.length; i++) {
-    const qty = packs * (ratio[i] ?? 0);
-    if (qty > 0) out.push({ size: sizes[i], qty });
-  }
-  return out;
 }
 
 /** One sales-sheet row per order line (one SKU per line), sorted by SKU. */
@@ -113,24 +86,6 @@ function buildFormRows(data: OrderPdfData): FormRow[] {
       qty: item.quantity,
       price: item.pricePerPiece,
     }));
-}
-
-/** Flatten every order line into per-size picking rows, sorted by SKU. */
-function buildPickRows(data: OrderPdfData): PickRow[] {
-  const rows: PickRow[] = [];
-  for (const item of [...data.items].sort((a, b) => a.sku.localeCompare(b.sku))) {
-    for (const pick of expandPicks(item)) {
-      const size = pick.size && pick.size !== "—" ? pick.size : "";
-      rows.push({
-        sku: item.sku,
-        product: item.productName,
-        colour: item.colour ?? "",
-        size,
-        qty: pick.qty,
-      });
-    }
-  }
-  return rows;
 }
 
 /**
@@ -243,19 +198,6 @@ export function generateOrderPdf(data: OrderPdfData): Promise<Buffer> {
           isLast ? signature : null,
         );
       });
-
-      // ---------- PICKING LIST (per-size breakdown) ----------
-      const pickRows = buildPickRows(data);
-      if (pickRows.length > 0) {
-        const pickPages: PickRow[][] = [];
-        for (let i = 0; i < pickRows.length; i += PICK_ROWS_PER_PAGE) {
-          pickPages.push(pickRows.slice(i, i + PICK_ROWS_PER_PAGE));
-        }
-        pickPages.forEach((pageRows, idx) => {
-          doc.addPage();
-          renderPickingPage(doc, data, pageRows, totals.pieces, idx + 1, pickPages.length);
-        });
-      }
 
       doc.end();
     } catch (err) {
@@ -443,94 +385,6 @@ function renderFormPage(
   // Light row separators
   doc.lineWidth(0.4).strokeColor("#bbb");
   for (let i = 1; i < ROWS_PER_PAGE; i++) hLine(doc, left, right, rowsTop + i * rowH);
-  doc.strokeColor("#000");
-}
-
-// Picking-list column layout (widths sum to the A4 content width of 515.28pt).
-const PICK_COLS: Col[] = [
-  { key: "style",  label: "Style",   width: 80,     align: "left" },
-  { key: "description", label: "Product", width: 210.28, align: "left" },
-  { key: "colour", label: "Colour",  width: 95,     align: "left" },
-  { key: "misc",   label: "Size",    width: 70,     align: "center" },
-  { key: "qty",    label: "Qty",     width: 60,     align: "center" },
-];
-
-/** A simple internal warehouse picking sheet: one row per size, per product. */
-function renderPickingPage(
-  doc: PDFKit.PDFDocument,
-  data: OrderPdfData,
-  rows: PickRow[],
-  totalPieces: number,
-  pageNo: number,
-  pageCount: number
-) {
-  const margin = doc.page.margins.left;
-  const left = margin;
-  const contentW = doc.page.width - margin * 2;
-  const right = left + contentW;
-
-  doc.lineWidth(0.8).strokeColor("#000").fillColor("#000");
-
-  // Title
-  doc.font("Helvetica-Bold").fontSize(14).text("PICKING LIST", left, margin);
-  doc.font("Helvetica").fontSize(9).fillColor("#555")
-    .text(`Order ${data.shortCode}  ·  ${fmtDate(data.signedAt)}`, left, margin + 18);
-  if (pageCount > 1) {
-    doc.text(`Page ${pageNo} of ${pageCount}`, left, margin + 18, { width: contentW, align: "right" });
-  }
-  doc.fillColor("#000");
-
-  const tableTop = margin + 36;
-  const thH = 22;
-  const rowH = 18;
-  const rowsTop = tableTop + thH;
-
-  // Column headers
-  doc.font("Helvetica-Bold").fontSize(9);
-  let hx = left;
-  for (const c of PICK_COLS) {
-    doc.text(c.label, hx + 4, tableTop + 6, { width: c.width - 8, align: c.align });
-    hx += c.width;
-  }
-
-  // Rows
-  doc.font("Helvetica").fontSize(9);
-  rows.forEach((row, i) => {
-    const rowY = rowsTop + i * rowH;
-    let cx = left;
-    for (const c of PICK_COLS) {
-      let value = "";
-      if (c.key === "style") value = row.sku;
-      else if (c.key === "description") value = row.product;
-      else if (c.key === "colour") value = row.colour;
-      else if (c.key === "misc") value = row.size || "—";
-      else if (c.key === "qty") value = String(row.qty);
-      if (value) {
-        doc.text(value, cx + 4, rowY + 4, { width: c.width - 8, align: c.align, lineBreak: false, ellipsis: true });
-      }
-      cx += c.width;
-    }
-  });
-
-  const tableBottom = rowsTop + rows.length * rowH;
-
-  // Total on the final picking page
-  if (pageNo === pageCount) {
-    doc.font("Helvetica-Bold").fontSize(10)
-      .text(`Total: ${totalPieces} pcs`, left, tableBottom + 8, { width: contentW, align: "right" });
-  }
-
-  // Borders / grid
-  doc.lineWidth(0.8).strokeColor("#000");
-  doc.rect(left, tableTop, contentW, thH + rows.length * rowH).stroke();
-  hLine(doc, left, right, rowsTop); // header / rows divider
-  doc.lineWidth(0.4).strokeColor("#bbb");
-  for (let i = 1; i < rows.length; i++) hLine(doc, left, right, rowsTop + i * rowH);
-  let vx = left;
-  for (const c of PICK_COLS) {
-    vx += c.width;
-    if (vx < right - 0.5) vLine(doc, vx, tableTop, tableBottom);
-  }
   doc.strokeColor("#000");
 }
 

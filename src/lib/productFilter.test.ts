@@ -4,6 +4,7 @@ import {
   matchesStatus,
   matchesSearch,
   filterProducts,
+  sortProducts,
   statusCounts,
   type ProductForFilter,
 } from "./productFilter";
@@ -130,6 +131,37 @@ describe("filterProducts", () => {
 
   it("returns empty array when nothing matches", () => {
     expect(filterProducts(products, "Z", "all")).toHaveLength(0);
+  });
+});
+
+describe("sortProducts", () => {
+  const products: ProductForFilter[] = [
+    makeProduct({ name: "Banana", sku: "B1", category: "Top", colour: "Red", pricePerPiece: 12, packsInStock: 5, packSize: 6 }),
+    makeProduct({ name: "Apple", sku: "A1", category: "Dress", colour: "Blue", pricePerPiece: 8, packsInStock: 20, packSize: 3 }),
+    makeProduct({ name: "Cherry", sku: "C1", category: "Jumper", colour: "Green", pricePerPiece: 20, packsInStock: 0, packSize: 12 }),
+  ];
+
+  it("sorts by name ascending and descending", () => {
+    expect(sortProducts(products, "name", "asc").map((p) => p.name)).toEqual(["Apple", "Banana", "Cherry"]);
+    expect(sortProducts(products, "name", "desc").map((p) => p.name)).toEqual(["Cherry", "Banana", "Apple"]);
+  });
+
+  it("sorts by category", () => {
+    expect(sortProducts(products, "category", "asc").map((p) => p.category)).toEqual(["Dress", "Jumper", "Top"]);
+  });
+
+  it("sorts by price numerically (not lexically)", () => {
+    expect(sortProducts(products, "price", "asc").map((p) => p.pricePerPiece)).toEqual([8, 12, 20]);
+  });
+
+  it("sorts by available stock", () => {
+    expect(sortProducts(products, "stock", "desc").map((p) => p.packsInStock)).toEqual([20, 5, 0]);
+  });
+
+  it("does not mutate the input array", () => {
+    const before = products.map((p) => p.sku);
+    sortProducts(products, "name", "desc");
+    expect(products.map((p) => p.sku)).toEqual(before);
   });
 });
 
