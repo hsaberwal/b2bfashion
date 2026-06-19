@@ -82,8 +82,9 @@ To place an order, you need a wholesale account:
 | **Pay 10% deposit** | Pay 10% now, remaining 90% on delivery |
 | **Invoice (pay later)** | Order confirms immediately, invoice sent, pay on delivery |
 
-5. **Sign** your order by drawing in the signature box
-6. Click the payment button — redirected to Stripe Checkout for card payments, or confirmation for invoice
+5. Add any **special instructions** (optional) — delivery dates, packing notes, etc. These print on your order sheet and our picking list.
+6. **Sign** your order by drawing in the signature box
+7. Click the payment button — redirected to Stripe Checkout for card payments, or confirmation for invoice
 
 ### After Ordering
 

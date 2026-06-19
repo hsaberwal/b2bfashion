@@ -195,8 +195,9 @@ Blouse, Cardigan, Dress, Gilet, Jumper, Shrug, Skirt, T-shirt, Top, Trouser, Tun
    - **Pay in full** — redirects to Stripe Checkout for the full amount
    - **Pay 10% deposit** — redirects to Stripe Checkout for deposit only
    - **Invoice (pay later)** — confirms immediately
-4. **Digital signature** — draw with mouse or touch
-5. **Submit** — signs, initiates payment, redirects to Stripe Checkout or confirmation
+4. **Special instructions** — optional free-text notes (delivery dates, packing requests, etc.) stored on the order and printed on the sales-sheet PDF + admin pick list
+5. **Digital signature** — draw with mouse or touch
+6. **Submit** — signs, initiates payment, redirects to Stripe Checkout or confirmation
 
 ### Payment Integration (Stripe)
 
@@ -280,6 +281,14 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 - Admin toggle in **Settings** (stored as a `SiteContent` doc keyed `comingSoon` with `{ enabled, message }`) shows logged-out visitors a dismissible banner across the public site
 - Logged-in users (admins **and** approved customers) bypass it, so the team can keep editing and using the live site while the public sees the notice
 - Rendered by `src/components/ComingSoonBanner.tsx` in the public site chrome; dismissal is remembered per-browser
+
+### Custom Homepage Hero Banners
+
+- Admins can upload custom hero banners (JPG/PNG/WebP) at **`/admin/banners`** in addition to the auto-cycling stock product photos
+- Each banner supports an optional click-through link, headline, and subtext overlay; banners can be reordered and removed
+- A **mode** toggle controls the homepage hero: **product photos only** (default), **banners only**, or **mixed** (banners then product photos in one rotation)
+- Config is stored as a `SiteContent` doc keyed `heroBanners` and sanitised on read by `src/lib/heroBanners.ts`; the hero (`/api/products/hero`) returns it alongside the product list and `HeroSection` composes the rotation
+- _Note: PDFs can't render as web banners — banners are images. Export PDF artwork to JPG first._
 
 ### Customer-Facing Order Tracking
 

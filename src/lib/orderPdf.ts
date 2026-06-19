@@ -46,6 +46,8 @@ export type OrderPdfData = {
   } | null;
   items: OrderPdfItem[];
   total: number;
+  /** Free-text notes from the customer; printed in the Special Instructions box. */
+  specialInstructions?: string | null;
   /**
    * The customer's captured signature, as a `data:image/png;base64,…` (or jpeg)
    * data URL. When present it is drawn onto the signature line of the sales sheet.
@@ -367,9 +369,19 @@ function renderFormPage(
   // ---------- FOOTER ----------
   const fpad = 5;
   doc.font("Helvetica-Bold").fontSize(9).text("Special Instructions", left + fpad, footerTop + fpad);
-  doc.font("Helvetica").fontSize(6.5)
-    .text("All orders will be despatched when available, unless an alternative date is clearly specified here.",
-      left + fpad, footerTop + 18, { width: leftColW - fpad * 2 });
+  const instructions = data.specialInstructions?.trim();
+  if (instructions) {
+    doc.font("Helvetica").fontSize(7.5).fillColor("#000")
+      .text(instructions, left + fpad, footerTop + 17, {
+        width: leftColW - fpad * 2,
+        height: footerH - 22,
+        ellipsis: true,
+      });
+  } else {
+    doc.font("Helvetica").fontSize(6.5).fillColor("#000")
+      .text("All orders will be despatched when available, unless an alternative date is clearly specified here.",
+        left + fpad, footerTop + 18, { width: leftColW - fpad * 2 });
+  }
 
   doc.font("Helvetica").fontSize(6.5)
     .text("All pricing is ex works, terms 30 days nett. No cancellations accepted once orders are in production.",

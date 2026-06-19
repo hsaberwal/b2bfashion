@@ -32,6 +32,7 @@ export default function SignOrderPage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
   const [paymentOption, setPaymentOption] = useState<"pay_now" | "pay_deposit" | "pay_later">("pay_deposit");
+  const [specialInstructions, setSpecialInstructions] = useState("");
   const [delivery, setDelivery] = useState<DeliverySnapshot>({
     addressLine1: "",
     addressLine2: "",
@@ -161,6 +162,7 @@ export default function SignOrderPage() {
           },
           paymentOption,
           depositAmount: orderTotal > 0 ? depositAmount : undefined,
+          specialInstructions: specialInstructions.trim() || undefined,
         }),
       });
       const signData = await signRes.json();
@@ -419,6 +421,24 @@ export default function SignOrderPage() {
               </div>
             </label>
           </div>
+        </section>
+
+        {/* Special instructions */}
+        <section className="mb-8 border-t border-je-border pt-6">
+          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
+            Special Instructions
+          </h2>
+          <textarea
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value)}
+            maxLength={2000}
+            rows={3}
+            placeholder="Anything we should know about this order — delivery dates, packing notes, etc. (optional)"
+            className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors resize-y"
+          />
+          <p className="mt-1.5 text-xs text-je-muted">
+            These notes appear on your order sheet and our picking list. {2000 - specialInstructions.length} characters left.
+          </p>
         </section>
 
         {/* Signature */}

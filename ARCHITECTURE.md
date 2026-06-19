@@ -248,6 +248,7 @@ Indexes: `stockCategory`, `category`, `colour`, `season`, `disabled`.
 | `status` | enum | `pending` \| `signed` \| `confirmed` \| `picked` \| `ready_to_ship` \| `shipped` \| `delivered` \| `cancelled` |
 | `signatureDataUrl` | string | AES-256-GCM encrypted |
 | `signedAt` | Date | |
+| `specialInstructions` | string | Free-text notes from the customer at checkout; printed on the sales-sheet PDF + pick list |
 | `deliverySnapshot` | sub-doc | Captured at sign time so a later address change doesn't rewrite history |
 | `paymentOption` | enum | `pay_now` \| `pay_deposit` \| `pay_later` |
 | `depositAmount` | number | Server-calculated as 10% of total |
@@ -292,7 +293,12 @@ The source of truth for "how much has been paid against this order."
 
 ### 3.7 SiteContent (`src/models/SiteContent.ts`)
 
-Keyed editable content blocks: `"about"`, `"footer"`. Written via admin, read by public site-content endpoints.
+Keyed editable content blocks. Written via admin, read by public site-content endpoints. Keys in use:
+
+- `"about"`, `"footer"` — editable CMS page/footer content
+- `"orderNotifications"` — admin new-order email recipient list
+- `"comingSoon"` — `{ enabled, message }` for the logged-out "coming soon" banner
+- `"heroBanners"` — `{ mode: "products"|"banners"|"mixed", banners: [{ image, link?, headline?, subtext? }] }` for admin-uploaded homepage hero banners (managed at `/admin/banners`, sanitised on read by `src/lib/heroBanners.ts`)
 
 ### 3.8 AuditLog (`src/models/AuditLog.ts`)
 
@@ -353,7 +359,7 @@ Every state-changing endpoint requires the CSRF token issued via `GET /api/auth/
 | GET | `/api/products?stockCategory=…&category=…&colour=…&search=…` | Catalogue, max 500 |
 | GET | `/api/products/[id]` | Single product |
 | GET | `/api/products/featured` | Homepage curated |
-| GET | `/api/products/hero` | Hero-flagged products |
+| GET | `/api/products/hero` | Hero-flagged products **+** the hero banner config (`{ products, hero: { mode, banners } }`) |
 | GET | `/api/products/latest-looks` | Latest Looks rotation |
 
 ### 4.5 User profile + site content

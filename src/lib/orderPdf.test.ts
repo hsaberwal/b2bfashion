@@ -111,4 +111,12 @@ describe("generateOrderPdf", () => {
     const buf = await generateOrderPdf({ ...baseData, items: [], total: 0 });
     expect(isPdf(buf)).toBe(true);
   });
+
+  it("renders with special instructions", async () => {
+    const buf = await generateOrderPdf({
+      ...baseData,
+      specialInstructions: "Please deliver after 2pm. Pack dresses separately from knitwear.",
+    });
+    expect(isPdf(buf)).toBe(true);
+  });
 });

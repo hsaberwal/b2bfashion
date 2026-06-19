@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 
+import type { HeroConfig } from "@/lib/heroBanners";
+
 type FeaturedProduct = {
   id: string;
   name: string;
@@ -13,6 +15,19 @@ type FeaturedProduct = {
   heroFocalPoint?: string;
   heroImageIndex?: number;
   heroExcludedIndexes?: number[];
+};
+
+/** A single hero slide — either a product photo or an admin-uploaded banner. */
+type Slide = {
+  kind: "product" | "banner";
+  image: string;
+  focalPoint: string;
+  href: string;
+  /** Caption line 1: product name or banner headline. */
+  title?: string;
+  /** Caption line 2: product "category · colour" or banner subtext. */
+  subtitle?: string;
+  product?: FeaturedProduct;
 };
 
 /**
@@ -28,8 +43,8 @@ export function HeroSection() {
   const [products, setProducts] = useState<FeaturedProduct[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  // Flat list of all hero images with their product info
-  const [slides, setSlides] = useState<{ image: string; product: FeaturedProduct; focalPoint: string }[]>([]);
+  // Flat list of all hero slides (banners and/or product images)
+  const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -39,25 +54,43 @@ export function HeroSection() {
         const prods = (d.products ?? []) as FeaturedProduct[];
         setProducts(prods);
 
-        // Build flat list of hero images — primary image first, then others
-        // Exclude any image marked as hidden from hero
-        const allSlides: { image: string; product: FeaturedProduct; focalPoint: string }[] = [];
+        const hero = (d.hero ?? { mode: "products", banners: [] }) as HeroConfig;
+
+        // Banner slides come from admin uploads.
+        const bannerSlides: Slide[] = hero.banners.map((b) => ({
+          kind: "banner",
+          image: b.image,
+          focalPoint: "50% 50%",
+          href: b.link || "/products",
+          title: b.headline,
+          subtitle: b.subtext,
+        }));
+
+        // Product slides — primary hero image first, then the rest (excluding hidden ones).
+        const productSlides: Slide[] = [];
         for (const p of prods) {
           if (p.images.length === 0) continue;
           const excluded = new Set(p.heroExcludedIndexes ?? []);
           const idx = p.heroImageIndex ?? 0;
-          // Use the specifically selected hero image first (if not excluded)
+          const caption = { title: p.name, subtitle: `${p.category} · ${p.colour}` };
           if (idx < p.images.length && !excluded.has(idx)) {
-            allSlides.push({ image: p.images[idx], product: p, focalPoint: p.heroFocalPoint ?? "50% 50%" });
+            productSlides.push({ kind: "product", image: p.images[idx], focalPoint: p.heroFocalPoint ?? "50% 50%", href: `/products/${p.id}`, product: p, ...caption });
           }
-          // Then include other images for variety (skipping excluded and the primary)
           for (let i = 0; i < p.images.length; i++) {
             if (i !== idx && !excluded.has(i)) {
-              allSlides.push({ image: p.images[i], product: p, focalPoint: "50% 50%" });
+              productSlides.push({ kind: "product", image: p.images[i], focalPoint: "50% 50%", href: `/products/${p.id}`, product: p, ...caption });
             }
           }
         }
-        setSlides(allSlides);
+
+        // Compose the rotation based on the admin-selected mode. "banners" falls
+        // back to product slides if no banners are uploaded, so the hero is never blank.
+        let composed: Slide[];
+        if (hero.mode === "banners") composed = bannerSlides.length > 0 ? bannerSlides : productSlides;
+        else if (hero.mode === "mixed") composed = [...bannerSlides, ...productSlides];
+        else composed = productSlides;
+
+        setSlides(composed);
       })
       .catch(() => {})
       .finally(() => setLoaded(true));
@@ -77,7 +110,6 @@ export function HeroSection() {
   // Get the current slide info
   const current = slides[currentSlide];
   const currentProduct = current?.product;
-  const currentImage = current?.image ? imageDisplayUrl(current.image) : null;
 
   // For the two-column feature: pick 2 products that aren't the current hero product
   const otherProducts = products.filter((p) => p.id !== currentProduct?.id);
@@ -94,9 +126,9 @@ export function HeroSection() {
         {/* All slide images rendered, only current one visible */}
         {slides.map((slide, i) => (
           <img
-            key={`${slide.product.id}-${i}`}
+            key={`${slide.kind}-${i}`}
             src={imageDisplayUrl(slide.image, { width: 1600 })}
-            alt={slide.product.name}
+            alt={slide.title ?? "Hero banner"}
             decoding="async"
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
               i === currentSlide ? "opacity-100" : "opacity-0"
@@ -114,18 +146,20 @@ export function HeroSection() {
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
           <p className="section-label text-white/80 mb-4">New Season</p>
           <h1 className="heading-serif text-white mb-4">
-            The Collection
+            {current?.kind === "banner" && current.title ? current.title : "The Collection"}
           </h1>
-          {currentProduct && (
-            <p className="text-white/70 text-sm mb-2">{currentProduct.name}</p>
-          )}
-          {currentProduct && (
-            <p className="text-white/50 text-xs uppercase tracking-widest mb-6">
-              {currentProduct.category} &middot; {currentProduct.colour}
-            </p>
-          )}
+          {current?.kind === "banner"
+            ? current.subtitle && <p className="text-white/70 text-sm mb-6">{current.subtitle}</p>
+            : (
+              <>
+                {current?.title && <p className="text-white/70 text-sm mb-2">{current.title}</p>}
+                {current?.subtitle && (
+                  <p className="text-white/50 text-xs uppercase tracking-widest mb-6">{current.subtitle}</p>
+                )}
+              </>
+            )}
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href={currentProduct ? `/products/${currentProduct.id}` : "/products"} className="btn-white">
+            <Link href={current?.href ?? "/products"} className="btn-white">
               Shop Now
             </Link>
           </div>
