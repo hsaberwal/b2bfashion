@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { imageDisplayUrl } from "@/lib/imageDisplayUrl";
 import { STATUS_LABEL, nextStatus, type OrderStatus } from "@/lib/orderStatus";
 
 type OrderItem = {
@@ -58,6 +57,7 @@ type OrderDetail = {
     vatNumber?: string;
     companyName?: string;
   } | null;
+  specialInstructions?: string;
   items: OrderItem[];
   total: number;
   paid: number;
@@ -277,6 +277,15 @@ export default function AdminOrderDetailPage() {
               )}
             </div>
           </div>
+
+          {order.specialInstructions?.trim() && (
+            <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+              <p className="text-xs uppercase tracking-wider font-semibold text-amber-800 mb-1">
+                Special instructions
+              </p>
+              <p className="text-sm text-amber-900 whitespace-pre-wrap">{order.specialInstructions}</p>
+            </div>
+          )}
 
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-gray-600 border-b border-gray-200">

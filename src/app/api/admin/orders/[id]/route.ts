@@ -125,6 +125,7 @@ export async function GET(
       shippingCarrier?: string;
       shippingTrackingNumber?: string;
       deliverySnapshot?: Record<string, string>;
+      specialInstructions?: string;
     };
 
     return NextResponse.json({
@@ -147,6 +148,7 @@ export async function GET(
       shippingCarrier: o.shippingCarrier,
       shippingTrackingNumber: o.shippingTrackingNumber,
       deliverySnapshot: o.deliverySnapshot ?? null,
+      specialInstructions: o.specialInstructions ?? "",
       items: richItems,
       total,
       paid,

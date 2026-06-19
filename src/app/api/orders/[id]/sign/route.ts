@@ -31,6 +31,7 @@ const bodySchema = z.object({
   deliverySnapshot: deliverySnapshotSchema,
   paymentOption: z.enum(["pay_now", "pay_deposit", "pay_later"]).optional(),
   depositAmount: z.number().min(0).optional(),
+  specialInstructions: z.string().max(2000).optional(),
 });
 
 export async function POST(
@@ -54,7 +55,7 @@ export async function POST(
         { status: 400 }
       );
     }
-    const { signatureDataUrl, deliverySnapshot, paymentOption, depositAmount } = parsed.data;
+    const { signatureDataUrl, deliverySnapshot, paymentOption, depositAmount, specialInstructions } = parsed.data;
 
     await connectDB();
     const session = await Session.findOne({ token, expiresAt: { $gt: new Date() } });
@@ -126,6 +127,7 @@ export async function POST(
       vatNumber: deliverySnapshot.vatNumber ?? "",
       companyName: deliverySnapshot.companyName ?? "",
     };
+    order.specialInstructions = specialInstructions?.trim() ?? "";
     if (paymentOption) order.paymentOption = paymentOption;
     // Always calculate deposit server-side — never trust client value.
     // Price stored per-piece; total is price * units (quantity is total units).

@@ -46,7 +46,8 @@ See [ROADMAP.md](ROADMAP.md) for upcoming features.
 - Customer detail page with order history, lifetime spend, and outstanding balance
 - On sign, the sales-order PDF is automatically emailed (via Resend) to admins **and** the customer; admin recipients managed in **Admin → Settings** (falls back to `ADMIN_NOTIFICATION_EMAILS`, then all admin users)
 - Email verification with 24-hour auto-cleanup
-- Cycling hero banner with focal-point image selector
+- Cycling hero banner with focal-point image selector — plus admin-uploaded custom hero banners (image + link + caption) via **Admin → Banners**, with a product-photos / banners / mixed mode toggle
+- Special-instructions field at checkout, printed on the sales-sheet PDF and admin pick list
 - Editable About page + Footer CMS
 - 3 independent homepage curation sections
 - Cookie consent banner (PECR-compliant), newsletter signup, trust badges

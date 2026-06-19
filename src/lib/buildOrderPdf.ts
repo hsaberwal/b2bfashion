@@ -34,6 +34,7 @@ export async function buildOrderPdf(orderId: string): Promise<BuiltOrderPdf | nu
     userId: unknown;
     signedAt?: Date;
     signatureDataUrl?: string;
+    specialInstructions?: string;
     items?: { productId: mongoose.Types.ObjectId; sku: string; quantity: number; pricePerPiece?: number; pricePerPack?: number; packSize?: number; size?: string }[];
     deliverySnapshot?: Record<string, string>;
   };
@@ -85,6 +86,7 @@ export async function buildOrderPdf(orderId: string): Promise<BuiltOrderPdf | nu
       vatNumber: u.vatNumber,
     } : null,
     deliverySnapshot: o.deliverySnapshot ?? null,
+    specialInstructions: o.specialInstructions ?? null,
     items: pdfItems,
     total: calculateOrderTotal(items),
     signatureImage,
