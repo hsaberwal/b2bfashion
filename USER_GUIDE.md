@@ -74,7 +74,7 @@ To place an order, you need a wholesale account:
 1. Go to your Cart → **"Proceed to Checkout"**
 2. Enter delivery address, city, postcode, country
 3. Add company name and VAT number (optional)
-4. Choose **payment method**:
+4. Choose **payment method** (the options shown are set by the admin in Settings — by default only **Pay in full** is offered):
 
 | Option | What happens |
 |--------|-------------|
@@ -82,7 +82,7 @@ To place an order, you need a wholesale account:
 | **Pay 10% deposit** | Pay 10% now, remaining 90% on delivery |
 | **Invoice (pay later)** | Order confirms immediately, invoice sent, pay on delivery |
 
-5. Add any **special instructions** (optional) — delivery dates, packing notes, etc. These print on your order sheet and our picking list.
+5. Add any **special instructions** (optional) — delivery dates, packing notes, etc. These print on your order sheet.
 6. **Sign** your order by drawing in the signature box
 7. Click the payment button — redirected to Stripe Checkout for card payments, or confirmation for invoice
 
@@ -149,7 +149,7 @@ Three things you can do on this page:
 **1. Print the pick list.** Top-right buttons:
 
 - **"Print pick list"** → opens the browser print dialog with only the on-screen pick list visible (customer + delivery address at top, then a table of SKU / item / colour / pack contents / packs / pieces / line £).
-- **"Download PDF"** → downloads a tidy A4 **sales order** that matches the CLAUDIA.C order-sheet template (company header, Order Date, Supply to / Invoice Address, then Description / Misc / Style / Colour / Quantity / Price ex-VAT). The sales order shows **one row per product (SKU)** — style, colour, total quantity and price — matching the handwritten order sheet. The customer's **signature is drawn onto the signature line**, and their name is filled in. A separate **picking-list page** follows with the per-size breakdown (one row per size) so warehouse staff pick exact sizes. Large orders flow onto extra pages.
+- **"Download PDF"** → downloads a tidy A4 **sales order** that matches the CLAUDIA.C order-sheet template (company header, Order Date, Supply to / Invoice Address, then Description / Misc / Style / Colour / Quantity / Price ex-VAT). The sales order shows **one row per product (SKU)** — style, colour, total quantity and price — matching the handwritten order sheet, and **doubles as the packing list**. The customer's **signature is drawn onto the signature line**, their name is filled in, and any **special instructions** print in the footer box. Large orders flow onto extra pages.
 
 **2. Advance the fulfilment status.** The "Fulfilment" card on the right shows the current status and a "Mark as {next step}" button. Click through:
 
@@ -183,6 +183,10 @@ Whenever a customer signs an order, two emails go out automatically via Resend �
 
 In **Settings → "Coming soon" banner**, flip the toggle on to show **logged-out visitors** a dismissible "coming soon" notice across the top of the public site. You and logged-in customers still see and use the full site as normal, so you can keep editing while the public sees the notice. You can customise the banner text and click **Save message**.
 
+#### Checkout payment options
+
+In **Settings → "Checkout payment options"**, toggle which payment methods customers can choose at checkout — **Pay in full**, **Pay 10% deposit**, and **Invoice (pay later)**. Changes save instantly and apply to all new checkouts. At least one must stay on (the default is Pay-in-full only).
+
 ### Managing Customers (`/admin/users`)
 
 Click any customer's email to open their detail page (`/admin/users/[id]`):
@@ -203,6 +207,8 @@ On **Admin > Garments**, tick the checkboxes to select products (or the header c
 - **Show / Hide** — toggle whether selected products are visible to customers
 - **Delete** — remove selected products (with confirmation)
 - **Stock: Current / Forward / Previous** — move selected products between stock sections in one click (e.g. flip a batch from **Forward ordering** to **Current stock** when the season lands). Each product's current stock section is shown under its category in the list.
+
+Above the list there's also a **Sort by** control — sort the products by name, SKU, category, colour, price, available stock, or pack size, and flip the direction with the ↑/↓ button.
 
 ### Bulk Importing from Excel (Recommended)
 

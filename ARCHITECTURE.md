@@ -68,7 +68,7 @@ src/
             route.ts                  # GET full order with payments & customer
             status/route.ts           # POST advance fulfilment status
             payments/route.ts         # POST record manual payment
-            pdf/route.ts              # GET sales order / pick sheet PDF
+            pdf/route.ts              # GET sales-order PDF (= packing list)
         users/
           route.ts                    # GET list of all customers
           [id]/route.ts               # GET full customer with orders, PATCH perms, DELETE
@@ -149,7 +149,7 @@ src/
     adminNotifications.ts             # sendNewOrderEmail + sendCustomerOrderEmail (Resend)
     buildOrderPdf.ts                  # load order + render PDF (shared by route + emails)
     orderPdf.ts                       # generateOrderPdf — CLAUDIA.C sales order (one
-                                      # row per SKU) + per-size picking page + signature
+                                      # row per SKU = packing list) + signature
     fashn.ts                          # FASHN client
     signupHygiene.ts                  # Disposable email + MX checks
     sizeScale.ts                      # "10-18 (1-2-2-2-1)" parser
@@ -298,6 +298,7 @@ Keyed editable content blocks. Written via admin, read by public site-content en
 - `"about"`, `"footer"` — editable CMS page/footer content
 - `"orderNotifications"` — admin new-order email recipient list
 - `"comingSoon"` — `{ enabled, message }` for the logged-out "coming soon" banner
+- `"paymentOptions"` — `{ pay_now, pay_deposit, pay_later }` booleans for which checkout payment methods are enabled (default: pay-in-full only; normalised by `src/lib/paymentOptions.ts`, read server-side by `paymentOptionsServer.ts`)
 - `"heroBanners"` — `{ mode: "products"|"banners"|"mixed", banners: [{ image, link?, headline?, subtext? }] }` for admin-uploaded homepage hero banners (managed at `/admin/banners`, sanitised on read by `src/lib/heroBanners.ts`)
 
 ### 3.8 AuditLog (`src/models/AuditLog.ts`)
@@ -384,7 +385,8 @@ All require `requireAdmin()` (throws 401 / 403).
 | GET | `/api/admin/orders/[id]` | Full order: customer + payments + rich items |
 | POST | `/api/admin/orders/[id]/status` | `{ status, shippingCarrier?, shippingTrackingNumber? }` |
 | POST | `/api/admin/orders/[id]/payments` | `{ amount, method, reference?, note? }` |
-| GET | `/api/admin/orders/[id]/pdf` | Sales-order PDF — one row per SKU, plus a per-size picking-list page; the customer's signature is drawn on the signature line |
+| GET | `/api/admin/orders/[id]/pdf` | Sales-order PDF — one row per SKU (this **is** the packing list); the customer's signature is drawn on the signature line; special instructions printed in the footer box |
+| GET | `/api/payment-options` | Which checkout payment options are enabled (public; admin-configured) |
 | GET | `/api/admin/users` | All users |
 | GET | `/api/admin/users/[id]` | Customer profile + order history + lifetime spend + outstanding |
 | PATCH | `/api/admin/users/[id]` | Toggle permissions / role / emailVerified |

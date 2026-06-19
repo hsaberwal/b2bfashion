@@ -12,6 +12,8 @@ export type ProductForFilter = {
   sku: string;
   category: string;
   colour: string;
+  pricePerPiece?: number;
+  packSize?: number;
   packsInStock?: number;
   packsReserved?: number;
   disabled?: boolean;
@@ -56,6 +58,45 @@ export function filterProducts<T extends ProductForFilter>(
   filter: StatusFilter,
 ): T[] {
   return products.filter((p) => matchesSearch(p, search) && matchesStatus(p, filter));
+}
+
+/** Fields the admin products list can be sorted by. */
+export type SortKey = "name" | "sku" | "category" | "colour" | "price" | "stock" | "packSize";
+export type SortDir = "asc" | "desc";
+
+export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "sku", label: "SKU" },
+  { key: "category", label: "Category" },
+  { key: "colour", label: "Colour" },
+  { key: "price", label: "Price" },
+  { key: "stock", label: "Stock (available)" },
+  { key: "packSize", label: "Pack size" },
+];
+
+function sortValue(p: ProductForFilter, key: SortKey): string | number {
+  switch (key) {
+    case "name": return p.name?.toLowerCase() ?? "";
+    case "sku": return p.sku?.toLowerCase() ?? "";
+    case "category": return p.category?.toLowerCase() ?? "";
+    case "colour": return p.colour?.toLowerCase() ?? "";
+    case "price": return p.pricePerPiece ?? -1;
+    case "stock": return availableOf(p);
+    case "packSize": return p.packSize ?? 0;
+  }
+}
+
+/** Stable sort by the given key + direction. Returns a new array. */
+export function sortProducts<T extends ProductForFilter>(products: T[], key: SortKey, dir: SortDir): T[] {
+  const factor = dir === "asc" ? 1 : -1;
+  return [...products].sort((a, b) => {
+    const av = sortValue(a, key);
+    const bv = sortValue(b, key);
+    if (av < bv) return -1 * factor;
+    if (av > bv) return 1 * factor;
+    // Tie-break on SKU for a deterministic order.
+    return a.sku.localeCompare(b.sku) * factor;
+  });
 }
 
 /** Counts of products in each status bucket — used to render filter pill badges. */

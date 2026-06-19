@@ -191,7 +191,7 @@ Blouse, Cardigan, Dress, Gilet, Jumper, Shrug, Skirt, T-shirt, Top, Trouser, Tun
 ### Checkout Flow
 1. **Delivery address** — address, city, postcode, country, company, VAT
 2. **Order summary** — itemized with per-pack totals
-3. **Three payment options**:
+3. **Payment options** (admin-configurable in **Settings** — each can be toggled on/off; default is pay-in-full only; enforced server-side via `src/lib/paymentOptions.ts`):
    - **Pay in full** — redirects to Stripe Checkout for the full amount
    - **Pay 10% deposit** — redirects to Stripe Checkout for deposit only
    - **Invoice (pay later)** — confirms immediately

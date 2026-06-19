@@ -5,7 +5,7 @@ import { buildOrderPdf } from "@/lib/buildOrderPdf";
 
 export const runtime = "nodejs";
 
-/** GET /api/admin/orders/[id]/pdf — download a per-order sales sheet + picking list as a PDF. */
+/** GET /api/admin/orders/[id]/pdf — download the per-order sales sheet (also the packing list) as a PDF. */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

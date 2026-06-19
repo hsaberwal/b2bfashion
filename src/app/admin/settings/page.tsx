@@ -1,10 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  DEFAULT_PAYMENT_OPTIONS,
+  PAYMENT_OPTION_LABELS,
+  type PaymentOptionKey,
+  type PaymentOptionsConfig,
+} from "@/lib/paymentOptions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const DEFAULT_COMING_SOON_MESSAGE = "Coming soon — our new wholesale site is launching shortly.";
+
+const PAYMENT_OPTION_ORDER: PaymentOptionKey[] = ["pay_now", "pay_deposit", "pay_later"];
 
 export default function AdminSettingsPage() {
   const [emails, setEmails] = useState<string[]>([]);
@@ -19,6 +27,47 @@ export default function AdminSettingsPage() {
   const [csMessage, setCsMessage] = useState("");
   const [csSaving, setCsSaving] = useState(false);
   const [csSavedAt, setCsSavedAt] = useState<string | null>(null);
+
+  // Checkout payment options
+  const [payOpts, setPayOpts] = useState<PaymentOptionsConfig>(DEFAULT_PAYMENT_OPTIONS);
+  const [poSaving, setPoSaving] = useState(false);
+  const [poSavedAt, setPoSavedAt] = useState<string | null>(null);
+
+  const loadPaymentOptions = useCallback(async () => {
+    try {
+      const r = await fetch("/api/admin/site-content?key=paymentOptions");
+      if (r.ok) {
+        const data = (await r.json()) as { content: Partial<PaymentOptionsConfig> | null };
+        if (data.content) {
+          setPayOpts({
+            pay_now: data.content.pay_now ?? true,
+            pay_deposit: Boolean(data.content.pay_deposit),
+            pay_later: Boolean(data.content.pay_later),
+          });
+        }
+      }
+    } catch {
+      // keep defaults
+    }
+  }, []);
+
+  async function savePaymentOptions(next: PaymentOptionsConfig) {
+    // Never let the admin leave checkout with no option.
+    const safe = PAYMENT_OPTION_ORDER.some((k) => next[k]) ? next : { ...next, pay_now: true };
+    setPayOpts(safe);
+    setPoSaving(true);
+    setPoSavedAt(null);
+    try {
+      const r = await fetch("/api/admin/site-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "paymentOptions", content: safe }),
+      });
+      if (r.ok) setPoSavedAt(new Date().toLocaleTimeString("en-GB"));
+    } finally {
+      setPoSaving(false);
+    }
+  }
 
   const loadComingSoon = useCallback(async () => {
     try {
@@ -35,7 +84,8 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     loadComingSoon();
-  }, [loadComingSoon]);
+    loadPaymentOptions();
+  }, [loadComingSoon, loadPaymentOptions]);
 
   async function saveComingSoon(nextEnabled: boolean) {
     setCsSaving(true);
@@ -199,6 +249,37 @@ export default function AdminSettingsPage() {
               </div>
             </>
           )}
+        </section>
+
+        <section className="bg-white border border-gray-200 rounded-lg p-5 mt-6">
+          <h2 className="text-sm font-semibold text-gray-900">Checkout payment options</h2>
+          <p className="text-xs text-gray-500 mt-1 mb-4">
+            Choose which payment methods customers can pick at checkout. At least one must stay on.
+          </p>
+          <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+            {PAYMENT_OPTION_ORDER.map((key) => (
+              <div key={key} className="flex items-center justify-between gap-4 px-3 py-3">
+                <span className="text-sm text-gray-800">{PAYMENT_OPTION_LABELS[key]}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={payOpts[key]}
+                  disabled={poSaving}
+                  onClick={() => savePaymentOptions({ ...payOpts, [key]: !payOpts[key] })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+                    payOpts[key] ? "bg-green-600" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      payOpts[key] ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
+          {poSavedAt && <p className="mt-3 text-xs text-green-700">Saved at {poSavedAt}</p>}
         </section>
 
         <section className="bg-white border border-gray-200 rounded-lg p-5 mt-6">
