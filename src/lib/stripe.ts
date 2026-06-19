@@ -148,6 +148,23 @@ export async function createCheckoutSession(
 }
 
 /**
+ * Issue a (possibly partial) refund against a PaymentIntent. `amount` is in GBP
+ * (e.g. 29.99) and converted to minor units for Stripe. Used when an admin
+ * removes a pack from a paid order and refunds that pack's value.
+ */
+export async function createRefund(
+  paymentIntentId: string,
+  amount: number,
+): Promise<{ id: string; amount: number }> {
+  const stripe = getStripe();
+  const refund = await stripe.refunds.create({
+    payment_intent: paymentIntentId,
+    amount: Math.round(amount * 100),
+  });
+  return { id: refund.id, amount };
+}
+
+/**
  * Verify a Stripe webhook signature and parse the event.
  * Throws if the signature is missing/invalid (the caller should treat this
  * as an authentication failure and return 400/403).

@@ -184,3 +184,79 @@ export async function sendCustomerOrderEmail(data: CustomerOrderEmail): Promise<
     console.error("[customer-order email] send failed:", err);
   }
 }
+
+type ItemRemovedEmail = {
+  customerEmail?: string;
+  customerName?: string;
+  orderShortCode: string;
+  removedDescription: string; // e.g. "Floral Tea Dress (TEAL) — 1 pack"
+  creditType?: "balance" | "refund";
+  creditAmount: number;
+  summary: { paid: number; credited: number; refundOwed: number; balanceDue: number };
+  attachment?: EmailAttachment; // the revised invoice PDF
+};
+
+/**
+ * Notify the customer (and the admin team) that a pack was removed from a live
+ * order, attaching the revised invoice. Fire-and-forget: errors are swallowed.
+ */
+export async function sendItemRemovedEmail(data: ItemRemovedEmail): Promise<void> {
+  const apiKey = process.env.EMAIL_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!apiKey || !from) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[item-removed email skipped — EMAIL_API_KEY or EMAIL_FROM missing]", data);
+    }
+    return;
+  }
+
+  const attachments = data.attachment
+    ? [{ filename: data.attachment.filename, content: data.attachment.content }]
+    : undefined;
+
+  const creditLine =
+    data.creditAmount > 0
+      ? data.creditType === "refund"
+        ? `<tr><td style="padding:4px 0;color:#888;">Refund to be issued</td><td style="padding:4px 0;"><strong>${formatGBP(data.creditAmount)}</strong></td></tr>`
+        : `<tr><td style="padding:4px 0;color:#888;">Credited to your account</td><td style="padding:4px 0;"><strong>${formatGBP(data.creditAmount)}</strong></td></tr>`
+      : "";
+
+  const summaryRows = `
+    <tr><td style="padding:4px 0;color:#888;">Paid</td><td style="padding:4px 0;">${formatGBP(data.summary.paid)}</td></tr>
+    ${data.summary.credited > 0 ? `<tr><td style="padding:4px 0;color:#888;">Credited</td><td style="padding:4px 0;">${formatGBP(data.summary.credited)}</td></tr>` : ""}
+    ${data.summary.refundOwed > 0 ? `<tr><td style="padding:4px 0;color:#888;">Refund owed</td><td style="padding:4px 0;">${formatGBP(data.summary.refundOwed)}</td></tr>` : ""}
+    <tr><td style="padding:4px 0;color:#888;">Balance due</td><td style="padding:4px 0;"><strong>${formatGBP(data.summary.balanceDue)}</strong></td></tr>
+  `;
+
+  const greeting = data.customerName ? `Hi ${data.customerName},` : "Hello,";
+  const subject = `Update to your Claudia.C order ${data.orderShortCode}`;
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 560px;">
+      <h2 style="margin: 0 0 8px;">An item on your order has changed</h2>
+      <p style="color: #555; margin: 0 0 16px;">${greeting}</p>
+      <p style="color: #555; margin: 0 0 16px;">
+        We've had to remove the following from order <strong>${data.orderShortCode}</strong>, so it
+        <strong>will not be shipped</strong> with the rest of your packs:
+      </p>
+      <p style="margin: 0 0 16px; padding: 10px 12px; background:#f6f6f6; border-radius:6px;">${data.removedDescription}</p>
+      <table style="border-collapse: collapse; width: 100%;">
+        ${creditLine}
+        ${summaryRows}
+      </table>
+      <p style="color: #555; margin: 16px 0;">A revised invoice is attached. Please get in touch if you have any questions.</p>
+      <p style="color: #888; font-size: 12px; margin-top: 24px;">
+        Claudia.C · 32-34 Sampson Road North, B11 1BL · Tel: 0121 693 6030
+      </p>
+    </div>
+  `;
+
+  try {
+    const resend = new Resend(apiKey);
+    const adminRecipients = await getRecipients();
+    const to = [...new Set([data.customerEmail, ...adminRecipients].filter(Boolean))] as string[];
+    if (to.length === 0) return;
+    await resend.emails.send({ from, to, subject, html, ...(attachments ? { attachments } : {}) });
+  } catch (err) {
+    console.error("[item-removed email] send failed:", err);
+  }
+}

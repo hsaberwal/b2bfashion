@@ -7,6 +7,18 @@ const orderItemSchema = new mongoose.Schema({
   pricePerPiece: Number,
   packSize: { type: Number, min: 1 },
   size: { type: String, default: undefined },
+
+  // --- Partial cancellation (a pack removed from an otherwise live order) ---
+  cancelled: { type: Boolean, default: false },
+  cancelledAt: Date,
+  cancelledReason: String,
+  /** Value credited back to the customer for this removed line (capped at what they'd paid). */
+  creditAmount: { type: Number, default: 0 },
+  /** How the credit is settled: added to the customer's account balance, or owed as a refund. */
+  creditType: { type: String, enum: ["balance", "refund"], default: undefined },
+  /** For creditType "refund": "owed" until the Stripe refund is issued, then "refunded". */
+  refundStatus: { type: String, enum: ["none", "owed", "refunded"], default: "none" },
+  stripeRefundId: String,
 });
 
 const deliverySnapshotSchema = new mongoose.Schema(
@@ -60,6 +72,8 @@ const orderSchema = new mongoose.Schema(
       default: "none",
     },
     amountPaid: Number,
+    /** Total value refunded to the customer via Stripe across partial cancellations. */
+    refundedTotal: { type: Number, default: 0 },
     stripeSessionId: String,
     stripePaymentIntentId: String,
   },

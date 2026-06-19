@@ -47,6 +47,15 @@ export type OrderPdfData = {
   total: number;
   /** Free-text notes from the customer; printed in the Special Instructions box. */
   specialInstructions?: string | null;
+  /** When true the document is titled "INVOICE" and the payment summary is shown. */
+  isInvoice?: boolean;
+  /** Payment/credit summary, shown on the last page when present (used by the revised invoice). */
+  invoiceSummary?: {
+    paid: number;
+    credited: number;
+    refundOwed: number;
+    balanceDue: number;
+  } | null;
   /**
    * The customer's captured signature, as a `data:image/png;base64,…` (or jpeg)
    * data URL. When present it is drawn onto the signature line of the sales sheet.
@@ -242,7 +251,7 @@ function renderFormPage(
 
   // ---------- HEADER: company + sales order no + order date ----------
   doc.font("Helvetica-Bold").fontSize(11)
-    .text(`SALES ORDER No. ${data.shortCode}`, splitX + 6, headerTop + 4, { width: contentW - leftColW - 12 });
+    .text(`${data.isInvoice ? "INVOICE No." : "SALES ORDER No."} ${data.shortCode}`, splitX + 6, headerTop + 4, { width: contentW - leftColW - 12 });
   if (pageCount > 1) {
     doc.font("Helvetica").fontSize(8).fillColor("#555")
       .text(`Page ${pageNo} of ${pageCount}`, splitX + 6, headerTop + 4, { width: contentW - leftColW - 12, align: "right" });
@@ -333,6 +342,15 @@ function renderFormPage(
     doc.font("Helvetica-Bold").fontSize(9)
       .text(`Order total (ex VAT): ${fmtGBP(totals.exVat)}   ·   ${totals.pieces} pcs`,
         splitX + fpad, footerTop + 24, { width: contentW - leftColW - fpad * 2 });
+    const s = data.invoiceSummary;
+    if (s) {
+      const parts = [`Paid: ${fmtGBP(s.paid)}`];
+      if (s.credited > 0) parts.push(`Credited: ${fmtGBP(s.credited)}`);
+      if (s.refundOwed > 0) parts.push(`Refund owed: ${fmtGBP(s.refundOwed)}`);
+      parts.push(`Balance due: ${fmtGBP(s.balanceDue)}`);
+      doc.font("Helvetica").fontSize(7.5)
+        .text(parts.join("   ·   "), splitX + fpad, footerTop + 35, { width: contentW - leftColW - fpad * 2 });
+    }
   }
 
   doc.font("Helvetica").fontSize(8.5)

@@ -43,6 +43,7 @@ See [ROADMAP.md](ROADMAP.md) for upcoming features.
 - Admin-configurable checkout payment options (pay in full / 10% deposit / invoice) — toggle each on/off in **Admin → Settings** (default: pay-in-full only), enforced server-side
 - Full order lifecycle visible to both sides: `signed → confirmed → picked → ready_to_ship → shipped → delivered`
 - Admin orders dashboard with print-ready pick list, downloadable PDF sales order (matches the CLAUDIA.C order-sheet template — one row per SKU, which doubles as the packing list, with the customer's signature drawn on and special instructions in the footer), status controls (carrier + tracking on ship), and manual payment recording (cash / bank transfer / cheque / Stripe / other)
+- Remove an individual pack from a live order without cancelling it: releases stock, credits the customer (account balance or Stripe refund — your choice), and emails a revised invoice to the customer and team
 - Customer detail page with order history, lifetime spend, and outstanding balance
 - On sign, the sales-order PDF is automatically emailed (via Resend) to admins **and** the customer; admin recipients managed in **Admin → Settings** (falls back to `ADMIN_NOTIFICATION_EMAILS`, then all admin users)
 - Email verification with 24-hour auto-cleanup
