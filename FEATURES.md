@@ -202,6 +202,7 @@ Blouse, Cardigan, Dress, Gilet, Jumper, Shrug, Skirt, T-shirt, Top, Trouser, Tun
 ### Payment Integration (Stripe)
 
 - **Stripe Checkout** — customer redirected to Stripe-hosted page (PCI scope offloaded)
+- **Multiple payment methods** — the Checkout Session omits `payment_method_types`, so Stripe shows every method enabled in the Dashboard and eligible for the amount/currency/country: **card, Apple Pay, Google Pay, and Klarna**. Enable Apple Pay + Klarna under Stripe → Settings → Payment methods (Apple Pay needs no manual domain verification for hosted Checkout)
 - **Per-customer reuse** — each user gets a `stripeCustomerId` on their first checkout that's reused on every subsequent order, so the Stripe dashboard shows one clean customer record per buyer with their full payment history
 - **GB default** — Stripe Customer is pre-created with `address.country: "GB"` so the billing dropdown defaults to United Kingdom; `locale: "en-GB"` renders the checkout UI in British English; `customer_update.address: "auto"` still lets the shopper enter any other country
 - **Server-to-server webhook** with signature verification on every event (`checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_failed`, `charge.refunded`)
@@ -275,6 +276,13 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 - Admin recipients resolve in priority order: (1) the **DB-managed list** edited in **Admin → Settings** (stored as a `SiteContent` doc keyed `orderNotifications`), (2) the legacy `ADMIN_NOTIFICATION_EMAILS` env var, (3) every admin user in the DB
 - Admins manage the list at `/admin/settings` (add / remove addresses, validated + de-duplicated) via `GET`/`PUT /api/admin/notification-recipients` — no redeploy or env-var edit needed
 - Skipped silently in development if `EMAIL_API_KEY`/`EMAIL_FROM` are unset (logs the payload to console) — never blocks the customer's sign action
+
+**Customer order-lifecycle emails — exactly two:**
+
+1. **Order confirmation** (`sendCustomerOrderEmail`) at sign time, with the sales-order PDF.
+2. **Dispatch notification** (`sendDispatchEmail`) the first time an admin marks the order **shipped**, including carrier + tracking when entered.
+
+(A separate, event-driven email goes out only if a pack is later **removed** from the order — the revised-invoice email — but the normal happy path is just the two above.)
 
 ### "Coming Soon" Banner
 

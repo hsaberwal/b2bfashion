@@ -537,6 +537,7 @@ Lazy-init `new Resend(process.env.EMAIL_API_KEY)` — skipped entirely if either
 | Password reset link (1h expiry) | `src/app/api/auth/password-reset/request/route.ts` |
 | New-order admin notification (with PDF attached) | `src/lib/adminNotifications.ts` → `sendNewOrderEmail` (called from sign route, fire-and-forget) |
 | Customer order confirmation (with PDF attached) | `src/lib/adminNotifications.ts` → `sendCustomerOrderEmail` (called from sign route, fire-and-forget) |
+| Customer dispatch notification | `src/lib/adminNotifications.ts` → `sendDispatchEmail` (called from the status route on first transition to `shipped`, fire-and-forget) |
 
 On sign, the route renders the sales-order PDF once (`buildOrderPdf`) and attaches it to both the admin alert and the customer's confirmation. Admin recipients come from the DB-managed list (Admin → Settings), then `ADMIN_NOTIFICATION_EMAILS` (comma-separated), then every `User` with `role: "admin"`.
 

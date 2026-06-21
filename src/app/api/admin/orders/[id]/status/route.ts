@@ -4,7 +4,9 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { User } from "@/models/User";
 import { audit } from "@/lib/audit";
+import { sendDispatchEmail } from "@/lib/adminNotifications";
 import { getClientIp } from "@/lib/rateLimit";
 
 const bodySchema = z.object({
@@ -37,6 +39,9 @@ export async function POST(
     const { status, shippingCarrier, shippingTrackingNumber } = parsed.data;
     const now = new Date();
 
+    // Only email the customer the first time the order is dispatched.
+    const firstDispatch = status === "shipped" && !order.shippedAt;
+
     order.status = status;
     if (status === "picked" && !order.pickedAt) order.pickedAt = now;
     if (status === "ready_to_ship" && !order.readyAt) order.readyAt = now;
@@ -46,6 +51,24 @@ export async function POST(
     if (shippingTrackingNumber) order.shippingTrackingNumber = shippingTrackingNumber;
 
     await order.save();
+
+    // Fire-and-forget: send the customer their dispatch notification (the 2nd and
+    // final order-lifecycle email). Never blocks or fails the status update.
+    if (firstDispatch) {
+      (async () => {
+        const user = await User.findById(order.userId).select("email name").lean();
+        const u = user as unknown as { email?: string; name?: string } | null;
+        if (u?.email) {
+          await sendDispatchEmail({
+            to: u.email,
+            customerName: u.name,
+            orderShortCode: order._id.toString().slice(-8),
+            carrier: order.shippingCarrier,
+            trackingNumber: order.shippingTrackingNumber,
+          });
+        }
+      })().catch((err) => console.error("dispatch email failed:", err));
+    }
 
     await audit({
       action: "order_status_changed",
