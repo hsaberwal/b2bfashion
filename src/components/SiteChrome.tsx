@@ -8,9 +8,10 @@ import { ComingSoonBanner } from "./ComingSoonBanner";
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin") ?? false;
+  // Admin and agent portals bring their own chrome (no public navbar/footer).
+  const isBareChrome = pathname?.startsWith("/admin") || pathname?.startsWith("/agent") || false;
 
-  if (isAdmin) {
+  if (isBareChrome) {
     return <>{children}</>;
   }
 
