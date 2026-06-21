@@ -78,6 +78,7 @@ export async function GET(
       deliveryAddress?: Record<string, string>;
       applicationMessage?: string;
       stripeCustomerId?: string;
+      agentId?: unknown;
       createdAt: Date;
     };
 
@@ -96,6 +97,7 @@ export async function GET(
       deliveryAddress: u.deliveryAddress ?? null,
       applicationMessage: u.applicationMessage,
       stripeCustomerId: u.stripeCustomerId,
+      agentId: u.agentId ? String(u.agentId) : null,
       createdAt: u.createdAt,
       orders: orderList,
       lifetimeSpend,
@@ -116,8 +118,10 @@ const updateSchema = z.object({
   canViewForwardStock: z.boolean().optional(),
   canViewCurrentStock: z.boolean().optional(),
   canViewPreviousStock: z.boolean().optional(),
-  role: z.enum(["customer", "admin"]).optional(),
+  role: z.enum(["customer", "admin", "agent"]).optional(),
   emailVerified: z.boolean().optional(),
+  // Assign/unassign this customer to an agent. null clears the assignment.
+  agentId: z.string().nullable().optional(),
 });
 
 /** PATCH /api/admin/users/[id] — update user permissions (admin only). */
@@ -170,6 +174,28 @@ export async function PATCH(
       if (parsed.data.emailVerified) {
         user.verificationToken = undefined;
       }
+    }
+    if (parsed.data.agentId !== undefined) {
+      if (parsed.data.agentId === null || parsed.data.agentId === "") {
+        user.agentId = undefined;
+      } else {
+        if (!mongoose.Types.ObjectId.isValid(parsed.data.agentId)) {
+          return NextResponse.json({ error: "Invalid agent ID" }, { status: 400 });
+        }
+        const agent = await User.findById(parsed.data.agentId).select("role").lean();
+        if (!agent || (agent as unknown as { role?: string }).role !== "agent") {
+          return NextResponse.json({ error: "Selected user is not an agent" }, { status: 400 });
+        }
+        user.agentId = new mongoose.Types.ObjectId(parsed.data.agentId);
+      }
+      await audit({
+        action: "customer_assigned_agent",
+        userId: sessionUser.id,
+        targetType: "user",
+        targetId: id,
+        ip: getClientIp(request),
+        details: { agentId: parsed.data.agentId ?? null },
+      });
     }
     await user.save();
     return NextResponse.json({

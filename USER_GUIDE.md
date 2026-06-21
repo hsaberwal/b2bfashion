@@ -84,7 +84,9 @@ To place an order, you need a wholesale account:
 
 5. Add any **special instructions** (optional) — delivery dates, packing notes, etc. These print on your order sheet.
 6. **Sign** your order by drawing in the signature box
-7. Click the payment button — redirected to Stripe Checkout for card payments, or confirmation for invoice
+7. Click the payment button — redirected to Stripe Checkout for card payments, or confirmation for invoice. On the Stripe page you can pay by **card, Apple Pay, Google Pay, or Klarna** (whichever are available for your device/amount).
+
+You'll receive **two emails about your order**: a **confirmation** when you place it (with your order sheet attached), and a **dispatch notification** when it ships (with tracking, if provided).
 
 ### After Ordering
 
@@ -155,7 +157,7 @@ Three things you can do on this page:
 
 `Signed → Confirmed → Picked → Ready to ship → Shipped → Delivered`
 
-When you advance to **Shipped**, two inline fields appear for **carrier** (e.g. Royal Mail) and **tracking number** — both optional. Cancel button is always available before delivery.
+When you advance to **Shipped**, two inline fields appear for **carrier** (e.g. Royal Mail) and **tracking number** — both optional. Marking an order shipped for the first time automatically **emails the customer a dispatch notification** (with the carrier + tracking, if entered). Cancel button is always available before delivery.
 
 Each transition stamps a timestamp (`pickedAt`, `readyAt`, `shippedAt`, `deliveredAt`) shown below the status label.
 
@@ -206,6 +208,18 @@ Click any customer's email to open their detail page (`/admin/users/[id]`):
 - **Order history table** — every order with date, status, payment, total, paid, outstanding. Click any row to open that order.
 
 This gives you a single screen to answer "what does this customer owe us, and what have they ordered?"
+
+On a customer's page you can also **assign them to an agent** (Account card → "Assigned agent" dropdown).
+
+### Managing Agents (`/admin/agents`)
+
+Agents are field sales reps who visit customers in person.
+
+- **Add an agent** — enter their email (and optional name) and click **Send invite**. They get an email with a link to set their password and access the agent portal. (No separate email-verification step — the invite link verifies them.)
+- **Agent detail** (`/admin/agents/[id]`) — see the customers assigned to that agent and each customer's outstanding balance. You can **unassign** a customer here, or **deactivate** / **delete** the agent. Deleting an agent leaves their customers in place (just unassigned) and keeps past orders' history.
+- **Assign customers to an agent** from the customer's page (above), or unassign from the agent's page.
+
+> The agent portal (where agents pick a customer, scan sample barcodes, and place orders on their behalf) arrives in the next phases.
 
 ### Bulk actions on the products list
 

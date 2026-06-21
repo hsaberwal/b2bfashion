@@ -220,6 +220,7 @@ The site uses **Stripe Checkout** (hosted page) for card payments. You don't nee
    - `STRIPE_WEBHOOK_SECRET` = `whsec_…`
    - Railway auto-redeploys on variable change. Wait for it.
 6. **Optional dashboard toggle** — Settings → Payments → **Currency conversion** → toggle **Off**. This removes Stripe's local-currency picker so shoppers only see GBP. The codebase already forces `currency: "gbp"` and `locale: "en-GB"`, but the dashboard toggle is needed to hide the picker.
+6a. **Enable extra payment methods** — Settings → **Payment methods**: turn on **Apple Pay**, **Google Pay**, and **Klarna**. The Checkout Session doesn't restrict `payment_method_types`, so any method enabled here (and eligible for the amount/currency/country) appears automatically on the hosted page. Apple Pay needs no manual domain registration for hosted Checkout. Do this on **both** the staging and live Stripe environments.
 7. **Test end to end** — place an order on the live site, choose Pay now / Pay deposit:
    - Test card: `4242 4242 4242 4242`, any future expiry, any CVC, any postcode.
    - After paying you should land on `/checkout/result` with a success message.

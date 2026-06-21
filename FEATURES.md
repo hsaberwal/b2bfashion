@@ -202,6 +202,7 @@ Blouse, Cardigan, Dress, Gilet, Jumper, Shrug, Skirt, T-shirt, Top, Trouser, Tun
 ### Payment Integration (Stripe)
 
 - **Stripe Checkout** — customer redirected to Stripe-hosted page (PCI scope offloaded)
+- **Multiple payment methods** — the Checkout Session omits `payment_method_types`, so Stripe shows every method enabled in the Dashboard and eligible for the amount/currency/country: **card, Apple Pay, Google Pay, and Klarna**. Enable Apple Pay + Klarna under Stripe → Settings → Payment methods (Apple Pay needs no manual domain verification for hosted Checkout)
 - **Per-customer reuse** — each user gets a `stripeCustomerId` on their first checkout that's reused on every subsequent order, so the Stripe dashboard shows one clean customer record per buyer with their full payment history
 - **GB default** — Stripe Customer is pre-created with `address.country: "GB"` so the billing dropdown defaults to United Kingdom; `locale: "en-GB"` renders the checkout UI in British English; `customer_update.address: "auto"` still lets the shopper enter any other country
 - **Server-to-server webhook** with signature verification on every event (`checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_failed`, `charge.refunded`)
@@ -276,6 +277,13 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 - Admins manage the list at `/admin/settings` (add / remove addresses, validated + de-duplicated) via `GET`/`PUT /api/admin/notification-recipients` — no redeploy or env-var edit needed
 - Skipped silently in development if `EMAIL_API_KEY`/`EMAIL_FROM` are unset (logs the payload to console) — never blocks the customer's sign action
 
+**Customer order-lifecycle emails — exactly two:**
+
+1. **Order confirmation** (`sendCustomerOrderEmail`) at sign time, with the sales-order PDF.
+2. **Dispatch notification** (`sendDispatchEmail`) the first time an admin marks the order **shipped**, including carrier + tracking when entered.
+
+(A separate, event-driven email goes out only if a pack is later **removed** from the order — the revised-invoice email — but the normal happy path is just the two above.)
+
 ### "Coming Soon" Banner
 
 - Admin toggle in **Settings** (stored as a `SiteContent` doc keyed `comingSoon` with `{ enabled, message }`) shows logged-out visitors a dismissible banner across the public site
@@ -298,6 +306,13 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 - For refund-owed packs on Stripe-paid orders, an admin issues the **Stripe refund** with one click — `POST /api/admin/orders/[id]/refund-item` (partial refund; the webhook no longer flips the whole order to refunded unless it's a full refund).
 - A **revised invoice PDF** (titled INVOICE, showing remaining items + paid / credited / refund owed / balance due) is generated and **emailed to the customer and the admin team**, explaining that the removed pack won't ship with the rest.
 - The admin order page shows removed lines struck-through with their credit/refund state, the customer's account-credit balance, and per-line Remove / Refund actions.
+
+### Sales Agents (Phase 1 — role + admin section)
+
+- A new **`agent`** role (field sales reps), alongside `customer` and `admin`.
+- Admin **Agents** section (`/admin/agents`): invite agents by email (they set their password via the reused reset-password link — `src/lib/agentInvite.ts`), see each agent's assigned-customer count, and deactivate/delete agents (delete unassigns their customers and keeps order history).
+- **Customer ↔ agent assignment**: each customer has an optional `agentId`, assignable from the customer's admin page or the agent's page; the agent page shows each customer's outstanding balance.
+- `requireAgent()` gates agent-only access (`role: "agent" | "admin"`). _Phases 2–3 add the agent portal (place unpaid/paid orders on a customer's behalf with the customer signing on the device) and camera barcode scanning into the basket._
 
 ### Customer-Facing Order Tracking
 

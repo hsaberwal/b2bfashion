@@ -30,6 +30,13 @@ export type AuditAction =
   | "payment_completed"
   | "payment_recorded"
   | "payment_failed"
+  | "agent_created"
+  | "agent_invited"
+  | "agent_updated"
+  | "agent_deleted"
+  | "customer_assigned_agent"
+  | "customer_invited_by_agent"
+  | "agent_order_placed"
   | "admin_action";
 
 export async function audit(params: {

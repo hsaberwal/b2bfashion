@@ -9,9 +9,17 @@ export async function GET() {
     await requireAdmin();
     await connectDB();
     const users = await User.find({})
-      .select("email name companyName role pricingApproved canViewForwardStock canViewCurrentStock canViewPreviousStock applicationMessage emailVerified deliveryAddress vatNumber createdAt")
+      .select("email name companyName role pricingApproved canViewForwardStock canViewCurrentStock canViewPreviousStock applicationMessage emailVerified deliveryAddress vatNumber agentId createdAt")
       .sort({ createdAt: -1 })
       .lean();
+
+    // Resolve assigned-agent names in one pass for display.
+    const agentIds = [...new Set(users.map((u) => u.agentId).filter(Boolean).map(String))];
+    const agents = agentIds.length
+      ? await User.find({ _id: { $in: agentIds } }).select("name email").lean()
+      : [];
+    const agentById = new Map(agents.map((a) => [String(a._id), (a.name as string) || (a.email as string)]));
+
     return NextResponse.json({
       users: users.map((u) => ({
         id: String(u._id),
@@ -27,6 +35,8 @@ export async function GET() {
         emailVerified: u.emailVerified ?? false,
         deliveryAddress: u.deliveryAddress ?? undefined,
         vatNumber: u.vatNumber ?? undefined,
+        agentId: u.agentId ? String(u.agentId) : undefined,
+        agentName: u.agentId ? agentById.get(String(u.agentId)) : undefined,
         createdAt: u.createdAt,
       })),
     });
