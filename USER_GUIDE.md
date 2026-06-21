@@ -228,7 +228,7 @@ When an **agent** logs in they're taken to their portal (also reachable via the 
 - **Take the order** — choose a **payment option** (whatever the admin has enabled): *Invoice* places it unpaid (it shows as outstanding on the customer's file, attributed to the agent), or *Pay in full / deposit* takes payment via Stripe on the device (card / Apple Pay / Google Pay / Klarna). The **customer signs** on the agent's device, then tap **Place order**.
 - Each order records which agent placed it. Agents only ever see and act on **their own** customers.
 
-> Scanning a sample's barcode straight into the basket arrives in the next phase.
+**Scanning samples** — in the order builder, tap **Scan barcodes** to open the device camera and scan the barcode on a sample. Each scan adds **one pack** of that product to the basket; scan the same sample again to add another, or adjust counts in the basket. If a label won't read, **type the barcode (or SKU)** into the box instead. (Barcodes are set per product in the admin product form, or via a **Barcode** column in the bulk import. The scanner matches the barcode *or* the SKU.)
 
 ### Bulk actions on the products list
 

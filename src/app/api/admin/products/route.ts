@@ -9,6 +9,7 @@ function mapProduct(p: Record<string, unknown>) {
   return {
     id: String(p._id),
     sku: p.sku,
+    barcode: p.barcode,
     brandCode: p.brandCode,
     brand: p.brand,
     season: p.season,
@@ -35,6 +36,7 @@ function mapProduct(p: Record<string, unknown>) {
 
 const createProductSchema = z.object({
   sku: z.string().min(1).trim(),
+  barcode: z.string().trim().optional(),
   brandCode: z.string().optional(),
   brand: z.string().optional(),
   season: z.string().optional(),

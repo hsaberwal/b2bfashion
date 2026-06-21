@@ -5,6 +5,8 @@ const productSchema = new mongoose.Schema(
   {
     // Identity (from stock sheet: SPC + colour)
     sku: { type: String, required: true, unique: true, trim: true }, // e.g. "COL13276-BLACK"
+    /** Optional pack barcode printed on samples — agents scan it to add the pack. */
+    barcode: { type: String, trim: true },
     brandCode: String,  // e.g. "CL"
     brand: String,      // e.g. "CLAUDIA-C"
     season: String,     // e.g. "SS26"
@@ -64,5 +66,6 @@ productSchema.index({ category: 1 });
 productSchema.index({ colour: 1 });
 productSchema.index({ season: 1 });
 productSchema.index({ disabled: 1 });
+productSchema.index({ barcode: 1 }, { sparse: true });
 
 export const Product = mongoose.models.Product ?? mongoose.model("Product", productSchema);

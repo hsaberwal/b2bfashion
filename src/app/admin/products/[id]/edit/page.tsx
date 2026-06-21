@@ -8,6 +8,7 @@ import { ProductForm, type ProductFormData, type ProductSubmitPayload } from "@/
 type Product = {
   id: string;
   sku: string;
+  barcode?: string;
   brandCode?: string;
   brand?: string;
   season?: string;
@@ -97,6 +98,7 @@ export default function EditProductPage() {
 
   const initial: Partial<ProductFormData> = {
     sku: product.sku,
+    barcode: product.barcode ?? "",
     brandCode: product.brandCode ?? "CL",
     brand: product.brand ?? "CLAUDIA-C",
     season: product.season ?? "SS26",
