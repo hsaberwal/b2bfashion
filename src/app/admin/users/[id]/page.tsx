@@ -36,12 +36,15 @@ type Customer = {
   } | null;
   stripeCustomerId?: string;
   applicationMessage?: string;
+  agentId?: string | null;
   createdAt: string;
   orders: CustomerOrder[];
   orderCount: number;
   lifetimeSpend: number;
   totalOutstanding: number;
 };
+
+type AgentOption = { id: string; email: string; name?: string };
 
 function fmtGBP(n: number) {
   return `£${n.toFixed(2)}`;
@@ -57,14 +60,40 @@ export default function AdminCustomerDetailPage() {
   const id = params.id as string;
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [agents, setAgents] = useState<AgentOption[]>([]);
+  const [savingAgent, setSavingAgent] = useState(false);
+
+  async function loadCustomer() {
+    const r = await fetch(`/api/admin/users/${id}`);
+    setCustomer(r.ok ? await r.json() : null);
+  }
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/admin/users/${id}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setCustomer(d))
+    Promise.all([
+      fetch(`/api/admin/users/${id}`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/api/admin/agents`).then((r) => (r.ok ? r.json() : { agents: [] })),
+    ])
+      .then(([c, a]) => {
+        setCustomer(c);
+        setAgents((a.agents ?? []) as AgentOption[]);
+      })
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function assignAgent(agentId: string) {
+    setSavingAgent(true);
+    try {
+      const r = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: agentId || null }),
+      });
+      if (r.ok) await loadCustomer();
+    } finally {
+      setSavingAgent(false);
+    }
+  }
 
   if (loading) {
     return <div className="p-6"><p className="text-sm text-gray-500">Loading customer…</p></div>;
@@ -109,6 +138,22 @@ export default function AdminCustomerDetailPage() {
             <p className="text-sm text-gray-700">Pricing: {customer.pricingApproved ? "Approved" : "Not approved"}</p>
             <p className="text-sm text-gray-700">Email verified: {customer.emailVerified ? "Yes" : "No"}</p>
             {customer.vatNumber && <p className="text-sm text-gray-700">VAT: {customer.vatNumber}</p>}
+            {customer.role === "customer" && (
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <label className="block text-xs text-gray-500 mb-1">Assigned agent</label>
+                <select
+                  value={customer.agentId ?? ""}
+                  onChange={(e) => assignAgent(e.target.value)}
+                  disabled={savingAgent}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm disabled:opacity-50"
+                >
+                  <option value="">— Unassigned —</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name || a.email}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Delivery address</p>

@@ -307,6 +307,13 @@ Stamped timestamps: `signedAt`, `pickedAt`, `readyAt`, `shippedAt`, `deliveredAt
 - A **revised invoice PDF** (titled INVOICE, showing remaining items + paid / credited / refund owed / balance due) is generated and **emailed to the customer and the admin team**, explaining that the removed pack won't ship with the rest.
 - The admin order page shows removed lines struck-through with their credit/refund state, the customer's account-credit balance, and per-line Remove / Refund actions.
 
+### Sales Agents (Phase 1 — role + admin section)
+
+- A new **`agent`** role (field sales reps), alongside `customer` and `admin`.
+- Admin **Agents** section (`/admin/agents`): invite agents by email (they set their password via the reused reset-password link — `src/lib/agentInvite.ts`), see each agent's assigned-customer count, and deactivate/delete agents (delete unassigns their customers and keeps order history).
+- **Customer ↔ agent assignment**: each customer has an optional `agentId`, assignable from the customer's admin page or the agent's page; the agent page shows each customer's outstanding balance.
+- `requireAgent()` gates agent-only access (`role: "agent" | "admin"`). _Phases 2–3 add the agent portal (place unpaid/paid orders on a customer's behalf with the customer signing on the device) and camera barcode scanning into the basket._
+
 ### Customer-Facing Order Tracking
 
 On `/cart`, expanding any past order shows a **fulfilment progress indicator** rendering all 6 lifecycle steps with a filled dot on the current step. Customers can self-serve "where is my order?" without contacting support.

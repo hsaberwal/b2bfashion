@@ -209,6 +209,18 @@ Click any customer's email to open their detail page (`/admin/users/[id]`):
 
 This gives you a single screen to answer "what does this customer owe us, and what have they ordered?"
 
+On a customer's page you can also **assign them to an agent** (Account card → "Assigned agent" dropdown).
+
+### Managing Agents (`/admin/agents`)
+
+Agents are field sales reps who visit customers in person.
+
+- **Add an agent** — enter their email (and optional name) and click **Send invite**. They get an email with a link to set their password and access the agent portal. (No separate email-verification step — the invite link verifies them.)
+- **Agent detail** (`/admin/agents/[id]`) — see the customers assigned to that agent and each customer's outstanding balance. You can **unassign** a customer here, or **deactivate** / **delete** the agent. Deleting an agent leaves their customers in place (just unassigned) and keeps past orders' history.
+- **Assign customers to an agent** from the customer's page (above), or unassign from the agent's page.
+
+> The agent portal (where agents pick a customer, scan sample barcodes, and place orders on their behalf) arrives in the next phases.
+
 ### Bulk actions on the products list
 
 On **Admin > Garments**, tick the checkboxes to select products (or the header checkbox to select all visible). A bulk action bar appears with:
