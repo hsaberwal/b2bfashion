@@ -97,6 +97,14 @@ export function Navbar() {
               Admin
             </Link>
           )}
+          {user?.role === "agent" && (
+            <Link
+              href="/agent"
+              className="text-[11px] uppercase tracking-widest text-je-muted hover:text-je-black transition-colors font-medium"
+            >
+              Agent
+            </Link>
+          )}
         </div>
 
         {/* Right side */}

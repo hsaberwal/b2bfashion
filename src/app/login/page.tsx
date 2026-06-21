@@ -39,7 +39,7 @@ function LoginForm() {
         setError(data.error ?? "Login failed");
         return;
       }
-      window.location.href = "/products";
+      window.location.href = data.user?.role === "agent" ? "/agent" : "/products";
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ function LoginForm() {
         setError(data.error ?? "Invalid OTP");
         return;
       }
-      window.location.href = "/products";
+      window.location.href = data.user?.role === "agent" ? "/agent" : "/products";
     } finally {
       setLoading(false);
     }
