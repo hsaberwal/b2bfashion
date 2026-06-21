@@ -15,7 +15,11 @@ const userSchema = new mongoose.Schema(
     },
     vatNumber: String,
     applicationMessage: String,
-    role: { type: String, enum: ["customer", "admin"], default: "customer" },
+    role: { type: String, enum: ["customer", "admin", "agent"], default: "customer" },
+    /** Field-sales agent this customer is assigned to (only set on role:"customer" docs). */
+    agentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
+    /** Soft-deactivate flag for agents (role:"agent"); inactive agents can't log in actions. */
+    active: { type: Boolean, default: true },
     pricingApproved: { type: Boolean, default: false },
     canViewForwardStock: { type: Boolean, default: false },
     canViewCurrentStock: { type: Boolean, default: true },

@@ -191,7 +191,9 @@ public/
 | `deliveryAddress` | sub-doc | `addressLine1`, `addressLine2`, `city`, `postcode`, `country` |
 | `vatNumber` | string | Optional |
 | `applicationMessage` | string | From wholesale application form |
-| `role` | enum | `"customer"` \| `"admin"` |
+| `role` | enum | `"customer"` \| `"admin"` \| `"agent"` |
+| `agentId` | ObjectId (indexed) | On a customer doc: the field-sales agent they're assigned to |
+| `active` | bool | Soft-deactivate flag for agents (inactive agents are logged out + can't act) |
 | `pricingApproved` | bool | Default `false`. Customer sees prices only when true (admins always see) |
 | `canViewForwardStock` | bool | Default `false` |
 | `canViewCurrentStock` | bool | Default `true` |
@@ -395,9 +397,14 @@ All require `requireAdmin()` (throws 401 / 403).
 | GET | `/api/payment-options` | Which checkout payment options are enabled (public; admin-configured) |
 | GET | `/api/admin/users` | All users |
 | GET | `/api/admin/users/[id]` | Customer profile + order history + lifetime spend + outstanding |
-| PATCH | `/api/admin/users/[id]` | Toggle permissions / role / emailVerified |
+| PATCH | `/api/admin/users/[id]` | Toggle permissions / role / emailVerified / **assign `agentId`** |
 | DELETE | `/api/admin/users/[id]` | Remove user + sessions + pending cart |
 | POST | `/api/admin/users/bulk-enable-forward` | Mass-toggle forward stock access |
+| GET | `/api/admin/agents` | List agents + assigned-customer counts |
+| POST | `/api/admin/agents` | Create an agent + email an invite (reuses the reset-password link via `src/lib/agentInvite.ts`) |
+| GET | `/api/admin/agents/[id]` | Agent profile + assigned customers with outstanding balances |
+| PATCH | `/api/admin/agents/[id]` | Rename / (de)activate an agent (deactivate ends their sessions) |
+| DELETE | `/api/admin/agents/[id]` | Unassign their customers (`$unset agentId`), end sessions, delete the agent |
 | CRUD | `/api/admin/products[/(id)]` | Catalogue management |
 | POST | `/api/admin/products/bulk-import` (multipart .xlsx) | Bulk import |
 | POST | `/api/admin/upload` | Image upload (magic-bytes verified) |
@@ -521,6 +528,7 @@ On `checkout.session.expired` / `async_payment_failed` (while still pending), `p
 - Sessions: `Session` model, 30-day expiry, cookie `session` (httpOnly, secure in prod).
 - Auth helpers: `src/lib/auth.ts` (`hashPassword`, `verifyPassword`, `getSessionToken`).
 - `requireAdmin()` in `src/lib/requireAdmin.ts` returns `SessionUser` or throws `{ status: 401|403 }`.
+- `requireAgent()` (same file) allows `role: "agent" | "admin"` — gates the agent portal/APIs. Agents are field sales reps; an admin "Agents" section creates/invites them and assigns customers (`customer.agentId`). Phases 2–3 add the agent portal (place orders on a customer's behalf) and barcode scanning.
 - CSRF: `src/middleware.ts` enforces double-submit cookie on POST/PATCH/DELETE for `/api/*` (skipping `/api/auth/session`, `/api/webhooks/*`, `/api/auth/verify-email`).
 - `CsrfProvider` (client) reads the CSRF cookie issued by `/api/auth/session` and adds `x-csrf-token` header to every fetch.
 

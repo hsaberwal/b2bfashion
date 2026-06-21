@@ -45,6 +45,7 @@ See [ROADMAP.md](ROADMAP.md) for upcoming features.
 - Admin orders dashboard with print-ready pick list, downloadable PDF sales order (matches the CLAUDIA.C order-sheet template — one row per SKU, which doubles as the packing list, with the customer's signature drawn on and special instructions in the footer), status controls (carrier + tracking on ship), and manual payment recording (cash / bank transfer / cheque / Stripe / other)
 - Remove an individual pack from a live order without cancelling it: releases stock, credits the customer (account balance or Stripe refund — your choice), and emails a revised invoice to the customer and team
 - Customer detail page with order history, lifetime spend, and outstanding balance
+- **Sales agents** (field reps): an `agent` role with an admin **Agents** section to invite agents (email link to set their password) and assign customers to them (`customer.agentId`). Agent portal + on-behalf ordering + barcode scanning land in later phases.
 - On sign, the sales-order PDF is automatically emailed (via Resend) to admins **and** the customer; admin recipients managed in **Admin → Settings** (falls back to `ADMIN_NOTIFICATION_EMAILS`, then all admin users)
 - Email verification with 24-hour auto-cleanup
 - Cycling hero banner with focal-point image selector — plus admin-uploaded custom hero banners (image + link + caption) via **Admin → Banners**, with a product-photos / banners / mixed mode toggle
