@@ -30,6 +30,7 @@ function Card({
 
 export type ProductFormData = {
   sku: string;
+  barcode: string;
   brandCode: string;
   brand: string;
   season: string;
@@ -59,6 +60,7 @@ export type ProductFormData = {
 
 const defaultForm: ProductFormData = {
   sku: "",
+  barcode: "",
   brandCode: "CL",
   brand: "CLAUDIA-C",
   season: "SS26",
@@ -799,6 +801,16 @@ export function ProductForm({ initial, onSubmit, submitLabel, productId }: Props
             onChange={(e) => update("sku", e.target.value)}
             required
             placeholder="e.g. COL13276-BLACK"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Barcode</label>
+          <input
+            type="text"
+            value={form.barcode}
+            onChange={(e) => update("barcode", e.target.value)}
+            placeholder="Pack barcode (agents scan this)"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
         </div>

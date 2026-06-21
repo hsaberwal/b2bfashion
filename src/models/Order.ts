@@ -37,6 +37,8 @@ const deliverySnapshotSchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    /** Set when a field-sales agent built/placed this order on the customer's behalf. */
+    agentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
     items: [orderItemSchema],
     status: {
       type: String,

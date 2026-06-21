@@ -8,6 +8,7 @@ import { z } from "zod";
 
 const updateProductSchema = z.object({
   sku: z.string().min(1).trim().optional(),
+  barcode: z.string().trim().optional(),
   brandCode: z.string().optional(),
   brand: z.string().optional(),
   season: z.string().optional(),
@@ -40,6 +41,7 @@ function mapProduct(p: Record<string, unknown>) {
   return {
     id: String(p._id),
     sku: p.sku,
+    barcode: p.barcode,
     brandCode: p.brandCode,
     brand: p.brand,
     season: p.season,

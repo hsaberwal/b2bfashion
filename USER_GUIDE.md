@@ -219,7 +219,16 @@ Agents are field sales reps who visit customers in person.
 - **Agent detail** (`/admin/agents/[id]`) — see the customers assigned to that agent and each customer's outstanding balance. You can **unassign** a customer here, or **deactivate** / **delete** the agent. Deleting an agent leaves their customers in place (just unassigned) and keeps past orders' history.
 - **Assign customers to an agent** from the customer's page (above), or unassign from the agent's page.
 
-> The agent portal (where agents pick a customer, scan sample barcodes, and place orders on their behalf) arrives in the next phases.
+### The Agent Portal (`/agent`)
+
+When an **agent** logs in they're taken to their portal (also reachable via the **Agent** link in the navbar).
+
+- **My customers** — a list of the agent's assigned customers, each with their outstanding balance. **Add customer** lets the agent either *Add* a record (to order for) or *Invite by email* (sends a set-password link, linked to the agent).
+- **Build an order** — tap a customer → search products by name/SKU/colour → **Add pack**. In the basket, use **− / +** to change the number of packs or **Remove** a line.
+- **Take the order** — choose a **payment option** (whatever the admin has enabled): *Invoice* places it unpaid (it shows as outstanding on the customer's file, attributed to the agent), or *Pay in full / deposit* takes payment via Stripe on the device (card / Apple Pay / Google Pay / Klarna). The **customer signs** on the agent's device, then tap **Place order**.
+- Each order records which agent placed it. Agents only ever see and act on **their own** customers.
+
+**Scanning samples** — in the order builder, tap **Scan barcodes** to open the device camera and scan the barcode on a sample. Each scan adds **one pack** of that product to the basket; scan the same sample again to add another, or adjust counts in the basket. If a label won't read, **type the barcode (or SKU)** into the box instead. (Barcodes are set per product in the admin product form, or via a **Barcode** column in the bulk import. The scanner matches the barcode *or* the SKU.)
 
 ### Bulk actions on the products list
 
