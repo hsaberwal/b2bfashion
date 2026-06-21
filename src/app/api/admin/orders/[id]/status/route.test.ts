@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockRequireAdmin, mockConnectDB, mockOrderFindById, mockAudit } = vi.hoisted(() => ({
+const { mockRequireAdmin, mockConnectDB, mockOrderFindById, mockAudit, mockUserFindById, mockSendDispatch } = vi.hoisted(() => ({
   mockRequireAdmin: vi.fn(),
   mockConnectDB: vi.fn(),
   mockOrderFindById: vi.fn(),
   mockAudit: vi.fn(),
+  mockUserFindById: vi.fn(),
+  mockSendDispatch: vi.fn(),
 }));
 
 vi.mock("@/lib/requireAdmin", () => ({
@@ -15,6 +17,12 @@ vi.mock("@/lib/audit", () => ({ audit: (...a: unknown[]) => mockAudit(...a) }));
 vi.mock("@/lib/rateLimit", () => ({ getClientIp: () => "1.1.1.1" }));
 vi.mock("@/models/Order", () => ({
   Order: { findById: (...a: unknown[]) => mockOrderFindById(...a) },
+}));
+vi.mock("@/models/User", () => ({
+  User: { findById: () => ({ select: () => ({ lean: () => mockUserFindById() }) }) },
+}));
+vi.mock("@/lib/adminNotifications", () => ({
+  sendDispatchEmail: (...a: unknown[]) => mockSendDispatch(...a),
 }));
 
 const VALID_ID = "507f1f77bcf86cd799439011"; // 24-char hex — passes ObjectId.isValid
@@ -42,9 +50,13 @@ beforeEach(() => {
   mockConnectDB.mockReset();
   mockOrderFindById.mockReset();
   mockAudit.mockReset();
+  mockUserFindById.mockReset();
+  mockSendDispatch.mockReset();
   mockRequireAdmin.mockResolvedValue({ id: "admin1", email: "admin@x.com", role: "admin" });
   mockConnectDB.mockResolvedValue(undefined);
   mockAudit.mockResolvedValue(undefined);
+  mockUserFindById.mockResolvedValue({ email: "buyer@x.com", name: "Buyer" });
+  mockSendDispatch.mockResolvedValue(undefined);
   vi.resetModules();
 });
 
@@ -107,8 +119,8 @@ describe("POST /api/admin/orders/[id]/status", () => {
     expect(order.status).toBe("confirmed");
   });
 
-  it("stamps shippedAt + writes carrier/tracking when transitioning to shipped", async () => {
-    const order = buildOrder({ status: "ready_to_ship" });
+  it("stamps shippedAt + writes carrier/tracking and emails the customer on first dispatch", async () => {
+    const order = buildOrder({ status: "ready_to_ship", userId: "u1" });
     mockOrderFindById.mockResolvedValueOnce(order);
     const { POST } = await import("./route");
     await POST(
@@ -118,6 +130,19 @@ describe("POST /api/admin/orders/[id]/status", () => {
     expect(order.shippedAt).toBeInstanceOf(Date);
     expect(order.shippingCarrier).toBe("Royal Mail");
     expect(order.shippingTrackingNumber).toBe("RM123");
+    // dispatch email is fire-and-forget — let the microtask/timer settle
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockSendDispatch).toHaveBeenCalledTimes(1);
+    expect(mockSendDispatch.mock.calls[0][0]).toMatchObject({ to: "buyer@x.com", carrier: "Royal Mail", trackingNumber: "RM123" });
+  });
+
+  it("does NOT re-send the dispatch email when shipped again (shippedAt already set)", async () => {
+    const order = buildOrder({ status: "shipped", shippedAt: new Date("2020-01-01"), userId: "u1" });
+    mockOrderFindById.mockResolvedValueOnce(order);
+    const { POST } = await import("./route");
+    await POST(postReq({ status: "shipped" }) as never, { params: Promise.resolve({ id: VALID_ID }) });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockSendDispatch).not.toHaveBeenCalled();
   });
 
   it("does not overwrite an existing pickedAt timestamp on a repeat call", async () => {

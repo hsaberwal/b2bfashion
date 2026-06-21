@@ -131,6 +131,58 @@ type CustomerOrderEmail = {
   attachment?: EmailAttachment;
 };
 
+type DispatchEmail = {
+  to: string;
+  customerName?: string;
+  orderShortCode: string;
+  carrier?: string;
+  trackingNumber?: string;
+};
+
+/**
+ * Notify the customer that their order has been dispatched. This is the second
+ * (and final) order-lifecycle email a customer receives — the first is the order
+ * confirmation sent at sign time. Fire-and-forget: errors are swallowed.
+ */
+export async function sendDispatchEmail(data: DispatchEmail): Promise<void> {
+  const apiKey = process.env.EMAIL_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!apiKey || !from) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[dispatch email skipped — EMAIL_API_KEY or EMAIL_FROM missing]", data);
+    }
+    return;
+  }
+  if (!data.to) return;
+
+  const greeting = data.customerName ? `Hi ${data.customerName},` : "Hello,";
+  const subject = `Your Claudia.C order ${data.orderShortCode} has been dispatched`;
+  const trackingRows = `
+    ${data.carrier ? `<tr><td style="padding:4px 0;color:#888;">Carrier</td><td style="padding:4px 0;">${data.carrier}</td></tr>` : ""}
+    ${data.trackingNumber ? `<tr><td style="padding:4px 0;color:#888;">Tracking</td><td style="padding:4px 0;"><strong>${data.trackingNumber}</strong></td></tr>` : ""}
+  `;
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 560px;">
+      <h2 style="margin: 0 0 8px;">Your order is on its way</h2>
+      <p style="color: #555; margin: 0 0 16px;">${greeting}</p>
+      <p style="color: #555; margin: 0 0 16px;">
+        Good news — order <strong>${data.orderShortCode}</strong> has been dispatched.
+      </p>
+      ${data.carrier || data.trackingNumber ? `<table style="border-collapse: collapse; width: 100%;">${trackingRows}</table>` : ""}
+      <p style="color: #888; font-size: 12px; margin-top: 24px;">
+        Claudia.C · 32-34 Sampson Road North, B11 1BL · Tel: 0121 693 6030
+      </p>
+    </div>
+  `;
+
+  try {
+    const resend = new Resend(apiKey);
+    await resend.emails.send({ from, to: data.to, subject, html });
+  } catch (err) {
+    console.error("[dispatch email] send failed:", err);
+  }
+}
+
 /**
  * Send the customer their own copy of the signed order, with the sales-sheet
  * PDF attached. Fire-and-forget: errors are swallowed so a Resend hiccup never

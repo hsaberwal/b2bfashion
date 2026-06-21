@@ -110,7 +110,10 @@ export async function createCheckoutSession(
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    payment_method_types: ["card"],
+    // Note: we intentionally omit `payment_method_types`. For Checkout Sessions
+    // that makes Stripe present every eligible method enabled in the Dashboard
+    // (card, Apple Pay, Google Pay, Klarna, …) based on amount/currency/country.
+    // Enable Apple Pay and Klarna under Stripe → Settings → Payment methods.
     customer: customerId,
     customer_update: { address: "auto", name: "auto" },
     locale: "en-GB",
