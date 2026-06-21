@@ -5,7 +5,34 @@ import {
   calculatePackPrice,
   sumPayments,
   calculateOutstanding,
+  lineValue,
+  sumCredited,
 } from "./pricing";
+
+describe("cancelled lines + credits", () => {
+  it("calculateOrderTotal excludes cancelled lines", () => {
+    const items = [
+      { pricePerPiece: 10, quantity: 6 },
+      { pricePerPiece: 20, quantity: 6, cancelled: true },
+    ];
+    expect(calculateOrderTotal(items)).toBe(60); // only the live line
+  });
+
+  it("lineValue multiplies price by quantity (falls back to pricePerPack)", () => {
+    expect(lineValue({ pricePerPiece: 12.5, quantity: 4 })).toBe(50);
+    expect(lineValue({ pricePerPack: 8, quantity: 3 })).toBe(24);
+    expect(lineValue({ quantity: 3 })).toBe(0);
+  });
+
+  it("sumCredited totals creditAmount across cancelled lines only", () => {
+    const items = [
+      { pricePerPiece: 10, quantity: 6, cancelled: true, creditAmount: 60 },
+      { pricePerPiece: 20, quantity: 6, cancelled: true, creditAmount: 0 },
+      { pricePerPiece: 5, quantity: 6 },
+    ];
+    expect(sumCredited(items)).toBe(60);
+  });
+});
 
 describe("calculateOrderTotal", () => {
   it("sums pricePerPiece × quantity across items", () => {

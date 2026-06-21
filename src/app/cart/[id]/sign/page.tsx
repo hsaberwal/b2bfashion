@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { DEFAULT_PAYMENT_OPTIONS, type PaymentOptionsConfig } from "@/lib/paymentOptions";
 
 type Order = {
   id: string;
@@ -31,7 +32,9 @@ export default function SignOrderPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
-  const [paymentOption, setPaymentOption] = useState<"pay_now" | "pay_deposit" | "pay_later">("pay_deposit");
+  const [paymentOption, setPaymentOption] = useState<"pay_now" | "pay_deposit" | "pay_later">("pay_now");
+  const [paymentOptions, setPaymentOptions] = useState<PaymentOptionsConfig>(DEFAULT_PAYMENT_OPTIONS);
+  const [specialInstructions, setSpecialInstructions] = useState("");
   const [delivery, setDelivery] = useState<DeliverySnapshot>({
     addressLine1: "",
     addressLine2: "",
@@ -50,6 +53,21 @@ export default function SignOrderPage() {
     ctx.strokeStyle = "#171717";
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
+  }, []);
+
+  // Load which payment options the admin has enabled, and default the selection
+  // to the first enabled one (preferring pay-in-full).
+  useEffect(() => {
+    fetch("/api/payment-options")
+      .then((r) => r.json())
+      .then((d) => {
+        const opts = (d.options ?? DEFAULT_PAYMENT_OPTIONS) as PaymentOptionsConfig;
+        setPaymentOptions(opts);
+        const order: ("pay_now" | "pay_deposit" | "pay_later")[] = ["pay_now", "pay_deposit", "pay_later"];
+        const first = order.find((k) => opts[k]) ?? "pay_now";
+        setPaymentOption(first);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -161,6 +179,7 @@ export default function SignOrderPage() {
           },
           paymentOption,
           depositAmount: orderTotal > 0 ? depositAmount : undefined,
+          specialInstructions: specialInstructions.trim() || undefined,
         }),
       });
       const signData = await signRes.json();
@@ -337,12 +356,14 @@ export default function SignOrderPage() {
                   £{orderTotal.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-je-muted">10% deposit</span>
-                <span className="screenshot-protected text-je-muted">
-                  £{depositAmount.toFixed(2)}
-                </span>
-              </div>
+              {paymentOptions.pay_deposit && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-je-muted">10% deposit</span>
+                  <span className="screenshot-protected text-je-muted">
+                    £{depositAmount.toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -353,72 +374,96 @@ export default function SignOrderPage() {
             Payment Method
           </h2>
           <div className="space-y-3">
-            <label
-              className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
-                paymentOption === "pay_now"
-                  ? "border-je-black bg-je-offwhite"
-                  : "border-je-border hover:border-je-charcoal"
-              }`}
-            >
-              <input
-                type="radio"
-                name="payment"
-                checked={paymentOption === "pay_now"}
-                onChange={() => setPaymentOption("pay_now")}
-                className="mt-0.5"
-              />
-              <div>
-                <p className="text-sm font-medium text-je-black">Pay in full</p>
-                <p className="text-xs text-je-muted mt-0.5">
-                  Pay the full amount of £{orderTotal.toFixed(2)} now via Stripe
-                </p>
-              </div>
-            </label>
+            {paymentOptions.pay_now && (
+              <label
+                className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
+                  paymentOption === "pay_now"
+                    ? "border-je-black bg-je-offwhite"
+                    : "border-je-border hover:border-je-charcoal"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentOption === "pay_now"}
+                  onChange={() => setPaymentOption("pay_now")}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-je-black">Pay in full</p>
+                  <p className="text-xs text-je-muted mt-0.5">
+                    Pay the full amount of £{orderTotal.toFixed(2)} now via Stripe
+                  </p>
+                </div>
+              </label>
+            )}
 
-            <label
-              className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
-                paymentOption === "pay_deposit"
-                  ? "border-je-black bg-je-offwhite"
-                  : "border-je-border hover:border-je-charcoal"
-              }`}
-            >
-              <input
-                type="radio"
-                name="payment"
-                checked={paymentOption === "pay_deposit"}
-                onChange={() => setPaymentOption("pay_deposit")}
-                className="mt-0.5"
-              />
-              <div>
-                <p className="text-sm font-medium text-je-black">Pay 10% deposit</p>
-                <p className="text-xs text-je-muted mt-0.5">
-                  Pay £{depositAmount.toFixed(2)} now, remaining balance on delivery
-                </p>
-              </div>
-            </label>
+            {paymentOptions.pay_deposit && (
+              <label
+                className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
+                  paymentOption === "pay_deposit"
+                    ? "border-je-black bg-je-offwhite"
+                    : "border-je-border hover:border-je-charcoal"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentOption === "pay_deposit"}
+                  onChange={() => setPaymentOption("pay_deposit")}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-je-black">Pay 10% deposit</p>
+                  <p className="text-xs text-je-muted mt-0.5">
+                    Pay £{depositAmount.toFixed(2)} now, remaining balance on delivery
+                  </p>
+                </div>
+              </label>
+            )}
 
-            <label
-              className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
-                paymentOption === "pay_later"
-                  ? "border-je-black bg-je-offwhite"
-                  : "border-je-border hover:border-je-charcoal"
-              }`}
-            >
-              <input
-                type="radio"
-                name="payment"
-                checked={paymentOption === "pay_later"}
-                onChange={() => setPaymentOption("pay_later")}
-                className="mt-0.5"
-              />
-              <div>
-                <p className="text-sm font-medium text-je-black">Invoice (pay later)</p>
-                <p className="text-xs text-je-muted mt-0.5">
-                  We&apos;ll send an invoice. Payment due on delivery.
-                </p>
-              </div>
-            </label>
+            {paymentOptions.pay_later && (
+              <label
+                className={`flex items-start gap-4 p-4 border rounded cursor-pointer transition-all ${
+                  paymentOption === "pay_later"
+                    ? "border-je-black bg-je-offwhite"
+                    : "border-je-border hover:border-je-charcoal"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentOption === "pay_later"}
+                  onChange={() => setPaymentOption("pay_later")}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-je-black">Invoice (pay later)</p>
+                  <p className="text-xs text-je-muted mt-0.5">
+                    We&apos;ll send an invoice. Payment due on delivery.
+                  </p>
+                </div>
+              </label>
+            )}
           </div>
+        </section>
+
+        {/* Special instructions */}
+        <section className="mb-8 border-t border-je-border pt-6">
+          <h2 className="text-[11px] uppercase tracking-widest font-semibold text-je-black mb-4">
+            Special Instructions
+          </h2>
+          <textarea
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value)}
+            maxLength={2000}
+            rows={3}
+            placeholder="Anything we should know about this order — delivery dates, packing notes, etc. (optional)"
+            className="w-full px-4 py-2.5 border border-je-border text-sm text-je-black focus:border-je-black focus:outline-none transition-colors resize-y"
+          />
+          <p className="mt-1.5 text-xs text-je-muted">
+            These notes appear on your order sheet and our picking list. {2000 - specialInstructions.length} characters left.
+          </p>
         </section>
 
         {/* Signature */}

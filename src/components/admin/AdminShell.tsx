@@ -73,6 +73,18 @@ const NAV_ITEMS: NavItem[] = [
     match: (p) => p.startsWith("/admin/pages"),
   },
   {
+    href: "/admin/banners",
+    label: "Banners",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <circle cx="8.5" cy="10" r="1.5" />
+        <path d="M21 15l-5-5-6 6" />
+      </svg>
+    ),
+    match: (p) => p.startsWith("/admin/banners"),
+  },
+  {
     href: "/admin/settings",
     label: "Settings",
     icon: (

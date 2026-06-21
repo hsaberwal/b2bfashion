@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema(
     resetToken: String,
     resetTokenExpires: Date,
     stripeCustomerId: { type: String, index: true },
+    /** Account credit (GBP) accrued from packs removed off paid orders; usable on future orders. */
+    creditBalance: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

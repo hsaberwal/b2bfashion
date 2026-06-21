@@ -68,7 +68,7 @@ src/
             route.ts                  # GET full order with payments & customer
             status/route.ts           # POST advance fulfilment status
             payments/route.ts         # POST record manual payment
-            pdf/route.ts              # GET sales order / pick sheet PDF
+            pdf/route.ts              # GET sales-order PDF (= packing list)
         users/
           route.ts                    # GET list of all customers
           [id]/route.ts               # GET full customer with orders, PATCH perms, DELETE
@@ -149,7 +149,7 @@ src/
     adminNotifications.ts             # sendNewOrderEmail + sendCustomerOrderEmail (Resend)
     buildOrderPdf.ts                  # load order + render PDF (shared by route + emails)
     orderPdf.ts                       # generateOrderPdf — CLAUDIA.C sales order (one
-                                      # row per SKU) + per-size picking page + signature
+                                      # row per SKU = packing list) + signature
     fashn.ts                          # FASHN client
     signupHygiene.ts                  # Disposable email + MX checks
     sizeScale.ts                      # "10-18 (1-2-2-2-1)" parser
@@ -201,6 +201,7 @@ public/
 | `otpCode` / `otpExpires` | string / Date | Time-limited login OTP |
 | `resetToken` / `resetTokenExpires` | string / Date | Password reset |
 | `stripeCustomerId` | string (indexed) | Set on first checkout; reused on subsequent orders |
+| `creditBalance` | number | Account credit (GBP) accrued from packs removed off paid orders; spendable on future orders |
 | `createdAt` / `updatedAt` | Date | Auto |
 
 ### 3.2 Session (`src/models/Session.ts`)
@@ -248,16 +249,20 @@ Indexes: `stockCategory`, `category`, `colour`, `season`, `disabled`.
 | `status` | enum | `pending` \| `signed` \| `confirmed` \| `picked` \| `ready_to_ship` \| `shipped` \| `delivered` \| `cancelled` |
 | `signatureDataUrl` | string | AES-256-GCM encrypted |
 | `signedAt` | Date | |
+| `specialInstructions` | string | Free-text notes from the customer at checkout; printed on the sales-sheet PDF + pick list |
 | `deliverySnapshot` | sub-doc | Captured at sign time so a later address change doesn't rewrite history |
 | `paymentOption` | enum | `pay_now` \| `pay_deposit` \| `pay_later` |
 | `depositAmount` | number | Server-calculated as 10% of total |
 | `depositPaid` | bool | |
 | `paymentStatus` | enum | `none` \| `pending` \| `paid` \| `failed` \| `refunded` |
 | `amountPaid` | number | Recomputed from `Payment` rows after each payment event |
+| `refundedTotal` | number | Sum of Stripe refunds issued across partial cancellations |
 | `stripeSessionId` / `stripePaymentIntentId` | string | For webhook reconciliation |
 | `pickedAt` / `readyAt` / `shippedAt` / `deliveredAt` | Date | Stamped on each transition |
 | `shippingCarrier` / `shippingTrackingNumber` | string | Optional, captured at "Mark shipped" |
 | `createdAt` / `updatedAt` | Date | Auto |
+
+Per-line **partial cancellation** fields on `items[]`: `cancelled`, `cancelledAt`, `cancelledReason`, `creditAmount` (capped at what the customer paid), `creditType` (`balance` \| `refund`), `refundStatus` (`none` \| `owed` \| `refunded`), `stripeRefundId`. Removing a pack releases its stock (reservation if `signed`, physical stock once consumed), records the credit, and emails a revised invoice. `creditType: "balance"` increments `User.creditBalance`; `creditType: "refund"` leaves a refund "owed" until an admin issues the Stripe refund.
 
 Indexes: `userId`, `status`.
 
@@ -292,7 +297,13 @@ The source of truth for "how much has been paid against this order."
 
 ### 3.7 SiteContent (`src/models/SiteContent.ts`)
 
-Keyed editable content blocks: `"about"`, `"footer"`. Written via admin, read by public site-content endpoints.
+Keyed editable content blocks. Written via admin, read by public site-content endpoints. Keys in use:
+
+- `"about"`, `"footer"` — editable CMS page/footer content
+- `"orderNotifications"` — admin new-order email recipient list
+- `"comingSoon"` — `{ enabled, message }` for the logged-out "coming soon" banner
+- `"paymentOptions"` — `{ pay_now, pay_deposit, pay_later }` booleans for which checkout payment methods are enabled (default: pay-in-full only; normalised by `src/lib/paymentOptions.ts`, read server-side by `paymentOptionsServer.ts`)
+- `"heroBanners"` — `{ mode: "products"|"banners"|"mixed", banners: [{ image, link?, headline?, subtext? }] }` for admin-uploaded homepage hero banners (managed at `/admin/banners`, sanitised on read by `src/lib/heroBanners.ts`)
 
 ### 3.8 AuditLog (`src/models/AuditLog.ts`)
 
@@ -353,7 +364,7 @@ Every state-changing endpoint requires the CSRF token issued via `GET /api/auth/
 | GET | `/api/products?stockCategory=…&category=…&colour=…&search=…` | Catalogue, max 500 |
 | GET | `/api/products/[id]` | Single product |
 | GET | `/api/products/featured` | Homepage curated |
-| GET | `/api/products/hero` | Hero-flagged products |
+| GET | `/api/products/hero` | Hero-flagged products **+** the hero banner config (`{ products, hero: { mode, banners } }`) |
 | GET | `/api/products/latest-looks` | Latest Looks rotation |
 
 ### 4.5 User profile + site content
@@ -378,7 +389,10 @@ All require `requireAdmin()` (throws 401 / 403).
 | GET | `/api/admin/orders/[id]` | Full order: customer + payments + rich items |
 | POST | `/api/admin/orders/[id]/status` | `{ status, shippingCarrier?, shippingTrackingNumber? }` |
 | POST | `/api/admin/orders/[id]/payments` | `{ amount, method, reference?, note? }` |
-| GET | `/api/admin/orders/[id]/pdf` | Sales-order PDF — one row per SKU, plus a per-size picking-list page; the customer's signature is drawn on the signature line |
+| POST | `/api/admin/orders/[id]/cancel-item` | Remove a pack: `{ itemId, creditType: "balance"\|"refund", reason? }` — releases stock, records credit, emails revised invoice |
+| POST | `/api/admin/orders/[id]/refund-item` | Issue the Stripe refund for a refund-owed removed pack: `{ itemId }` |
+| GET | `/api/admin/orders/[id]/pdf` | Sales-order PDF — one row per SKU (this **is** the packing list); the customer's signature is drawn on the signature line; special instructions printed in the footer box |
+| GET | `/api/payment-options` | Which checkout payment options are enabled (public; admin-configured) |
 | GET | `/api/admin/users` | All users |
 | GET | `/api/admin/users/[id]` | Customer profile + order history + lifetime spend + outstanding |
 | PATCH | `/api/admin/users/[id]` | Toggle permissions / role / emailVerified |
