@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       materials: colIdx("FabComp"),
       price: colIdx("Wholesale"),
       packsInStock: colIdx("Packs In Stock"),
+      barcode: colIdx("Barcode"),
     };
 
     // Required columns
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
       const brand = String(row[cols.brand] ?? "").trim();
       const season = String(row[cols.season] ?? "").trim();
       const materials = String(row[cols.materials] ?? "").trim();
+      const barcodeCell = cols.barcode >= 0 ? String(row[cols.barcode] ?? "").trim() : "";
       const priceNum = parseFloat(String(row[cols.price] ?? "0"));
       const packsInStock = parseInt(String(row[cols.packsInStock] ?? "0"), 10) || 0;
       const sheetPackSize = parseInt(String(row[cols.packSize] ?? "0"), 10) || 0;
@@ -241,6 +243,7 @@ export async function POST(request: NextRequest) {
         materials: materials || undefined,
         pricePerPiece: priceNum > 0 ? priceNum : undefined,
         packsInStock,
+        barcode: barcodeCell || undefined,
         stockCategory: "current" as const,
       };
 
@@ -270,6 +273,7 @@ export async function POST(request: NextRequest) {
           existing.brandCode = productData.brandCode;
           existing.brand = productData.brand;
           existing.season = productData.season;
+          if (productData.barcode) existing.barcode = productData.barcode;
           await existing.save();
           results.push({ row: rowNum, sku: compositeSku, status: "updated" });
         } else {

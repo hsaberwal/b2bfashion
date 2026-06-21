@@ -219,6 +219,7 @@ public/
 | Field | Type | Notes |
 |---|---|---|
 | `sku` | string (unique) | `{SPC}-{COLOUR}` (e.g. `COL13276-BLACK`) |
+| `barcode` | string (sparse index) | Optional pack barcode printed on samples; agents scan it (matched OR sku) |
 | `brandCode` / `brand` / `season` | string | From bulk import |
 | `name` / `description` / `longDescription` | string | |
 | `materials` / `careGuide` | string | Care guide often filled via label scanner |
@@ -413,6 +414,7 @@ All require `requireAdmin()` (throws 401 / 403).
 | GET / POST | `/api/agent/customers` | The agent's assigned customers (+ outstanding) / add a customer record (linked to the agent) |
 | POST | `/api/agent/customers/invite` | Email a customer a set-password invite, linked to the agent |
 | GET | `/api/agent/products?search=` | Product search with prices for the order builder |
+| GET | `/api/agent/products/lookup?code=` | Resolve a scanned/typed code to a pack (matches `barcode` OR `sku`) |
 | GET / POST / PATCH | `/api/agent/orders` | Read the customer's pending basket / add items / set a line's pack count |
 | POST | `/api/agent/orders/[id]/place` | Customer signs on the device, then place with any enabled payment option: `pay_later` confirms unpaid; `pay_now`/`pay_deposit` return a Stripe Checkout URL. Stamps `Order.agentId`. Stock + sign + pay logic mirror the customer routes via `src/lib/orderService.ts` |
 

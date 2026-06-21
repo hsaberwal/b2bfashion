@@ -3,9 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { fetchWithCsrf } from "@/lib/fetchWithCsrf";
 import { SignaturePad } from "@/components/SignaturePad";
 import { DEFAULT_PAYMENT_OPTIONS, PAYMENT_OPTION_LABELS, type PaymentOptionKey, type PaymentOptionsConfig } from "@/lib/paymentOptions";
+
+// Camera scanner is client-only (getUserMedia / zxing).
+const BarcodeScanner = dynamic(() => import("@/components/agent/BarcodeScanner").then((m) => m.BarcodeScanner), { ssr: false });
 
 type BasketLine = { productId: string; sku: string; name: string; colour?: string; image?: string; packSize: number; packs: number; quantity: number; pricePerPiece?: number; lineTotal: number };
 type Basket = { orderId: string | null; items: BasketLine[]; total: number };
@@ -29,6 +33,8 @@ export default function AgentOrderPage() {
   const [instructions, setInstructions] = useState("");
   const [placing, setPlacing] = useState(false);
   const [err, setErr] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanMsg, setScanMsg] = useState("");
 
   const loadBasket = useCallback(async () => {
     const r = await fetch(`/api/agent/orders?customerId=${customerId}`);
@@ -71,6 +77,30 @@ export default function AgentOrderPage() {
     else setErr((await r.json()).error ?? "Could not add");
   }
 
+  // A scanned/typed code → look up the pack → add one pack to the basket.
+  async function handleCode(code: string) {
+    setScanMsg("Looking up…");
+    try {
+      const r = await fetch(`/api/agent/products/lookup?code=${encodeURIComponent(code)}`);
+      const data = await r.json();
+      if (!r.ok) { setScanMsg(data.error ?? "No match"); return; }
+      const p = data.product as { id: string; name: string; colour?: string; packSize: number; minPacks: number };
+      const add = await fetchWithCsrf("/api/agent/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, items: [{ productId: p.id, quantity: p.packSize * (p.minPacks ?? 1) }] }),
+      });
+      if (add.ok) {
+        setBasket(await add.json());
+        setScanMsg(`✓ Added 1 pack — ${p.name}${p.colour ? ` (${p.colour})` : ""}`);
+      } else {
+        setScanMsg((await add.json()).error ?? "Could not add");
+      }
+    } catch {
+      setScanMsg("Lookup failed");
+    }
+  }
+
   async function setPacks(productId: string, packs: number) {
     setErr("");
     const r = await fetchWithCsrf("/api/agent/orders", {
@@ -107,6 +137,25 @@ export default function AgentOrderPage() {
     <div className="max-w-3xl mx-auto p-4 md:p-6">
       <Link href="/agent" className="text-sm text-gray-500 hover:text-gray-900">&larr; My customers</Link>
       <h1 className="font-serif text-2xl text-gray-900 mt-2 mb-4">Build order</h1>
+
+      {/* Scan barcodes */}
+      <section className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h2 className="text-sm font-semibold text-gray-900">Scan a sample</h2>
+          <button type="button" onClick={() => setShowScanner((v) => !v)} className="text-xs text-blue-600 hover:underline">
+            {showScanner ? "Hide scanner" : "Scan barcodes"}
+          </button>
+        </div>
+        {showScanner ? (
+          <>
+            <BarcodeScanner onCode={handleCode} />
+            {scanMsg && <p className="mt-2 text-sm text-gray-700">{scanMsg}</p>}
+            <p className="mt-1 text-xs text-gray-500">Each scan adds one pack. Scan the same sample again to add another, or adjust counts in the basket.</p>
+          </>
+        ) : (
+          <p className="text-xs text-gray-500">Scan the barcode on a sample to drop its pack into the basket. Or search manually below.</p>
+        )}
+      </section>
 
       {/* Product search */}
       <section className="bg-white border border-gray-200 rounded-lg p-4 mb-4">

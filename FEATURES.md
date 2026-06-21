@@ -316,7 +316,7 @@ Field sales reps with their own role + portal.
 - **Customer ↔ agent assignment**: each customer has an optional `agentId`, set from the customer's admin page or the agent's page.
 - **Agent portal** (`/agent`): an agent picks one of their customers, **builds a basket** on the customer's behalf (product search; adjustable pack quantities), the **customer signs on the agent's device**, and the order is placed with **any enabled payment option** — `pay_later` confirms it as an unpaid invoice (outstanding on the customer's file, attributed to the agent), or `pay_now`/`pay_deposit` takes payment via Stripe Checkout on the device (card / Apple Pay / Google Pay / Klarna). Agents can also **add or invite** new customers.
 - Security: every agent endpoint funnels through `assertOwnsCustomer` (`src/lib/agentOwnership.ts`) — agents can only see/act on their own customers; admins override. Stock/sign/pay logic mirrors the customer checkout via `src/lib/orderService.ts`.
-- _Phase 3 adds camera **barcode scanning** of sample packs straight into the basket._
+- **Barcode scanning**: products carry an optional `barcode` (set on the product form or the bulk-import "Barcode" column). In the order builder, the agent taps **Scan barcodes** to open the device camera (`@zxing/browser`, on-device, no hardware) and scans a sample's pack barcode — each scan drops **one pack** into the basket; re-scanning adds another. A **type-the-code** fallback and manual product search are always available. The lookup matches the barcode **or** the SKU.
 
 ### Customer-Facing Order Tracking
 
